@@ -1,0 +1,100 @@
+This NOTICE file records attribution for Kuunda Vibe.
+
+Provenance (oldest first):
+  Microsoft Corporation — Code - OSS (MIT)
+    → Glass Devtools, Inc. — Void (Apache-2.0)
+      → Arowtech — Kuunda Vibe (Apache-2.0)
+
+Void (https://github.com/voideditor/void) does not ship a NOTICE file.
+Sections 1 and 2 reproduce, unchanged, the copyright notices that appear
+in Void's LICENSE-VS-Code.txt and in the appendix of Void's LICENSE.txt.
+Section 3 is added by Arowtech pursuant to Apache License 2.0 §4(d)
+(additional attribution; it does not modify the License).
+
+==============================================================================
+1. Microsoft Corporation — Code - OSS (Visual Studio Code source)
+   License: MIT License (see LICENSE-VS-Code.txt)
+   Source: https://github.com/microsoft/vscode
+==============================================================================
+
+Copyright (c) 2015 - present Microsoft Corporation
+
+The MIT-licensed Code - OSS source is the editor core. Microsoft's
+proprietary Visual Studio Code product license, branding, telemetry
+endpoints, and marketplace components are not part of this Work.
+
+==============================================================================
+2. Glass Devtools, Inc. — Void
+   License: Apache License, Version 2.0 (see LICENSE)
+   Source: https://github.com/voideditor/void
+==============================================================================
+
+Copyright 2025 Glass Devtools, Inc.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+==============================================================================
+3. Arowtech — Kuunda Vibe (added)
+   License: Apache License, Version 2.0 (see LICENSE)
+   Source: https://github.com/Arowtech/Kuunda-vibe
+==============================================================================
+
+Copyright 2026 Arowtech
+
+This product includes software developed at Arowtech for the Kuunda Vibe
+desktop IDE (https://github.com/Arowtech/Kuunda-vibe).
+
+Trademarks (Apache License 2.0 §6):
+The Apache License, Version 2.0, does not grant permission to use the trade
+names, trademarks, service marks, or product names of Arowtech, Kuunda,
+Kuunda Vibe, Kuunda Cloud, Genius Pay, Void, Glass Devtools, Visual Studio
+Code, VS Code, or Microsoft, except as required for reasonable and customary
+use in describing the origin of the Work and reproducing this NOTICE file.
+
+Disclaimer of Warranty (Apache License 2.0 §7):
+This product is provided on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS
+OF ANY KIND, either express or implied, including without limitation any
+warranties or conditions of TITLE, NON-INFRINGEMENT, MERCHANTABILITY, or
+FITNESS FOR A PARTICULAR PURPOSE. See LICENSE and LICENSE-VS-Code.txt.
+
+Limitation of Liability (Apache License 2.0 §8):
+In no event and under no legal theory, whether in tort (including negligence),
+contract, or otherwise, unless required by applicable law (such as deliberate
+and grossly negligent acts) or agreed to in writing, shall any Contributor be
+liable to You for damages, including any direct, indirect, special, incidental,
+or consequential damages of any character arising as a result of this License
+or out of the use or inability to use the Work (including but not limited to
+damages for loss of goodwill, work stoppage, computer failure or malfunction,
+or any and all other commercial damages or losses), even if such Contributor
+has been advised of the possibility of such damages.
+
+Separable proprietary components (NOT part of this Apache-2.0 Work):
+The following remain separable works that bind by name to published
+interfaces, as contemplated by the Apache License 2.0 definition of
+"Derivative Works". They live in the private repository
+Arowtech/kuunda-vibe-cloud, not in this public repository:
+
+  - Billing / credits ledger and plan entitlements
+  - Genius Pay payment processing and webhook verification
+  - Kuunda Cloud platform provisioning that uses operator credentials
+  - IDE update signing-key custody and private distribution control plane
+
+See docs/legal/COMPOSANTS-PROPRIETAIRES.md.
+
+When the Void / Code - OSS source tree is imported, the upstream
+ThirdPartyNotices.txt (and any equivalent notices generated at package
+time) MUST be retained and redistributed with source and binary forms.
+
+Files modified relative to Void / Code - OSS MUST carry a prominent notice
+that they were changed (Apache License 2.0 §4(b)). The project convention is
+documented in docs/legal/OBLIGATIONS-APACHE-2.0.md.

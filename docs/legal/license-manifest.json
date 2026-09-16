@@ -1,0 +1,44 @@
+{
+  "project": "Kuunda Vibe",
+  "publicRepository": "https://github.com/Arowtech/Kuunda-vibe.git",
+  "steward": "Arowtech",
+  "projectLicense": "Apache-2.0",
+  "phase": 0,
+  "upstream": [
+    {
+      "name": "Code - OSS (Visual Studio Code)",
+      "copyrightHolder": "Microsoft Corporation",
+      "license": "MIT",
+      "years": "2015-present",
+      "noticeFile": "LICENSE-VS-Code.txt"
+    },
+    {
+      "name": "Void",
+      "copyrightHolder": "Glass Devtools, Inc.",
+      "license": "Apache-2.0",
+      "years": "2025",
+      "noticeFile": "LICENSE"
+    }
+  ],
+  "originalWork": {
+    "name": "Kuunda Vibe",
+    "copyrightHolder": "Arowtech",
+    "license": "Apache-2.0",
+    "years": "2026"
+  },
+  "requiredRootFiles": [
+    "LICENSE",
+    "LICENSE-VS-Code.txt",
+    "NOTICE",
+    "CONTRIBUTING.md",
+    "GOVERNANCE.md",
+    "CODE_OF_CONDUCT.md"
+  ],
+  "proprietaryExcluded": [
+    "billing",
+    "genius-pay",
+    "kuunda-cloud-operator",
+    "credits-ledger",
+    "update-control-plane"
+  ]
+}
