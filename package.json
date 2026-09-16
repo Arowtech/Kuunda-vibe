@@ -2,13 +2,13 @@
   "name": "kuunda-vibe",
   "private": true,
   "version": "0.0.0",
-  "description": "Kuunda Vibe IDE — dépôt public Apache-2.0 (Phase 0 : licence et gouvernance uniquement)",
+  "description": "Kuunda Vibe IDE — dépôt public Apache-2.0",
   "license": "Apache-2.0",
   "engines": {
     "node": ">=24.0.0"
   },
   "type": "module",
   "scripts": {
-    "test": "node --test test/license-compliance.test.mjs"
+    "test": "node --test test/license-compliance.test.mjs packages/cloud-client/test/cloud-client.test.mjs"
   }
 }

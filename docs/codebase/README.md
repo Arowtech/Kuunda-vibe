@@ -7,42 +7,35 @@ Ce guide est mis à jour **à chaque phase**. Il n'est pas un README marketing.
 | Document | Rôle |
 | --- | --- |
 | [00-licence-et-gouvernance.md](00-licence-et-gouvernance.md) | Phase 0 : licence, NOTICE, CLA, frontière public/privé |
+| [00bis-infrastructure.md](00bis-infrastructure.md) | Phase 0bis : Workers, DNS, Kuunda Cloud, secrets |
 | `LICENSE` | Apache-2.0 (texte officiel non modifié) |
 | `LICENSE-VS-Code.txt` | MIT Code - OSS (Microsoft) |
 | `NOTICE` | Chaîne d'attribution Microsoft → Void → Arowtech |
 | `GOVERNANCE.md` | Steward, PR, branches |
 | `CONTRIBUTING.md` | Comment contribuer |
-| `docs/legal/` | Obligations Apache, CLA, isolation propriétaire |
+| [i18n-en-fr.md](i18n-en-fr.md) | UI bilingue EN/FR, anglais par défaut |
 
 ## Phases
 
 | Phase | Statut |
 | --- | --- |
-| 0 Licence et gouvernance | **Implémentée — en attente de validation steward** |
-| 0bis Infrastructure et sécurité plateforme | Non commencée |
+| 0 Licence et gouvernance | **Validée** (steward, 16 sept. 2026) |
+| 0bis Infrastructure et sécurité plateforme | **Implémentée — en attente de validation steward** |
 | 1 Renommage éditeur | Non commencée |
 | 2–10 | Non commencées |
 
 Ne pas fusionner les phases. Ne pas démarrer N+1 sans validation explicite de N.
 
-## Arbre actuel (Phase 0 uniquement)
+## Arbre actuel (Phases 0–0bis)
 
 Le fork Void / `src/vs/` n'est **pas** encore importé. C'est volontaire (Phase 1).
 
 ```
-LICENSE
-LICENSE-VS-Code.txt
-NOTICE
-CONTRIBUTING.md
-GOVERNANCE.md
-CODE_OF_CONDUCT.md
-package.json
-test/license-compliance.test.mjs
-docs/legal/
-docs/codebase/
-.github/PULL_REQUEST_TEMPLATE.md
+packages/cloud-client/   contrats + client HTTP sans secret
+docs/codebase/00bis-infrastructure.md
+.github/dependabot.yml
 ```
 
-## Stack figée pour la Phase 0
+## Stack figée
 
-Voir `00-licence-et-gouvernance.md` § Choix techniques.
+Voir `00-licence-et-gouvernance.md` et `00bis-infrastructure.md`.
