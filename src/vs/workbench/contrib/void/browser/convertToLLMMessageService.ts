@@ -1,4 +1,4 @@
-// Modified 2026-09-17 by Arowtech: append Kuunda @Codebase hits to the chat system message.
+// Modified 2026-09-17 by Arowtech: append Kuunda @Codebase hits and compact long agent context.
 import { Disposable } from '../../../../base/common/lifecycle.js';
 import { deepClone } from '../../../../base/common/objects.js';
 import { IModelService } from '../../../../editor/common/services/model.js';
@@ -20,6 +20,7 @@ import { EndOfLinePreference } from '../../../../editor/common/model.js';
 import { ToolName } from '../common/toolsServiceTypes.js';
 import { IMCPService } from '../common/mcpService.js';
 import { IKuundaCodebaseService } from '../../kuundaAi/common/kuundaCodebaseService.js';
+import { compactChatContext, contextBudgetChars } from '../../kuundaAi/common/contextCompact.js';
 
 export const EMPTY_MESSAGE = '(empty message)'
 
@@ -708,7 +709,9 @@ class ConvertToLLMMessageService extends Disposable implements IConvertToLLMMess
 		const aiInstructions = this._getCombinedAIInstructions();
 		const isReasoningEnabled = getIsReasoningEnabledState('Chat', providerName, modelName, modelSelectionOptions, overridesOfModel)
 		const reservedOutputTokenSpace = getReservedOutputTokenSpace(providerName, modelName, { isReasoningEnabled, overridesOfModel })
-		const llmMessages = this._chatMessagesToSimpleMessages(chatMessages)
+		const llmMessages = compactChatContext(this._chatMessagesToSimpleMessages(chatMessages), {
+			maxChars: contextBudgetChars(contextWindow, reservedOutputTokenSpace),
+		})
 
 		const { messages, separateSystemMessage } = prepareMessages({
 			messages: llmMessages,

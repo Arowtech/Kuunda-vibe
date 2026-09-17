@@ -3,7 +3,7 @@
   "publicRepository": "https://github.com/Arowtech/Kuunda-vibe.git",
   "steward": "Arowtech",
   "projectLicense": "Apache-2.0",
-	"phase": 2,
+	"phase": "3bis",
   "upstream": [
     {
       "name": "Code - OSS (Visual Studio Code)",

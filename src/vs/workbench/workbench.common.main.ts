@@ -20,6 +20,7 @@ import './contrib/void/browser/void.contribution.js'; // Void added this
 //#region --- Kuunda Vibe (Arowtech, Apache-2.0)
 import './contrib/kuundaBrand/browser/kuundaBrand.contribution.js';
 import './contrib/kuundaAi/browser/kuundaAi.contribution.js';
+import './contrib/kuundaBilling/browser/kuundaBilling.contribution.js';
 //#endregion
 
 //#region --- workbench actions

@@ -2,6 +2,7 @@
  *  Copyright 2025 Glass Devtools, Inc. All rights reserved.
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
+// Modified 2026-09-17 by Arowtech: Kuunda agent permissions, step cap, background jobs, credits gate.
 
 import { Disposable } from '../../../../base/common/lifecycle.js';
 import { registerSingleton, InstantiationType } from '../../../../platform/instantiation/common/extensions.js';
@@ -39,6 +40,11 @@ import { IDirectoryStrService } from '../common/directoryStrService.js';
 import { IFileService } from '../../../../platform/files/common/files.js';
 import { IMCPService } from '../common/mcpService.js';
 import { RawMCPToolCall } from '../common/mcpServiceTypes.js';
+import { decideToolPermission } from '../../kuundaAi/common/permissionPolicy.js';
+import { MAX_AGENT_STEPS, planAfterTool, planAgentTurn } from '../../kuundaAi/common/agentLoop.js';
+import { collectCheckpointPaths, IKuundaAgentService } from '../../kuundaAi/common/kuundaAgentService.js';
+import { kuundaAiLocalize } from '../../kuundaAi/common/kuundaAiNls.js';
+import { IKuundaBillingService } from '../../kuundaBilling/common/kuundaBillingService.js';
 
 
 // related to retrying when LLM message has error
@@ -327,6 +333,8 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		@IDirectoryStrService private readonly _directoryStringService: IDirectoryStrService,
 		@IFileService private readonly _fileService: IFileService,
 		@IMCPService private readonly _mcpService: IMCPService,
+		@IKuundaAgentService private readonly _kuundaAgent: IKuundaAgentService,
+		@IKuundaBillingService private readonly _kuundaBilling: IKuundaBillingService,
 	) {
 		super()
 		this.state = { allThreads: {}, currentThreadId: null as unknown as string } // default state
@@ -587,6 +595,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 
 		this._setStreamState(threadId, undefined)
+		this._kuundaAgent.cancelThread(threadId)
 	}
 
 
@@ -642,13 +651,25 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 			// 2. if tool requires approval, break from the loop, awaiting approval
 
 			const approvalType = isBuiltInTool ? approvalTypeOfBuiltinToolName[toolName] : 'MCP tools'
+			const permission = decideToolPermission({
+				toolName,
+				autoApproveByKind: this._settingsService.state.globalSettings.autoApprove,
+				policyOverrides: this._kuundaAgent.getPolicyOverrides(),
+			})
+			if (permission.action === 'refuse') {
+				const errorMessage = 'Tool call was refused by Kuunda agent policy.'
+				this._addMessageToThread(threadId, { role: 'tool', type: 'tool_error', rawParams: opts.unvalidatedToolParams, result: errorMessage, name: toolName, content: errorMessage, id: toolId, params: toolParams, mcpServerName })
+				return {}
+			}
 			if (approvalType) {
-				const autoApprove = this._settingsService.state.globalSettings.autoApprove[approvalType]
 				// add a tool_request because we use it for UI if a tool is loading (this should be improved in the future)
 				this._addMessageToThread(threadId, { role: 'tool', type: 'tool_request', content: '(Awaiting user permission...)', result: null, name: toolName, params: toolParams, id: toolId, rawParams: opts.unvalidatedToolParams, mcpServerName })
-				if (!autoApprove) {
-					return { awaitingUserApproval: true }
+			}
+			if (permission.action === 'wait') {
+				if (!approvalType) {
+					this._addMessageToThread(threadId, { role: 'tool', type: 'tool_request', content: '(Awaiting user permission...)', result: null, name: toolName, params: toolParams, id: toolId, rawParams: opts.unvalidatedToolParams, mcpServerName })
 				}
+				return { awaitingUserApproval: true }
 			}
 		}
 		else {
@@ -754,6 +775,16 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		let nMessagesSent = 0
 		let shouldSendAnotherMessage = true
 		let isRunningWhenEnd: IsRunningType = undefined
+		const background = !!this._kuundaAgent.jobForThread(threadId)
+		const billingGate = await this._kuundaBilling.ensureCanRunAgent()
+		if (!billingGate.ok) {
+			this._notificationService.notify({
+				severity: Severity.Warning,
+				message: billingGate.message || 'credits',
+			})
+			this._setStreamState(threadId, undefined)
+			return
+		}
 
 		// before enter loop, call tool
 		if (callThisToolFirst) {
@@ -773,6 +804,9 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 			shouldSendAnotherMessage = false
 			isRunningWhenEnd = undefined
 			nMessagesSent += 1
+			if (nMessagesSent > MAX_AGENT_STEPS) {
+				break
+			}
 
 			this._setStreamState(threadId, { isRunning: 'idle', interrupt: idleInterruptor })
 
@@ -870,6 +904,11 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 						this._setStreamState(threadId, { isRunning: undefined, error })
 						this._addUserCheckpoint({ threadId })
+						this._kuundaAgent.settleThread(threadId, {
+							error: error?.message ?? 'LLM error',
+							changedPaths: collectCheckpointPaths(this.state.allThreads[threadId]?.messages ?? []),
+						})
+						this._notifyKuundaBackground(threadId, 'failed', error?.message ?? 'LLM error')
 						return
 					}
 				}
@@ -885,14 +924,35 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 				if (toolCall) {
 					const mcpTools = this._mcpService.getMCPTools()
 					const mcpTool = mcpTools?.find(t => t.name === toolCall.name)
+					const permission = decideToolPermission({
+						toolName: toolCall.name,
+						autoApproveByKind: this._settingsService.state.globalSettings.autoApprove,
+						policyOverrides: this._kuundaAgent.getPolicyOverrides(),
+					})
+					const plan = planAgentTurn({
+						step: nMessagesSent,
+						hasToolCall: true,
+						permissionAction: permission.action,
+						background,
+					})
+					if (plan.type === 'stop' || plan.type === 'finish' || plan.type === 'needs_review') {
+						this._setStreamState(threadId, { isRunning: 'idle', interrupt: 'not_needed' })
+						break
+					}
 
 					const { awaitingUserApproval, interrupted } = await this._runToolCall(threadId, toolCall.name, toolCall.id, mcpTool?.mcpServerName, { preapproved: false, unvalidatedToolParams: toolCall.rawParams })
 					if (interrupted) {
 						this._setStreamState(threadId, undefined)
+						this._kuundaAgent.cancelThread(threadId)
 						return
 					}
-					if (awaitingUserApproval) { isRunningWhenEnd = 'awaiting_user' }
-					else { shouldSendAnotherMessage = true }
+					if (awaitingUserApproval) {
+						isRunningWhenEnd = 'awaiting_user'
+						this._notifyKuundaBackground(threadId, 'permission')
+					} else {
+						const after = planAfterTool({ step: nMessagesSent, background })
+						shouldSendAnotherMessage = after.type === 'call_llm'
+					}
 
 					this._setStreamState(threadId, { isRunning: 'idle', interrupt: 'not_needed' }) // just decorative, for clarity
 				}
@@ -904,10 +964,17 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		this._setStreamState(threadId, { isRunning: isRunningWhenEnd })
 
 		// add checkpoint before the next user message
-		if (!isRunningWhenEnd) this._addUserCheckpoint({ threadId })
+		if (!isRunningWhenEnd) {
+			this._addUserCheckpoint({ threadId })
+			const thread = this.state.allThreads[threadId]
+			const changedPaths = collectCheckpointPaths(thread?.messages ?? [])
+			this._kuundaAgent.settleThread(threadId, { changedPaths })
+			this._notifyKuundaBackground(threadId, 'review', changedPaths.length)
+			void this._kuundaBilling.recordUsage(1)
+		}
 
 		// capture number of messages sent
-		this._metricsService.capture('Agent Loop Done', { nMessagesSent, chatMode })
+		this._metricsService.capture('Agent Loop Done', { nMessagesSent, chatMode, background })
 	}
 
 
@@ -1223,6 +1290,37 @@ We only need to do it for files that were edited since `from`, ie files between 
 		}).catch((e) => {
 			if (threadId !== this.state.currentThreadId) notify({ error: getErrorMessage(e) })
 			throw e
+		})
+	}
+
+	private _notifyKuundaBackground(threadId: string, kind: 'permission' | 'review' | 'failed', detail: string | number = '') {
+		if (!this._kuundaAgent.jobForThread(threadId)) {
+			return
+		}
+		const message = kind === 'permission'
+			? kuundaAiLocalize('kuunda.agent.needsPermission')
+			: kind === 'failed'
+				? kuundaAiLocalize('kuunda.agent.failed', detail)
+				: kuundaAiLocalize('kuunda.agent.needsReview', detail)
+		this._notificationService.notify({
+			severity: kind === 'failed' ? Severity.Warning : Severity.Info,
+			message,
+			sticky: true,
+			actions: {
+				primary: [{
+					id: 'kuunda.agent.jump',
+					enabled: true,
+					label: kuundaAiLocalize('kuunda.agent.jump'),
+					tooltip: '',
+					class: undefined,
+					run: () => {
+						this.switchToThread(threadId)
+						this.state.allThreads[threadId]?.state.mountedInfo?.whenMounted.then(m => {
+							m.scrollToBottom()
+						})
+					}
+				}]
+			},
 		})
 	}
 

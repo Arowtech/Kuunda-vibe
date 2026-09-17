@@ -12,7 +12,7 @@ Ce logiciel est fourni « AS IS », sans garantie. Les marques Kuunda, Kuunda Vi
 
 ## État du dépôt
 
-Phase 2 (complétion / chat) en cours : Tab multi-ligne, Ctrl+K, @Codebase local, diffs streaming. Phase 1 (identité Kuunda Vibe) validée.
+Phase 3bis (crédits) en cours : UI solde / plans dans l'IDE ; ledger Genius Pay dans le dépôt privé. Phase 3 (agent) validée.
 
 - Contribuer : [CONTRIBUTING.md](CONTRIBUTING.md)
 - Gouvernance : [GOVERNANCE.md](GOVERNANCE.md)

@@ -21,3 +21,31 @@ export {
 	applyInlineEdit,
 	rejectInlineEdit,
 } from './inline-edit.js';
+export {
+	PERMISSION_LEVELS,
+	DEFAULT_TOOL_PERMISSIONS,
+	approvalKindOfTool,
+	decideToolPermission,
+} from './permissions.js';
+export {
+	summarizeMessage,
+	compactChatContext,
+	contextBudgetChars,
+} from './context-compact.js';
+export {
+	MAX_AGENT_STEPS,
+	planAgentTurn,
+	planAfterTool,
+} from './agent-loop.js';
+export {
+	BACKGROUND_JOB_STATUSES,
+	createBackgroundJob,
+	transitionBackgroundJob,
+	collectCheckpointPaths,
+} from './background-job.js';
+export {
+	BYOK_PROVIDERS,
+	LOCAL_AGENT_PROVIDERS,
+	AGENT_PROVIDERS,
+	isSupportedAgentProvider,
+} from './providers.js';

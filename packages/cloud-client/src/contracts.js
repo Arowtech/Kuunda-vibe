@@ -5,15 +5,21 @@
  *
  * @typedef {'development' | 'staging' | 'production'} PlatformEnvironment
  *
+ * @typedef {'ok' | 'low' | 'empty'} CreditAlertLevel
+ *
  * @typedef {object} CreditsBalance
  * @property {string} userId
  * @property {number} remaining
  * @property {number} includedQuota
  * @property {string} planId
+ * @property {CreditAlertLevel} [alert]
  *
  * @typedef {object} BillingPlan
  * @property {string} id
  * @property {string} name
+ * @property {'included' | 'topup'} [kind]
+ * @property {number} [includedQuota]
+ * @property {{ amount: number, currency: string }} [price]
  *
  * @typedef {object} TransactionSummary
  * @property {string} id
@@ -21,13 +27,23 @@
  * @property {number} amount
  * @property {string} currency
  * @property {string} createdAt
+ * @property {string} [failureCode]
+ *
+ * @typedef {object} CheckoutResult
+ * @property {string} checkoutUrl
+ * @property {string} [planId]
+ * @property {number} [amount]
+ * @property {string} [currency]
  *
  * @typedef {object} ICreditsClient
  * @property {(userId: string) => Promise<CreditsBalance>} getBalance
+ * @property {(userId: string) => Promise<CreditsBalance>} signup
+ * @property {(userId: string, amount: number, reason?: string) => Promise<CreditsBalance>} consume
  *
  * @typedef {object} IBillingClient
  * @property {() => Promise<BillingPlan[]>} listPlans
  * @property {(userId: string) => Promise<TransactionSummary[]>} listTransactions
+ * @property {(userId: string, planId: string) => Promise<CheckoutResult>} startCheckout
  *
  * @typedef {object} ProvisioningRequest
  * @property {string} projectId
@@ -52,3 +68,38 @@
 
 export const DEFAULT_API_BASE_URL = 'https://api.ide.kuunda-cloud.com';
 export const DEFAULT_UPDATES_BASE_URL = 'https://updates.ide.kuunda-cloud.com';
+export const DEFAULT_ACCOUNT_URL = 'https://app.ide.kuunda-cloud.com/app/';
+
+export const PAYMENT_FAILURE_CODES = Object.freeze([
+	'insufficient_funds',
+	'timeout',
+	'declined',
+	'canceled',
+	'unknown',
+]);
+
+/**
+ * UX alert only (not a private tariff). Empty / last 20% of included quota.
+ * @param {number} remaining
+ * @param {number} includedQuota
+ * @returns {CreditAlertLevel}
+ */
+export function creditAlertLevel(remaining, includedQuota) {
+	if (remaining <= 0) {
+		return 'empty';
+	}
+	if (includedQuota > 0 && remaining / includedQuota <= 0.2) {
+		return 'low';
+	}
+	return 'ok';
+}
+
+/**
+ * @param {string | undefined} code
+ */
+export function classifyPaymentFailure(code) {
+	if (code === 'insufficient_funds' || code === 'timeout' || code === 'declined' || code === 'canceled') {
+		return code;
+	}
+	return 'unknown';
+}

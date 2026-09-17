@@ -1,7 +1,7 @@
 # 02 — Complétion et édition assistée
 
 **Phase :** 2
-**Validation steward :** en cours
+**Validation steward :** validée le 17 sept. 2026.
 **Prérequis :** Phase 1 validée (17 sept. 2026)
 
 Cette phase ajoute la parité Cursor « niveau 1 » **sans** réécrire `contrib/void` (rebase). L'agent autonome est la Phase 3.

@@ -45,6 +45,22 @@ export function createPlatformClient(options = {}) {
 		getBalance(userId) {
 			return request(`/v1/credits/${encodeURIComponent(userId)}`);
 		},
+		/** @type {import('./contracts.js').ICreditsClient['signup']} */
+		signup(userId) {
+			return request('/v1/credits/signup', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ userId }),
+			});
+		},
+		/** @type {import('./contracts.js').ICreditsClient['consume']} */
+		consume(userId, amount, reason) {
+			return request('/v1/credits/consume', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ userId, amount, reason }),
+			});
+		},
 		/** @type {import('./contracts.js').IBillingClient['listPlans']} */
 		listPlans() {
 			return request('/v1/billing/plans');
@@ -52,6 +68,14 @@ export function createPlatformClient(options = {}) {
 		/** @type {import('./contracts.js').IBillingClient['listTransactions']} */
 		listTransactions(userId) {
 			return request(`/v1/billing/transactions?userId=${encodeURIComponent(userId)}`);
+		},
+		/** @type {import('./contracts.js').IBillingClient['startCheckout']} */
+		startCheckout(userId, planId) {
+			return request('/v1/billing/checkout', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ userId, planId }),
+			});
 		},
 		/** @type {import('./contracts.js').IKuundaProvisioningClient['provisionProject']} */
 		provisionProject(body) {
