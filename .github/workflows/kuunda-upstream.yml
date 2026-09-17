@@ -1,0 +1,28 @@
+# kuunda-upstream — periodic vscode/void rebase plan (Phase 10.3)
+# Does not rebase. Does not force-push. Does not compile Electron.
+
+name: kuunda-upstream
+
+on:
+  workflow_dispatch:
+    inputs:
+      daysSinceSync:
+        description: Days since last documented vscode rebase
+        default: '30'
+
+permissions:
+  contents: read
+
+jobs:
+  plan:
+    name: Plan upstream sync
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Print upstream plan
+        run: node scripts/kuunda-upstream/plan.mjs "${{ inputs.daysSinceSync }}"
+      - name: Unit tests (no rebase)
+        run: npm test

@@ -90,6 +90,9 @@
  * @property {(jobId: string, userId: string) => Promise<PublishJob>} getPublishJob
  * @property {(jobId: string, userId: string) => Promise<{ logs: string[] }>} getPublishLogs
  *
+ * @typedef {object} IFeedbackClient
+ * @property {(body: object) => Promise<{ ok: boolean, id: string }>} submitFeedback
+ *
  * @typedef {object} UpdateArtifact
  * @property {Uint8Array} bytes
  * @property {Uint8Array} signature

@@ -1,0 +1,45 @@
+# kuunda-builder — Windows / macOS packaging plan (Phase 9)
+# Renamed from void-builder. Does not compile Electron in this job.
+# Does not wrangler-deploy. Internal channel only.
+
+name: kuunda-builder
+
+on:
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: Target platform
+        type: choice
+        default: win32-x64
+        options:
+          - win32-x64
+          - win32-arm64
+          - darwin-x64
+          - darwin-arm64
+      channel:
+        description: Update channel
+        type: choice
+        default: internal
+        options:
+          - internal
+          - staging
+
+permissions:
+  contents: read
+
+jobs:
+  plan:
+    name: Plan package
+    runs-on: ${{ startsWith(inputs.platform, 'darwin') && 'macos-latest' || 'windows-latest' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Print kuunda-builder plan
+        env:
+          HAS_WINDOWS_CERT: ${{ secrets.WINDOWS_CERT_PFX != '' }}
+          HAS_APPLE_IDENTITY: ${{ secrets.APPLE_CERTIFICATE != '' }}
+        run: node scripts/kuunda-builder/plan.mjs "${{ inputs.platform }}" "${{ inputs.channel }}" "${{ github.sha }}"
+      - name: Unit tests (no Electron compile)
+        run: npm test

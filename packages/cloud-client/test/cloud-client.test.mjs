@@ -69,6 +69,7 @@ describe('platform HTTP client', () => {
 		});
 		await client.getPublishJob('job_ab', 'u1');
 		await client.getPublishLogs('job_ab', 'u1');
+		await client.submitFeedback({ category: 'docs', severity: 1, title: 'typo', consent: true });
 		assert.deepEqual(paths, [
 			'POST /v1/credits/signup',
 			'POST /v1/credits/consume',
@@ -78,6 +79,7 @@ describe('platform HTTP client', () => {
 			'POST /v1/publishing/jobs',
 			'GET /v1/publishing/jobs/job_ab',
 			'GET /v1/publishing/jobs/job_ab/logs',
+			'POST /v1/feedback',
 		]);
 	});
 });

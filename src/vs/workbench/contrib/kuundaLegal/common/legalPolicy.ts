@@ -7,7 +7,7 @@ import { LOCAL_AGENT_PROVIDERS } from '../../kuundaAi/common/agentProviders.js';
 
 export const STRICT_OFFLINE_DEFAULT = false;
 
-export const EXTERNAL_FEATURES = ['llm_cloud', 'kuunda_cloud', 'publish', 'billing', 'credits'] as const;
+export const EXTERNAL_FEATURES = ['llm_cloud', 'kuunda_cloud', 'publish', 'billing', 'credits', 'feedback', 'usage_telemetry'] as const;
 export type ExternalFeature = typeof EXTERNAL_FEATURES[number];
 
 export const TRANSACTION_LOG_RETENTION_DAYS = 1825;
@@ -31,6 +31,7 @@ export const DATA_DISCLOSURE = [
 	{ id: 'payment_credentials_ide', location: 'never', thirdParty: null },
 	{ id: 'transaction_journal', location: 'sent', thirdParty: 'kuunda_cloud' },
 	{ id: 'vscode_telemetry', location: 'settings', thirdParty: 'vscode_void' },
+	{ id: 'opt_in_feedback', location: 'sent', thirdParty: 'kuunda_cloud' },
 ] as const;
 
 export const CREDIT_REFUND_POLICY = {
@@ -59,8 +60,11 @@ export function decideExternalSend(input: {
 	strictOffline?: boolean;
 	feature?: string;
 	provider?: string;
-} = {}): { ok: true; feature: string; localOnly?: boolean } | { ok: false; error: 'strict_offline'; disablesBilling: true; feature: string } {
+} = {}): { ok: true; feature: string; localOnly?: boolean } | { ok: false; error: 'strict_offline' | 'silent_telemetry_forbidden'; disablesBilling?: true; feature: string } {
 	const feature = String(input.feature || '');
+	if (feature === 'usage_telemetry') {
+		return { ok: false, error: 'silent_telemetry_forbidden', feature };
+	}
 	if (input.strictOffline !== true) {
 		return { ok: true, feature };
 	}
@@ -90,9 +94,10 @@ export function formatDataDisclosure(input: { locale?: string; strictOffline?: b
 			'- Métadonnées projet / tables seed → Kuunda Cloud (api.ide.kuunda-cloud.com).',
 			'- Identifiant de compte crédits, plan, montant → agrégateur de paiement (adaptateur actuel : ' + aggregator + ').',
 			'- Journaux de transaction (montant, statut, identifiant de livraison) conservés ' + TRANSACTION_LOG_RETENTION_DAYS + ' jours côté plateforme.',
+			'- Rapport de feedback opt-in (titre, catégorie, version IDE) → Kuunda Cloud. Aucune télémétrie d’usage silencieuse, aucun fichier workspace.',
 			'',
 			input.strictOffline
-				? 'Mode hors ligne strict : ACTIVÉ. Crédits, facturation en ligne, Kuunda Cloud, publication, MCP et LLM cloud (dont Tab / Ctrl+K) sont désactivés. Ollama local reste possible.'
+				? 'Mode hors ligne strict : ACTIVÉ. Crédits, facturation en ligne, Kuunda Cloud, publication, feedback, MCP et LLM cloud (dont Tab / Ctrl+K) sont désactivés. Ollama local reste possible.'
 				: 'Mode hors ligne strict : désactivé. Vous pouvez l’activer (F1) pour refuser tout envoi externe. La télémétrie VS Code/Void se désactive à part dans les paramètres.',
 		]
 		: [
@@ -108,9 +113,10 @@ export function formatDataDisclosure(input: { locale?: string; strictOffline?: b
 			'- Project metadata / seed tables → Kuunda Cloud (api.ide.kuunda-cloud.com).',
 			'- Credits account id, plan, amount → payment aggregator (current adapter: ' + aggregator + ').',
 			'- Transaction journals (amount, status, delivery id) kept ' + TRANSACTION_LOG_RETENTION_DAYS + ' days on the platform.',
+			'- Opt-in feedback report (title, category, IDE version) → Kuunda Cloud. No silent usage telemetry, no workspace files.',
 			'',
 			input.strictOffline
-				? 'Strict offline mode: ON. Online credits/billing, Kuunda Cloud, publishing, MCP and cloud LLMs (including Tab / Ctrl+K) are disabled. Local Ollama still works.'
+				? 'Strict offline mode: ON. Online credits/billing, Kuunda Cloud, publishing, feedback, MCP and cloud LLMs (including Tab / Ctrl+K) are disabled. Local Ollama still works.'
 				: 'Strict offline mode: off. Turn it on (F1) to refuse all external sends. VS Code/Void telemetry is separate — disable it in settings.',
 		];
 	return `${lines.join('\n')}\n`;
@@ -154,6 +160,7 @@ export function describeLicenseSplit(): {
 			'credits-ledger',
 			'update-control-plane',
 			'mobile-ci',
+			'feedback-plane',
 		],
 		paymentAggregatorsPluggable: true,
 	};

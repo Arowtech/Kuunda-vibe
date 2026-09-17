@@ -2,6 +2,7 @@
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
+// Modified 2026-09-17 by Arowtech: refuse unsigned IDE updates (Ed25519 over SHA-256).
 
 import { spawn } from 'child_process';
 import * as fs from 'fs';
@@ -25,6 +26,8 @@ import { asJson, IRequestService } from '../../request/common/request.js';
 import { ITelemetryService } from '../../telemetry/common/telemetry.js';
 import { AvailableForDownload, DisablementReason, IUpdate, State, StateType, UpdateType } from '../common/update.js';
 import { AbstractUpdateService, createUpdateURL, UpdateErrorClassification } from './abstractUpdateService.js';
+import { formatUpdateIntegrityError, inspectUpdateManifest } from '../common/packagingPolicy.js';
+import { assertKuundaSignedFile } from './kuundaUpdateIntegrity.js';
 
 async function pollUntil(fn: () => boolean, millis = 1000): Promise<void> {
 	while (!fn()) {
@@ -128,6 +131,11 @@ export class Win32UpdateService extends AbstractUpdateService implements IRelaun
 					return Promise.resolve(null);
 				}
 
+				const signed = inspectUpdateManifest(update);
+				if (!signed.ok) {
+					throw new Error(formatUpdateIntegrityError());
+				}
+
 				if (updateType === UpdateType.Archive) {
 					this.setState(State.AvailableForDownload(update));
 					return Promise.resolve(null);
@@ -139,14 +147,25 @@ export class Win32UpdateService extends AbstractUpdateService implements IRelaun
 					return this.getUpdatePackagePath(update.version).then(updatePackagePath => {
 						return pfs.Promises.exists(updatePackagePath).then(exists => {
 							if (exists) {
-								return Promise.resolve(updatePackagePath);
+								return assertKuundaSignedFile({
+									filePath: updatePackagePath,
+									sha256hash: signed.sha256hash,
+									signature: signed.signature,
+									publicKey: this.productService.kuundaUpdatePublicKey,
+								}).then(() => updatePackagePath);
 							}
 
 							const downloadPath = `${updatePackagePath}.tmp`;
 
 							return this.requestService.request({ url: update.url }, CancellationToken.None)
 								.then(context => this.fileService.writeFile(URI.file(downloadPath), context.stream))
-								.then(update.sha256hash ? () => checksum(downloadPath, update.sha256hash) : () => undefined)
+								.then(() => checksum(downloadPath, signed.sha256hash))
+								.then(() => assertKuundaSignedFile({
+									filePath: downloadPath,
+									sha256hash: signed.sha256hash,
+									signature: signed.signature,
+									publicKey: this.productService.kuundaUpdatePublicKey,
+								}))
 								.then(() => pfs.Promises.rename(downloadPath, updatePackagePath, false /* no retry */))
 								.then(() => updatePackagePath);
 						});
@@ -176,10 +195,28 @@ export class Win32UpdateService extends AbstractUpdateService implements IRelaun
 	}
 
 	protected override async doDownloadUpdate(state: AvailableForDownload): Promise<void> {
-		if (state.update.url) {
-			this.nativeHostMainService.openExternal(undefined, state.update.url);
+		const update = state.update;
+		const signed = inspectUpdateManifest(update);
+		if (!signed.ok || !update.url) {
+			this.setState(State.Idle(getUpdateType(), formatUpdateIntegrityError()));
+			return;
 		}
-		this.setState(State.Idle(getUpdateType()));
+
+		this.setState(State.Downloading);
+		const cachePath = await this.cachePath;
+		const packagePath = path.join(cachePath, `KuundaArchive-${update.version}.zip`);
+		const context = await this.requestService.request({ url: update.url }, CancellationToken.None);
+		await this.fileService.writeFile(URI.file(packagePath), context.stream);
+		await checksum(packagePath, signed.sha256hash);
+		await assertKuundaSignedFile({
+			filePath: packagePath,
+			sha256hash: signed.sha256hash,
+			signature: signed.signature,
+			publicKey: this.productService.kuundaUpdatePublicKey,
+		});
+		this.availableUpdate = { packagePath };
+		await this.nativeHostMainService.openExternal(undefined, URI.file(packagePath).toString(true));
+		this.setState(State.Ready(update));
 	}
 
 	private async getUpdatePackagePath(version: string): Promise<string> {
@@ -261,24 +298,8 @@ export class Win32UpdateService extends AbstractUpdateService implements IRelaun
 		return getUpdateType();
 	}
 
-	override async _applySpecificUpdate(packagePath: string): Promise<void> {
-		if (this.state.type !== StateType.Idle) {
-			return;
-		}
-
-		const fastUpdatesEnabled = this.configurationService.getValue('update.enableWindowsBackgroundUpdates');
-		const update: IUpdate = { version: 'unknown', productVersion: 'unknown' };
-
-		this.setState(State.Downloading);
-		this.availableUpdate = { packagePath };
-		this.setState(State.Downloaded(update));
-
-		if (fastUpdatesEnabled) {
-			if (this.productService.target === 'user') {
-				this.doApplyUpdate();
-			}
-		} else {
-			this.setState(State.Ready(update));
-		}
+	override async _applySpecificUpdate(_packagePath: string): Promise<void> {
+		this.logService.error('update#_applySpecificUpdate refused: local package has no Ed25519 manifest');
+		this.setState(State.Idle(getUpdateType(), formatUpdateIntegrityError()));
 	}
 }

@@ -2,6 +2,7 @@
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
+// Modified 2026-09-17 by Arowtech: refuse unsigned IDE update feeds (Ed25519).
 
 import { CancellationToken } from '../../../base/common/cancellation.js';
 import { IConfigurationService } from '../../configuration/common/configuration.js';
@@ -13,6 +14,7 @@ import { IProductService } from '../../product/common/productService.js';
 import { asJson, IRequestService } from '../../request/common/request.js';
 import { AvailableForDownload, IUpdate, State, UpdateType } from '../common/update.js';
 import { AbstractUpdateService, createUpdateURL } from './abstractUpdateService.js';
+import { formatUpdateIntegrityError, inspectUpdateManifest } from '../common/packagingPolicy.js';
 
 export class LinuxUpdateService extends AbstractUpdateService {
 
@@ -43,6 +45,8 @@ export class LinuxUpdateService extends AbstractUpdateService {
 			.then(update => {
 				if (!update || !update.url || !update.version || !update.productVersion) {
 					this.setState(State.Idle(UpdateType.Archive));
+				} else if (!inspectUpdateManifest(update).ok) {
+					throw new Error(formatUpdateIntegrityError());
 				} else {
 					this.setState(State.AvailableForDownload(update));
 				}
@@ -56,14 +60,12 @@ export class LinuxUpdateService extends AbstractUpdateService {
 	}
 
 	protected override async doDownloadUpdate(state: AvailableForDownload): Promise<void> {
-		// Use the download URL if available as we don't currently detect the package type that was
-		// installed and the website download page is more useful than the tarball generally.
-		if (this.productService.downloadUrl && this.productService.downloadUrl.length > 0) {
-			this.nativeHostMainService.openExternal(undefined, this.productService.downloadUrl);
-		} else if (state.update.url) {
-			this.nativeHostMainService.openExternal(undefined, state.update.url);
+		const signed = inspectUpdateManifest(state.update);
+		if (!signed.ok || !state.update.url) {
+			this.setState(State.Idle(UpdateType.Archive, formatUpdateIntegrityError()));
+			return;
 		}
-
+		this.nativeHostMainService.openExternal(undefined, state.update.url);
 		this.setState(State.Idle(UpdateType.Archive));
 	}
 }

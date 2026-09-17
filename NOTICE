@@ -89,6 +89,7 @@ Arowtech/kuunda-vibe-cloud, not in this public repository:
   - Kuunda Cloud platform provisioning that uses operator credentials
   - Mobile publishing job store and signed CI runners
   - IDE update signing-key custody and private distribution control plane
+  - Structured feedback inbox (opt-in reports; no silent usage telemetry)
 
 See docs/legal/COMPOSANTS-PROPRIETAIRES.md.
 

@@ -26,8 +26,10 @@ paths = ['''(^|/)src/vs/base/test/common/uri\.test\.ts$''']
 
 # Dummy PKCS8 used by publish/redaction tests. Historical commits contained a
 # truncated zeroed EC blob (MIGHAgEA…); current tests use TEST_FIXTURE padding.
+# Dummy `sk_live_*` strings used by looksLikeSecret / persistable redaction
+# tests match default rule stripe-access-token (suffix ≥ 10 alnum).
 # Path allowlist is required because `gitleaks detect` scans git history.
 [[allowlists]]
-description = "Dummy PKCS8 fixture in kuunda-ai.test.mjs publish tests"
-targetRules = ["private-key"]
+description = "Dummy PKCS8 and Stripe-like fixtures in kuunda-ai.test.mjs"
+targetRules = ["private-key", "stripe-access-token"]
 paths = ['''(^|/)packages/kuunda-ai/test/kuunda-ai\.test\.mjs$''']

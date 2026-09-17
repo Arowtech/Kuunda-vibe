@@ -44,7 +44,7 @@ describe('Phase 0 — fichiers de gouvernance', () => {
 		assert.equal(manifest.projectLicense, 'Apache-2.0');
 		assert.equal(manifest.steward, 'Arowtech');
 		assert.equal(manifest.originalWork.copyrightHolder, 'Arowtech');
-		assert.ok(manifest.phase === 0 || manifest.phase === 1 || manifest.phase === 2 || manifest.phase === 3 || manifest.phase === '3bis' || manifest.phase === 4 || manifest.phase === '4bis' || manifest.phase === 5 || manifest.phase === 6 || manifest.phase === 7 || manifest.phase === 8 || manifest.phase === '8bis');
+		assert.ok(manifest.phase === 0 || manifest.phase === 1 || manifest.phase === 2 || manifest.phase === 3 || manifest.phase === '3bis' || manifest.phase === 4 || manifest.phase === '4bis' || manifest.phase === 5 || manifest.phase === 6 || manifest.phase === 7 || manifest.phase === 8 || manifest.phase === '8bis' || manifest.phase === 9 || manifest.phase === '9' || manifest.phase === 10 || manifest.phase === '10');
 		assert.ok(manifest.upstream.some((u) => u.copyrightHolder === 'Microsoft Corporation' && u.license === 'MIT'));
 		assert.ok(manifest.upstream.some((u) => u.copyrightHolder === 'Glass Devtools, Inc.' && u.license === 'Apache-2.0'));
 	});
@@ -180,7 +180,7 @@ describe('Phase 0 — CI secret scan', () => {
 		assert.match(gitleaksConfig, /"aiKey"/);
 		assert.match(gitleaksConfig, /uri\.test\.ts/);
 		assert.match(gitleaksConfig, /kuunda-ai\.test\.mjs/);
-		assert.match(gitleaksConfig, /targetRules = \["private-key"\]/);
+		assert.match(gitleaksConfig, /targetRules = \["private-key", "stripe-access-token"\]/);
 	});
 });
 

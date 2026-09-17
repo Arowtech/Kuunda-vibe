@@ -12,7 +12,7 @@ Ce logiciel est fourni « AS IS », sans garantie. Les marques Kuunda, Kuunda Vi
 
 ## État du dépôt
 
-Phase 8 (sécurité et fiabilité) en cours. **8bis conformité / légal** (bloque Phase 9) : [docs/legal/PRIVACY-POLICY.md](docs/legal/PRIVACY-POLICY.md), [conditions](docs/legal/TERMS-OF-USE.md), [remboursements](docs/legal/REFUND-POLICY.md).
+Phase 10 (feedback opt-in, plan upstream) en cours. Politiques : [docs/legal/PRIVACY-POLICY.md](docs/legal/PRIVACY-POLICY.md), [conditions](docs/legal/TERMS-OF-USE.md), [remboursements](docs/legal/REFUND-POLICY.md).
 
 - Contribuer : [CONTRIBUTING.md](CONTRIBUTING.md)
 - Gouvernance : [GOVERNANCE.md](GOVERNANCE.md)

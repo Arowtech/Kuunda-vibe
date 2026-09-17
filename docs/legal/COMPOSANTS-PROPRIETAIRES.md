@@ -43,6 +43,7 @@ Ces artefacts sont Apache-2.0. Ils ne révèlent pas la logique anti-fraude, les
 | `credits-ledger` | Source de vérité financière |
 | `update-control-plane` | Custody de la clé de signature des binaires IDE, politique de révocation |
 | `mobile-ci` | Abstraction runners GitHub, jobs de publication, secrets store / dispatch CI |
+| `feedback-plane` | File d’attente des rapports opt-in, priorisation interne (pas de télémétrie silencieuse) |
 
 Aucun de ces modules n'est cloné, copié, ni « temporairement » collé dans le dépôt public, y compris pour un prototype.
 
@@ -59,5 +60,6 @@ Aucun de ces modules n'est cloné, copié, ni « temporairement » collé dans l
 - Phase 6 (Kuunda Cloud) : injection des credentials **projet** générés pour l'utilisateur = public si le secret projet n'est pas le secret opérateur. Le provisioner opérateur = privé.
 - Phase 7 (publishing) : UI et orchestration dans le public ; secrets store développeur et runners signés = privés / secrets CI.
 - Phase 9 (updates) : `updateUrl` public ; clé privée de signature = hors dépôt, control plane privé.
+- Phase 10 (feedback) : UI + contrats publics ; inbox / priorisation interne = `feedback-plane` privé.
 
 Cette décision ne s'exécute pas en Phase 0 (pas de création du dépôt privé ici). Elle **interdit** d'écrire cette logique dans `Kuunda-vibe` à partir de maintenant.

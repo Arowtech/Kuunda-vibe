@@ -107,6 +107,14 @@ export function createPlatformClient(options = {}) {
 		/** @type {import('./contracts.js').IPublishClient['getPublishLogs']} */
 		getPublishLogs(jobId, userId) {
 			return request(`/v1/publishing/jobs/${encodeURIComponent(jobId)}/logs?userId=${encodeURIComponent(userId)}`);
-		}
+		},
+		/** @type {import('./contracts.js').IFeedbackClient['submitFeedback']} */
+		submitFeedback(body) {
+			return request('/v1/feedback', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify(body),
+			});
+		},
 	};
 }

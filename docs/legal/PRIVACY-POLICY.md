@@ -28,12 +28,15 @@ This policy applies to the **Kuunda Vibe IDE** (this computer application). It d
 | Project metadata, seed table names | Kuunda Cloud (`api.ide.kuunda-cloud.com`) | Default backend for your project | Contract |
 | Credits account id, plan, amount | Payment aggregator currently adapted as Genius Pay (other aggregators may be added) | Checkout for credits | Contract + Art. 6(1)(c) where payment records are required |
 | Transaction journals (amount, status, delivery id — **no** PAN/MSISDN) | Kuunda Cloud platform | Accounting, disputes, AML cooperation with the PSP | Art. 6(1)(c) / 6(1)(f) |
+| Opt-in feedback (title, category, severity, IDE version — **no** workspace files) | Kuunda Cloud (`api.ide.kuunda-cloud.com`) | Structured product feedback | Consent (you send it via F1) |
+
+There is **no silent usage telemetry**. VS Code/Void diagnostic telemetry is a separate Settings toggle.
 
 Retention of transaction journals: **1825 days** (5 years), then deletion or anonymisation, unless a longer statutory period applies.
 
 ### 4. Strict offline mode
 
-F1 **Kuunda Vibe: Strict Offline Mode** stops all of the sends in §3. That **disables online credits and billing**, Kuunda Cloud provisioning, store publishing, MCP tools, and cloud LLMs (including Tab and Ctrl+K). Local Ollama still works. VS Code/Void diagnostic telemetry is separate — disable it in Settings.
+F1 **Kuunda Vibe: Strict Offline Mode** stops all of the sends in §3. That **disables online credits and billing**, Kuunda Cloud provisioning, store publishing, the feedback channel, MCP tools, and cloud LLMs (including Tab and Ctrl+K). Local Ollama still works. VS Code/Void diagnostic telemetry is separate — disable it in Settings.
 
 ### 5. Your rights (GDPR / equivalent)
 
@@ -62,11 +65,11 @@ Fichiers du workspace, index, règles, diffs, identifiants développeur stores (
 
 ### 3. Données envoyées (mode hors ligne strict désactivé)
 
-Prompts, complétion Tab, Ctrl+K, messages de commit → fournisseur IA BYOK ; outils MCP → serveurs MCP configurés ; métadonnées projet → Kuunda Cloud ; identifiant crédits / montant → agrégateur de paiement (adaptateur actuel Genius Pay, d’autres pourront être ajoutés) ; journaux de transaction sans instrument de paiement, conservés 1825 jours.
+Prompts, complétion Tab, Ctrl+K, messages de commit → fournisseur IA BYOK ; outils MCP → serveurs MCP configurés ; métadonnées projet → Kuunda Cloud ; identifiant crédits / montant → agrégateur de paiement (adaptateur actuel Genius Pay, d’autres pourront être ajoutés) ; journaux de transaction sans instrument de paiement, conservés 1825 jours ; rapport de feedback **opt-in** (titre, catégorie, version IDE — pas de fichiers workspace). Pas de télémétrie d’usage silencieuse.
 
 ### 4. Mode hors ligne strict
 
-F1 **Kuunda Vibe : mode hors ligne strict** : aucun envoi externe. Cela **désactive crédits/facturation en ligne**, Kuunda Cloud, publication, MCP, LLM cloud (y compris Tab et Ctrl+K). Ollama local reste possible. La télémétrie VS Code/Void se désactive à part dans les paramètres.
+F1 **Kuunda Vibe : mode hors ligne strict** : aucun envoi externe. Cela **désactive crédits/facturation en ligne**, Kuunda Cloud, publication, canal de retours, MCP, LLM cloud (y compris Tab et Ctrl+K). Ollama local reste possible. La télémétrie VS Code/Void se désactive à part dans les paramètres.
 
 ### 5. Droits
 

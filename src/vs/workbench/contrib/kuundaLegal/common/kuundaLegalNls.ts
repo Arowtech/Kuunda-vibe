@@ -19,8 +19,8 @@ export const KUUNDA_LEGAL_STRINGS = {
 		fr: 'Kuunda Vibe : mode hors ligne strict',
 	},
 	'kuunda.legal.setOfflineMode.level': {
-		en: 'Strict offline mode (blocks credits, cloud, publishing, MCP, Tab/Ctrl+K and cloud LLMs)',
-		fr: 'Mode hors ligne strict (bloque crédits, cloud, publication, MCP, Tab/Ctrl+K et LLM cloud)',
+		en: 'Strict offline mode (blocks credits, cloud, publishing, feedback, MCP, Tab/Ctrl+K and cloud LLMs)',
+		fr: 'Mode hors ligne strict (bloque crédits, cloud, publication, retours, MCP, Tab/Ctrl+K et LLM cloud)',
 	},
 	'kuunda.legal.setOfflineMode.on': {
 		en: 'On — no external sends; online billing is disabled',
@@ -43,8 +43,8 @@ export const KUUNDA_LEGAL_STRINGS = {
 		fr: 'Kuunda Vibe : politique de remboursement des crédits',
 	},
 	'kuunda.legal.offline.blocked': {
-		en: 'Strict offline mode is on. Online credits, Kuunda Cloud, publishing, MCP and cloud AI (including Tab and Ctrl+K) are disabled. Use local Ollama, or turn the mode off.',
-		fr: 'Le mode hors ligne strict est activé. Crédits en ligne, Kuunda Cloud, publication, MCP et IA cloud (y compris Tab et Ctrl+K) sont désactivés. Utilisez Ollama local, ou désactivez le mode.',
+		en: 'Strict offline mode is on. Online credits, Kuunda Cloud, publishing, feedback, MCP and cloud AI (including Tab and Ctrl+K) are disabled. Use local Ollama, or turn the mode off.',
+		fr: 'Le mode hors ligne strict est activé. Crédits en ligne, Kuunda Cloud, publication, retours, MCP et IA cloud (y compris Tab et Ctrl+K) sont désactivés. Utilisez Ollama local, ou désactivez le mode.',
 	},
 	'kuunda.legal.firstRun': {
 		en: 'Kuunda Vibe sends prompts and code to your AI provider, and project metadata to Kuunda Cloud, unless Strict Offline Mode is on. Open the privacy panel (F1) for the full disclosure.',

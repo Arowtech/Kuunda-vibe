@@ -2,7 +2,7 @@
 
 **Phase :** 8bis  
 **Validation steward :** validée (steward, 17 sept. 2026)  
-**Prérequis :** Phase 8 (sécurité / fiabilité) implémentée. **Bloque** Phase 9 packaging et tout paiement live / dépôt store.
+**Prérequis :** Phase 8 (sécurité / fiabilité) implémentée. A **levé** le packaging interne (Phase 9). Paiements live et dépôts stores restent bloqués.
 
 Ce n’est pas du packaging. C’est la porte légale : RGPD / équivalents, politiques utilisateur, stores, hors-ligne strict, agrégateurs de paiement remplaçables, frontière licence.
 

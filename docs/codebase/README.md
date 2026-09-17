@@ -19,6 +19,8 @@ Ce guide est mis à jour **à chaque phase**. Il n'est pas un README marketing.
 | [07-publishing.md](07-publishing.md) | Phase 7 : publication mobile Google Play / App Store |
 | [08-reliability.md](08-reliability.md) | Phase 8 : audit credentials, timeouts, confirmation shell |
 | [08bis-legal.md](08bis-legal.md) | 8bis : RGPD, privacy/ToS, hors-ligne strict, agrégateurs de paiement |
+| [09-packaging.md](09-packaging.md) | Phase 9 : kuunda-builder, signature, auto-update interne |
+| [10-post-launch.md](10-post-launch.md) | Phase 10 : feedback opt-in, backlog, plan upstream |
 | `LICENSE` | Apache-2.0 (texte officiel non modifié) |
 | `LICENSE-VS-Code.txt` | MIT Code - OSS (Microsoft) |
 | `NOTICE` | Chaîne d'attribution Microsoft → Void → Arowtech |
@@ -43,12 +45,13 @@ Ce guide est mis à jour **à chaque phase**. Il n'est pas un README marketing.
 | 6 Kuunda Cloud par défaut | **Validée** (steward, 17 sept. 2026) |
 | 7 Pipeline de publication mobile | **Validée** (steward, 17 sept. 2026) |
 | 8 Sécurité et fiabilité | **Validée** (steward, 17 sept. 2026) |
-| 8bis Conformité et légal | **Validée** (steward, 17 sept. 2026 — bloque Phase 9) |
-| 9–10 | Non commencées |
+| 8bis Conformité et légal | **Validée** (steward, 17 sept. 2026) |
+| 9 Packaging et distribution | **En cours** (implémentée, validation steward) |
+| 10 Itération post-lancement | **En cours** |
 
 Ne pas fusionner les phases. Ne pas démarrer N+1 sans validation explicite de N.
 
-## Arbre (Phase 8)
+## Arbre (Phase 10)
 
 ```
 src/vs/                          fork Void / Code - OSS
@@ -62,13 +65,14 @@ src/vs/workbench/contrib/kuundaProject/ type de projet + scaffold (P5)
 src/vs/workbench/contrib/kuundaCloud/    provision Cloud + panel (P6)
 src/vs/workbench/contrib/kuundaPublish/  publication mobile + panneau (P7)
 src/vs/workbench/contrib/kuundaLegal/     privacy / hors-ligne strict (8bis)
-packages/cloud-client/           contrats HTTP publics (crédits, billing, provisioning, publishing)
-packages/kuunda-ai/              algorithmes testables (… credentials, network, legal)
-product.json                     nom Kuunda Vibe
+src/vs/workbench/contrib/kuundaFeedback/  canal de retours opt-in (P10)
+packages/cloud-client/           contrats HTTP publics (crédits, billing, provisioning, publishing, feedback)
+src/vs/platform/update/            auto-update Ed25519 (P9)
+packages/kuunda-ai/              algorithmes testables (… packaging, post-launch)
+product.json                     nom Kuunda Vibe, quality=internal, updateUrl
 ```
 
 ## Stack figée
 
-Voir `00-licence-et-gouvernance.md`, `00bis-infrastructure.md`, `01-rename.md`, `02-autocomplete-chat.md`, `03-agent.md`, `03bis-credits.md`, `04-devtools.md`, `04bis-extension-api.md`, `05-project-type.md`, `06-kuunda-cloud.md`, `07-publishing.md`, `08-reliability.md`.
+Voir `00-licence-et-gouvernance.md`, `00bis-infrastructure.md`, `01-rename.md`, `02-autocomplete-chat.md`, `03-agent.md`, `03bis-credits.md`, `04-devtools.md`, `04bis-extension-api.md`, `05-project-type.md`, `06-kuunda-cloud.md`, `07-publishing.md`, `08-reliability.md`, `08bis-legal.md`, `09-packaging.md`, `10-post-launch.md`.
 `engines` de compilation : ceux de Void/VS Code. Tests Kuunda : `npm test` (Node 24).
-Voir aussi `08bis-legal.md` (bloque Phase 9).

@@ -2,30 +2,32 @@
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
+// Modified 2026-09-17 by Arowtech: download + Ed25519 file verify. Do not trust Squirrel/autoUpdater.
 
-import * as electron from 'electron';
-import { memoize } from '../../../base/common/decorators.js';
-import { Event } from '../../../base/common/event.js';
+import { tmpdir } from 'os';
+import * as fs from 'fs';
+import { CancellationToken } from '../../../base/common/cancellation.js';
 import { hash } from '../../../base/common/hash.js';
-import { DisposableStore } from '../../../base/common/lifecycle.js';
+import * as path from '../../../base/common/path.js';
+import { URI } from '../../../base/common/uri.js';
+import { checksum } from '../../../base/node/crypto.js';
 import { IConfigurationService } from '../../configuration/common/configuration.js';
 import { IEnvironmentMainService } from '../../environment/electron-main/environmentMainService.js';
+import { IFileService } from '../../files/common/files.js';
 import { ILifecycleMainService, IRelaunchHandler, IRelaunchOptions } from '../../lifecycle/electron-main/lifecycleMainService.js';
 import { ILogService } from '../../log/common/log.js';
+import { INativeHostMainService } from '../../native/electron-main/nativeHostMainService.js';
 import { IProductService } from '../../product/common/productService.js';
-import { IRequestService } from '../../request/common/request.js';
+import { asJson, IRequestService } from '../../request/common/request.js';
 import { ITelemetryService } from '../../telemetry/common/telemetry.js';
-import { IUpdate, State, StateType, UpdateType } from '../common/update.js';
+import { AvailableForDownload, IUpdate, State, StateType, UpdateType } from '../common/update.js';
 import { AbstractUpdateService, createUpdateURL, UpdateErrorClassification } from './abstractUpdateService.js';
+import { formatUpdateIntegrityError, inspectUpdateManifest } from '../common/packagingPolicy.js';
+import { assertKuundaSignedFile } from './kuundaUpdateIntegrity.js';
 
 export class DarwinUpdateService extends AbstractUpdateService implements IRelaunchHandler {
 
-	private readonly disposables = new DisposableStore();
-
-	@memoize private get onRawError(): Event<string> { return Event.fromNodeEventEmitter(electron.autoUpdater, 'error', (_, message) => message); }
-	@memoize private get onRawUpdateNotAvailable(): Event<void> { return Event.fromNodeEventEmitter<void>(electron.autoUpdater, 'update-not-available'); }
-	@memoize private get onRawUpdateAvailable(): Event<void> { return Event.fromNodeEventEmitter(electron.autoUpdater, 'update-available'); }
-	@memoize private get onRawUpdateDownloaded(): Event<IUpdate> { return Event.fromNodeEventEmitter(electron.autoUpdater, 'update-downloaded', (_, releaseNotes, version, timestamp) => ({ version, productVersion: version, timestamp })); }
+	private availableUpdatePath: string | undefined;
 
 	constructor(
 		@ILifecycleMainService lifecycleMainService: ILifecycleMainService,
@@ -34,6 +36,8 @@ export class DarwinUpdateService extends AbstractUpdateService implements IRelau
 		@IEnvironmentMainService environmentMainService: IEnvironmentMainService,
 		@IRequestService requestService: IRequestService,
 		@ILogService logService: ILogService,
+		@IFileService private readonly fileService: IFileService,
+		@INativeHostMainService private readonly nativeHostMainService: INativeHostMainService,
 		@IProductService productService: IProductService
 	) {
 		super(lifecycleMainService, configurationService, environmentMainService, requestService, logService, productService);
@@ -56,23 +60,6 @@ export class DarwinUpdateService extends AbstractUpdateService implements IRelau
 		return true;
 	}
 
-	protected override async initialize(): Promise<void> {
-		await super.initialize();
-		this.onRawError(this.onError, this, this.disposables);
-		this.onRawUpdateAvailable(this.onUpdateAvailable, this, this.disposables);
-		this.onRawUpdateDownloaded(this.onUpdateDownloaded, this, this.disposables);
-		this.onRawUpdateNotAvailable(this.onUpdateNotAvailable, this, this.disposables);
-	}
-
-	private onError(err: string): void {
-		this.telemetryService.publicLog2<{ messageHash: string }, UpdateErrorClassification>('update:error', { messageHash: String(hash(String(err))) });
-		this.logService.error('UpdateService error:', err);
-
-		// only show message when explicitly checking for updates
-		const message = (this.state.type === StateType.CheckingForUpdates && this.state.explicit) ? err : undefined;
-		this.setState(State.Idle(UpdateType.Archive, message));
-	}
-
 	protected buildUpdateFeedUrl(quality: string): string | undefined {
 		let assetID: string;
 		if (!this.productService.darwinUniversalAssetId) {
@@ -80,61 +67,71 @@ export class DarwinUpdateService extends AbstractUpdateService implements IRelau
 		} else {
 			assetID = this.productService.darwinUniversalAssetId;
 		}
-		const url = createUpdateURL(assetID, quality, this.productService);
-		try {
-			electron.autoUpdater.setFeedURL({ url });
-		} catch (e) {
-			// application is very likely not signed
-			this.logService.error('Failed to set update feed URL', e);
-			return undefined;
-		}
-		return url;
+		// Unsigned internal builds cannot use Electron's Squirrel feed API.
+		return createUpdateURL(assetID, quality, this.productService);
 	}
 
 	protected doCheckForUpdates(context: any): void {
+		if (!this.url) {
+			this.setState(State.Idle(UpdateType.Archive));
+			return;
+		}
 		this.setState(State.CheckingForUpdates(context));
-		electron.autoUpdater.checkForUpdates();
+		this.requestService.request({ url: this.url }, CancellationToken.None)
+			.then<IUpdate | null>(asJson)
+			.then(update => {
+				if (!update || !update.url || !update.version || !update.productVersion) {
+					this.setState(State.Idle(UpdateType.Archive));
+					return;
+				}
+				const signed = inspectUpdateManifest(update);
+				if (!signed.ok) {
+					throw new Error(formatUpdateIntegrityError());
+				}
+				this.setState(State.AvailableForDownload(update));
+			})
+			.then(undefined, err => this.onError(String(err?.message || err)));
 	}
 
-	private onUpdateAvailable(): void {
-		if (this.state.type !== StateType.CheckingForUpdates) {
-			return;
+	protected override async doDownloadUpdate(state: AvailableForDownload): Promise<void> {
+		const update = state.update;
+		const signed = inspectUpdateManifest(update);
+		if (!signed.ok || !update.url) {
+			throw new Error(formatUpdateIntegrityError());
 		}
 
 		this.setState(State.Downloading);
-	}
+		const cachePath = path.join(tmpdir(), `kuunda-${this.productService.quality}-${process.arch}`);
+		await fs.promises.mkdir(cachePath, { recursive: true });
+		const packagePath = path.join(cachePath, `KuundaUpdate-${update.version}.zip`);
 
-	private onUpdateDownloaded(update: IUpdate): void {
-		if (this.state.type !== StateType.Downloading) {
-			return;
-		}
+		const context = await this.requestService.request({ url: update.url }, CancellationToken.None);
+		await this.fileService.writeFile(URI.file(packagePath), context.stream);
+		await checksum(packagePath, signed.sha256hash);
+		await assertKuundaSignedFile({
+			filePath: packagePath,
+			sha256hash: signed.sha256hash,
+			signature: signed.signature,
+			publicKey: this.productService.kuundaUpdatePublicKey,
+		});
 
-		this.setState(State.Downloaded(update));
-
-		type UpdateDownloadedClassification = {
-			owner: 'joaomoreno';
-			newVersion: { classification: 'SystemMetaData'; purpose: 'FeatureInsight'; comment: 'The version number of the new VS Code that has been downloaded.' };
-			comment: 'This is used to know how often VS Code has successfully downloaded the update.';
-		};
-		this.telemetryService.publicLog2<{ newVersion: String }, UpdateDownloadedClassification>('update:downloaded', { newVersion: update.version });
-
+		this.availableUpdatePath = packagePath;
 		this.setState(State.Ready(update));
 	}
 
-	private onUpdateNotAvailable(): void {
-		if (this.state.type !== StateType.CheckingForUpdates) {
-			return;
-		}
+	private onError(err: string): void {
+		this.telemetryService.publicLog2<{ messageHash: string }, UpdateErrorClassification>('update:error', { messageHash: String(hash(String(err))) });
+		this.logService.error('UpdateService error:', err);
 
-		this.setState(State.Idle(UpdateType.Archive));
+		const message = (this.state.type === StateType.CheckingForUpdates && this.state.explicit) ? err : undefined;
+		this.setState(State.Idle(UpdateType.Archive, message));
 	}
 
 	protected override doQuitAndInstall(): void {
-		this.logService.trace('update#quitAndInstall(): running raw#quitAndInstall()');
-		electron.autoUpdater.quitAndInstall();
-	}
-
-	dispose(): void {
-		this.disposables.dispose();
+		this.logService.trace('update#quitAndInstall(): opening verified package');
+		if (!this.availableUpdatePath) {
+			return;
+		}
+		this.nativeHostMainService.openExternal(undefined, URI.file(this.availableUpdatePath).toString(true));
 	}
 }

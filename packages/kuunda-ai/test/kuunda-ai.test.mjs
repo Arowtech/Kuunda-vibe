@@ -114,6 +114,34 @@ import {
 	TRANSACTION_LOG_RETENTION_DAYS,
 	CREDIT_REFUND_POLICY,
 	describeLicenseSplit,
+	BUILDER_NAME,
+	UPDATE_BASE_URL,
+	DEFAULT_CHANNEL,
+	PACKAGED_PLATFORMS,
+	decidePackage,
+	decideCodeSign,
+	decideRelease,
+	requireUpdateSignature,
+	planKuundaBuild,
+	createUpdateFeedUrl,
+	formatUpdateIntegrityError,
+	isAllowedUpdateDownloadUrl,
+	normalizeUpdatePlatform,
+	FEEDBACK_CHANNEL,
+	FEEDBACK_CATEGORIES,
+	USAGE_TELEMETRY_DEFAULT,
+	UPSTREAM_VSCODE,
+	REBASE_CADENCE_DAYS,
+	decideFeedbackSend,
+	recordUsageSignal,
+	sanitizeFeedbackPayload,
+	prioritizeBacklog,
+	decideUpstreamSync,
+	planUpstreamSync,
+	formatFeedbackError,
+	looksLikeFeedbackSecret,
+	looksLikeWorkspaceDump,
+	isAllowedFeedbackOrigin,
 } from '../src/index.js';
 import { creditAlertLevel, classifyPaymentFailure } from '../../cloud-client/src/contracts.js';
 
@@ -743,7 +771,7 @@ describe('Phase 8.1 — audit stockage credentials', () => {
 		assert.equal(classifyCredentialPath('.env.local'), 'kuunda_cloud');
 		assert.equal(classifyCredentialPath('apps/api/src/lib/genius-pay-webhook.js'), 'genius_pay');
 		assert.equal(looksLikeSecret('<SET VIA SECRET STORE>'), false);
-		assert.equal(looksLikeSecret('sk_live_notarealtoken'), true);
+		assert.equal(looksLikeSecret('sk_live_fixture'), true);
 		assert.equal(persistableIsSafe({ version: '1.0.0', packageId: 'com.example.app' }).ok, true);
 		assert.equal(persistableIsSafe({ private_key: '-----BEGIN PRIVATE KEY-----\nabc' }).ok, false);
 		const local = persistablePublishLocal({
@@ -874,6 +902,9 @@ describe('Phase 8bis — conformité et hors ligne strict', () => {
 		assert.equal(decideExternalSend({ strictOffline: true, feature: 'llm_cloud', provider: 'anthropic' }).ok, false);
 		assert.equal(decideExternalSend({ strictOffline: true, feature: 'llm_cloud', provider: 'ollama' }).ok, true);
 		assert.equal(decideExternalSend({ strictOffline: true, feature: 'llm_cloud', provider: 'ollama' }).localOnly, true);
+		assert.equal(decideExternalSend({ strictOffline: true, feature: 'feedback' }).error, 'strict_offline');
+		assert.equal(decideExternalSend({ feature: 'usage_telemetry' }).error, 'silent_telemetry_forbidden');
+		assert.equal(decideExternalSend({ strictOffline: true, feature: 'usage_telemetry' }).error, 'silent_telemetry_forbidden');
 	});
 
 	it('divulgue local vs tiers et garde l’agrégateur remplaçable', () => {
@@ -895,9 +926,150 @@ describe('Phase 8bis — conformité et hors ligne strict', () => {
 		assert.match(formatDataSubjectRights('fr'), /effacement/);
 		assert.ok(DATA_DISCLOSURE.some((row) => row.id === 'completions_byok'));
 		assert.ok(DATA_DISCLOSURE.some((row) => row.id === 'mcp_tools'));
+		assert.ok(DATA_DISCLOSURE.some((row) => row.id === 'opt_in_feedback' && row.thirdParty === 'kuunda_cloud'));
 		assert.equal(describeLicenseSplit().publicLicense, 'Apache-2.0');
 		assert.equal(describeLicenseSplit().paymentAggregatorsPluggable, true);
 		assert.ok(describeLicenseSplit().proprietaryModules.includes('genius-pay'));
+	});
+});
+
+describe('Phase 9 — packaging et distribution', () => {
+	const HASH = 'a'.repeat(64);
+	const SIG = Buffer.alloc(64).toString('base64');
+	const ARTIFACT_URL = 'https://updates.ide.kuunda-cloud.com/artifacts/a.exe';
+
+	it('renomme void-builder et ne packagie que Windows / macOS', () => {
+		assert.equal(BUILDER_NAME, 'kuunda-builder');
+		assert.deepEqual([...PACKAGED_PLATFORMS], ['win32-x64', 'win32-arm64', 'darwin-x64', 'darwin-arm64']);
+		assert.equal(decidePackage({ platform: 'linux-x64' }).ok, false);
+		assert.equal(decidePackage({ platform: 'win32-x64' }).gulpTask, 'vscode-win32-x64');
+		assert.equal(decidePackage({ platform: 'win32-x64' }).setupTask, 'vscode-win32-x64-user-setup');
+		assert.equal(decidePackage({ platform: 'darwin-arm64' }).gulpTask, 'vscode-darwin-arm64');
+		assert.equal(DEFAULT_CHANNEL, 'internal');
+		assert.equal(normalizeUpdatePlatform('win32-x64-user'), 'win32-x64');
+		assert.equal(normalizeUpdatePlatform('darwin'), 'darwin-x64');
+	});
+
+	it('autorise l’unsigned interne et refuse le stable sans certificat', () => {
+		assert.equal(decideCodeSign({ channel: 'internal', platform: 'win32-x64' }).ok, true);
+		assert.equal(decideCodeSign({ channel: 'internal', platform: 'win32-x64' }).signed, false);
+		assert.equal(decideCodeSign({ channel: 'stable', platform: 'win32-x64' }).ok, false);
+		assert.equal(decideCodeSign({ channel: 'stable', platform: 'win32-x64', hasWindowsCert: true }).ok, true);
+		assert.equal(decideCodeSign({ channel: 'stable', platform: 'darwin-arm64', hasAppleIdentity: true }).ok, true);
+		assert.equal(decideRelease({}).ok, true);
+		assert.equal(decideRelease({ channel: 'stable' }).error, 'public_release_blocked');
+		assert.equal(decideRelease({ publicRelease: true }).ok, false);
+	});
+
+	it('refuse un flux de mise à jour sans signature Ed25519', () => {
+		assert.equal(requireUpdateSignature({ url: 'https://x', version: '1', productVersion: '1' }).error, 'url_not_allowed');
+		assert.equal(requireUpdateSignature({
+			url: ARTIFACT_URL,
+			version: '1',
+			productVersion: '1',
+			sha256hash: 'abc',
+			signature: 'sig',
+		}).error, 'signature_required');
+		assert.equal(isAllowedUpdateDownloadUrl('https://evil.example/a.exe'), false);
+		const ok = requireUpdateSignature({
+			url: ARTIFACT_URL,
+			version: '1',
+			productVersion: '1',
+			sha256hash: HASH.toUpperCase(),
+			signature: SIG,
+		});
+		assert.equal(ok.ok, true);
+		assert.equal(ok.sha256hash, HASH);
+		const feed = createUpdateFeedUrl({ platform: 'win32-x64-user', quality: 'internal', commit: 'deadbeef' });
+		assert.equal(feed.ok, true);
+		assert.match(feed.url, new RegExp(`^${UPDATE_BASE_URL.replace(/\./g, '\\.')}/api/update/win32-x64/internal/deadbeef$`));
+		assert.equal(createUpdateFeedUrl({ platform: 'win32-x64', quality: 'evil', commit: 'deadbeef' }).ok, false);
+		assert.match(formatUpdateIntegrityError('fr'), /Ed25519/);
+		const plan = planKuundaBuild({ platform: 'win32-x64', commit: 'abc' });
+		assert.equal(plan.ok, true);
+		assert.equal(plan.setupTask, 'vscode-win32-x64-user-setup');
+		assert.equal(plan.compileElectron, false);
+		assert.equal(plan.wranglerDeploy, false);
+		assert.equal(plan.renamedFrom, 'void-builder');
+	});
+});
+
+describe('Phase 10 — itération post-lancement', () => {
+	it('n’envoie un rapport que opt-in, sans workspace ni télémétrie', () => {
+		assert.equal(FEEDBACK_CHANNEL, 'structured');
+		assert.deepEqual([...FEEDBACK_CATEGORIES], ['bug', 'crash', 'feature', 'docs']);
+		assert.equal(USAGE_TELEMETRY_DEFAULT, false);
+		assert.equal(decideFeedbackSend({}).error, 'consent_required');
+		assert.equal(decideFeedbackSend({ consent: true, includeWorkspace: true }).error, 'workspace_forbidden');
+		assert.equal(decideFeedbackSend({ consent: true, includeWorkspace: 'true' }).error, 'workspace_forbidden');
+		assert.equal(decideFeedbackSend({ consent: true, telemetry: 1 }).error, 'telemetry_forbidden');
+		assert.equal(decideFeedbackSend({ consent: true, strictOffline: true }).error, 'strict_offline');
+		assert.equal(recordUsageSignal().error, 'silent_telemetry_forbidden');
+		assert.equal(sanitizeFeedbackPayload({
+			category: 'bug',
+			severity: 2,
+			title: 'contains sk_live_fixture',
+			consent: true,
+		}).error, 'secret_in_payload');
+		assert.equal(sanitizeFeedbackPayload({
+			category: 'bug',
+			severity: 2,
+			title: 'paste sk-ant-fixture here',
+			consent: true,
+		}).error, 'secret_in_payload');
+		assert.equal(sanitizeFeedbackPayload({
+			category: 'bug',
+			severity: 2,
+			title: 'github_pat_fixture leaked',
+			consent: true,
+		}).error, 'secret_in_payload');
+		assert.equal(sanitizeFeedbackPayload({
+			category: 'bug',
+			severity: 2,
+			title: 'store dump',
+			body: 'see .kuunda/play-service-account.json',
+			consent: true,
+		}).error, 'secret_in_payload');
+		assert.equal(looksLikeFeedbackSecret('AIzaSyDummyGoogleMapsKeyValueXX'), true);
+		assert.equal(looksLikeWorkspaceDump(`${'x\n'.repeat(61)}dump`), true);
+		assert.equal(isAllowedFeedbackOrigin('https://evil.example'), false);
+		assert.equal(isAllowedFeedbackOrigin('https://ide.kuunda-cloud.com'), true);
+		assert.equal(isAllowedFeedbackOrigin('vscode-file://vscode-app'), true);
+		const ok = sanitizeFeedbackPayload({
+			category: 'crash',
+			severity: 3,
+			title: 'window closes on empty folder',
+			body: 'repro without source',
+			consent: true,
+			quality: 'stable',
+		});
+		assert.equal(ok.ok, true);
+		assert.equal(ok.payload.includeWorkspace, false);
+		assert.equal(ok.payload.telemetry, false);
+		assert.equal(ok.payload.quality, 'internal');
+		assert.match(formatFeedbackError('fr', 'consent_required'), /consentement/);
+	});
+
+	it('priorise crash/bug avant docs et refuse un rebase automatique', () => {
+		const ranked = prioritizeBacklog([
+			{ category: 'docs', severity: 1, title: 'typo', reportCount: 8 },
+			{ category: 'crash', severity: 3, title: 'startup', reportCount: 1, blocked: true },
+			{ category: 'feature', severity: 2, title: 'shortcut', reportCount: 3 },
+		]);
+		assert.equal(ranked[0].category, 'crash');
+		assert.ok(ranked[0].score > ranked[1].score);
+		assert.equal(UPSTREAM_VSCODE, 'microsoft/vscode');
+		assert.equal(REBASE_CADENCE_DAYS, 30);
+		assert.equal(decideUpstreamSync({ autoRebase: true }).error, 'auto_rebase_forbidden');
+		assert.equal(decideUpstreamSync({ forcePush: true }).error, 'force_push_forbidden');
+		const due = planUpstreamSync({ daysSinceSync: 45 });
+		assert.equal(due.ok, true);
+		assert.equal(due.due, true);
+		assert.equal(due.runRebase, false);
+		assert.equal(due.compileElectron, false);
+		assert.equal(due.wranglerDeploy, false);
+		assert.equal(planUpstreamSync({ daysSinceSync: 2 }).due, false);
+		assert.equal(planUpstreamSync({ daysSinceSync: 99999 }).due, false);
 	});
 });
 

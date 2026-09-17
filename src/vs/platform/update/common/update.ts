@@ -14,6 +14,8 @@ export interface IUpdate {
 	timestamp?: number;
 	url?: string;
 	sha256hash?: string;
+	/** Kuunda: Ed25519 signature of SHA-256(bytes), base64. Required before install. */
+	signature?: string;
 }
 
 /**

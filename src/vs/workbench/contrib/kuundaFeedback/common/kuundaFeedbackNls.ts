@@ -1,0 +1,57 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright 2026 Arowtech
+ *  SPDX-License-Identifier: Apache-2.0
+ *--------------------------------------------------------------------------------------------*/
+
+import { getNLSLanguage, localize, type ILocalizedString } from '../../../../nls.js';
+
+export const KUUNDA_FEEDBACK_STRINGS = {
+	'kuunda.feedback.panel': { en: 'Kuunda feedback', fr: 'Retours Kuunda' },
+	'kuunda.feedback.showPanel': { en: 'Kuunda Vibe: Show Feedback Channel', fr: 'Kuunda Vibe : afficher le canal de retours' },
+	'kuunda.feedback.send': { en: 'Kuunda Vibe: Send Feedback', fr: 'Kuunda Vibe : envoyer un retour' },
+	'kuunda.feedback.category': { en: 'What kind of report is this?', fr: 'Quel type de rapport est-ce ?' },
+	'kuunda.feedback.category.bug': { en: 'Bug', fr: 'Anomalie' },
+	'kuunda.feedback.category.crash': { en: 'Crash', fr: 'Plantage' },
+	'kuunda.feedback.category.feature': { en: 'Feature request', fr: 'Demande de fonctionnalité' },
+	'kuunda.feedback.category.docs': { en: 'Docs / wording', fr: 'Documentation / libellé' },
+	'kuunda.feedback.severity': { en: 'How severe is this?', fr: 'Quelle gravité ?' },
+	'kuunda.feedback.severity.1': { en: 'Low — workaround exists', fr: 'Faible — un contournement existe' },
+	'kuunda.feedback.severity.2': { en: 'Normal — slows me down', fr: 'Normale — ça me ralentit' },
+	'kuunda.feedback.severity.3': { en: 'High — blocked', fr: 'Élevée — bloqué' },
+	'kuunda.feedback.title': { en: 'Short title (no secrets, no source files)', fr: 'Titre court (pas de secret, pas de fichier source)' },
+	'kuunda.feedback.body': { en: 'Details (optional). Workspace files are never attached.', fr: 'Détails (optionnel). Les fichiers du workspace ne sont jamais joints.' },
+	'kuunda.feedback.consent': { en: 'Send this report to Arowtech? No usage telemetry, no workspace.', fr: 'Envoyer ce rapport à Arowtech ? Pas de télémétrie d’usage, pas de workspace.' },
+	'kuunda.feedback.consent.yes': { en: 'Yes — send the structured report', fr: 'Oui — envoyer le rapport structuré' },
+	'kuunda.feedback.consent.no': { en: 'No — cancel', fr: 'Non — annuler' },
+	'kuunda.feedback.sent': { en: 'Feedback sent. Thank you.', fr: 'Retour envoyé. Merci.' },
+	'kuunda.feedback.panel.intro': { en: 'Structured feedback channel (opt-in).', fr: 'Canal de retours structuré (opt-in).' },
+	'kuunda.feedback.panel.telemetry': { en: 'Silent usage telemetry: off.', fr: 'Télémétrie d’usage silencieuse : non.' },
+	'kuunda.feedback.panel.open': { en: 'The channel is open when you consent.', fr: 'Le canal est ouvert si vous consentez.' },
+	'kuunda.feedback.panel.closed': { en: 'Channel: {0}.', fr: 'Canal : {0}.' },
+	'kuunda.feedback.panel.note': {
+		en: 'Workspace files are never attached. Prioritization uses these reports, not tracking.',
+		fr: 'Aucun fichier du workspace n’est joint. La priorisation se fait sur ces rapports, pas sur un tracking.',
+	},
+	'kuunda.feedback.panel.priority': { en: 'Local priority (your reports):', fr: 'Priorité locale (vos rapports) :' },
+	'kuunda.feedback.panel.empty': { en: 'no local reports', fr: 'aucun rapport local' },
+} as const;
+
+export type KuundaFeedbackStringKey = keyof typeof KUUNDA_FEEDBACK_STRINGS;
+
+function isFrench(language: string | undefined): boolean {
+	return typeof language === 'string' && (language === 'fr' || language.startsWith('fr-') || language.startsWith('fr_'));
+}
+
+export function kuundaFeedbackLocalize(key: KuundaFeedbackStringKey, ...args: Array<string | number>): string {
+	const entry = KUUNDA_FEEDBACK_STRINGS[key];
+	const message = isFrench(getNLSLanguage()) ? entry.fr : entry.en;
+	return localize(key, message, ...args);
+}
+
+export function kuundaFeedbackLocalize2(key: KuundaFeedbackStringKey): ILocalizedString {
+	return { original: KUUNDA_FEEDBACK_STRINGS[key].en, value: kuundaFeedbackLocalize(key) };
+}
+
+export function kuundaFeedbackLocale(): 'fr' | 'en' {
+	return isFrench(getNLSLanguage()) ? 'fr' : 'en';
+}

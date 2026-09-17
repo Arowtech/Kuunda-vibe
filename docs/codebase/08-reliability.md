@@ -43,6 +43,6 @@ Phase de durcissement. Pas de nouveau produit (pas d'auth session, pas de packag
 ## Hors de portée
 
 - Auth session réelle (`POST /v1/auth/session` reste 501)
-- Phase 9 packaging / signature / auto-update (bloquée par 8bis légal)
+- Phase 10 post-lancement
 - `wrangler deploy`
 - Application SQL 0004

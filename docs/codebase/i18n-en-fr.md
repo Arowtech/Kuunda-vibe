@@ -27,5 +27,7 @@ Réutiliser le mécanisme VS Code / Void déjà présent, plus un helper isolé 
 - `src/vs/workbench/contrib/kuundaPublish/` : chaînes Phase 7 (`kuunda.publish.*`).
 - Phase 8 : mêmes catalogues — `kuunda.agent.setProductionAdjacent.*`, `kuunda.terminal.allowBlocked`, `kuunda.billing.network.*`, `kuunda.cloud.network.*`, `kuunda.publish.network.*`.
 - 8bis : `src/vs/workbench/contrib/kuundaLegal/` (`kuunda.legal.*`).
+- Phase 9 : erreurs d’intégrité de mise à jour EN/FR (`formatUpdateIntegrityError`).
+- Phase 10 : `src/vs/workbench/contrib/kuundaFeedback/` (`kuunda.feedback.*`).
 
 Le français n'est jamais la seule langue d'une chaîne : l'anglais est le repli si `fr` manque.

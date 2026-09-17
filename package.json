@@ -13,7 +13,7 @@
     "buildreact": "cd ./src/vs/workbench/contrib/void/browser/react/ && node build.js && cd ../../../../../../../",
     "watchreact": "cd ./src/vs/workbench/contrib/void/browser/react/ && node build.js --watch && cd ../../../../../../../",
     "watchreactd": "deemon npm run watchreact",
-    "test": "node --test test/license-compliance.test.mjs packages/cloud-client/test/cloud-client.test.mjs test/branding.test.mjs packages/kuunda-ai/test/kuunda-ai.test.mjs test/kuunda-ai-wiring.test.mjs test/kuunda-agent-wiring.test.mjs test/kuunda-billing-wiring.test.mjs test/kuunda-dev-wiring.test.mjs test/kuunda-ext-wiring.test.mjs test/kuunda-project-wiring.test.mjs test/kuunda-cloud-wiring.test.mjs test/kuunda-publish-wiring.test.mjs test/kuunda-phase8-wiring.test.mjs test/kuunda-legal-wiring.test.mjs",
+    "test": "node --test test/license-compliance.test.mjs packages/cloud-client/test/cloud-client.test.mjs test/branding.test.mjs packages/kuunda-ai/test/kuunda-ai.test.mjs test/kuunda-ai-wiring.test.mjs test/kuunda-agent-wiring.test.mjs test/kuunda-billing-wiring.test.mjs test/kuunda-dev-wiring.test.mjs test/kuunda-ext-wiring.test.mjs test/kuunda-project-wiring.test.mjs test/kuunda-cloud-wiring.test.mjs test/kuunda-publish-wiring.test.mjs test/kuunda-phase8-wiring.test.mjs test/kuunda-legal-wiring.test.mjs test/kuunda-packaging-wiring.test.mjs test/kuunda-feedback-wiring.test.mjs",
     "test-vscode": "echo Please run any of the test scripts from the scripts folder.",
     "test-browser": "npx playwright install && node test/unit/browser/index.js",
     "test-browser-no-install": "node test/unit/browser/index.js",

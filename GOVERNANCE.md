@@ -1,6 +1,6 @@
 # Gouvernance — Kuunda Vibe
 
-**Statut :** Phase 8bis conformité / légal en cours (bloque Phase 9). Phase 8 sécurité implémentée, non validée steward.
+**Statut :** Phase 10 itération post-lancement en cours.
 **Steward :** Arowtech
 **Licence du dépôt public :** Apache-2.0 (cœur Code - OSS : MIT)
 

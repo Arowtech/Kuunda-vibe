@@ -23,6 +23,8 @@ describe('Phase 1 — branding Kuunda Vibe', () => {
 		assert.equal(product.licenseName, 'Apache-2.0');
 		assert.match(product.licenseUrl, /Arowtech\/Kuunda-vibe/);
 		assert.match(product.privacyStatementUrl, /PRIVACY-POLICY/);
+		assert.equal(product.quality, 'internal');
+		assert.equal(product.updateUrl, 'https://updates.ide.kuunda-cloud.com');
 		assert.doesNotMatch(product.applicationName, /^void$/i);
 		assert.ok(product.linkProtectionTrustedDomains.includes('https://ide.kuunda-cloud.com'));
 	});
