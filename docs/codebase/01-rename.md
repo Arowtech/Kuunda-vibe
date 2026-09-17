@@ -35,7 +35,11 @@ Les notices Microsoft / Glass Devtools dans les sources **ne sont pas** remplac�
 
 ## i18n
 
-Mécanisme VS Code `nls.localize`. Chaînes Kuunda nouvelles : anglais par défaut + français dans `src/vs/workbench/contrib/kuundaBrand/common/strings.json`. Module isolé `src/vs/workbench/contrib/kuundaBrand/` (Apache-2.0 Arowtech).
+Mécanisme VS Code `nls.localize` pour le cœur éditeur. Chaînes Kuunda nouvelles : `kuundaLocalize` dans `src/vs/workbench/contrib/kuundaBrand/` (anglais par défaut, français si locale `fr`). Catalogue `common/strings.json`.
+
+## Gitleaks
+
+Les `aiKey` Application Insights des `extensions/*/package.json` et le `token=` de la fixture `src/vs/base/test/common/uri.test.ts` sont des faux positifs Code - OSS. Allowlist dans `.gitleaks.toml` (`[extend] useDefault = true`). Ne pas supprimer ces clés : la télémétrie vscode les lit.
 
 ## Hors de portée
 

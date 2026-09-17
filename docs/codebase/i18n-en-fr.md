@@ -13,10 +13,12 @@
 
 ## Mise en œuvre (Phase 1)
 
-Réutiliser le mécanisme VS Code / Void déjà présent :
+Réutiliser le mécanisme VS Code / Void déjà présent, plus un helper isolé :
 
-- clés nls dans `src/vs/workbench/contrib/kuundaBrand/` (`nls.localize('kuunda.xxx', 'English default')`) ;
-- équivalent français dans `common/strings.json` pour chaque clé Kuunda nouvelle ;
+- `src/vs/workbench/contrib/kuundaBrand/common/kuundaNls.ts` lit `getNLSLanguage()` : `en` par défaut, `fr` / `fr-*` pour le français ;
+- catalogue bilingue dans `common/strings.json` (source de test) aligné sur `KUUNDA_STRINGS` ;
 - ne pas dupliquer un second framework i18n (i18next, etc.) par-dessus VS Code.
+
+Les libellés hérités de VS Code dans `src/vs/workbench/browser/` restent en anglais (pipeline nls Code - OSS). Les chaînes Kuunda nouvelles passent par `kuundaLocalize`.
 
 Le français n'est jamais la seule langue d'une chaîne : l'anglais est le repli si `fr` manque.

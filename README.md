@@ -12,7 +12,7 @@ Ce logiciel est fourni « AS IS », sans garantie. Les marques Kuunda, Kuunda Vi
 
 ## État du dépôt
 
-Phase 1 (renommage éditeur) en cours : source Void importé, identité **Kuunda Vibe**, UI bilingue EN/FR (anglais par défaut).
+Phase 1 (renommage éditeur) livrée, CI verte sur [PR #2](https://github.com/Arowtech/Kuunda-vibe/pull/2) : source Void importé, identité **Kuunda Vibe**, UI bilingue EN/FR (anglais par défaut). En attente de validation steward avant la Phase 2.
 
 - Contribuer : [CONTRIBUTING.md](CONTRIBUTING.md)
 - Gouvernance : [GOVERNANCE.md](GOVERNANCE.md)

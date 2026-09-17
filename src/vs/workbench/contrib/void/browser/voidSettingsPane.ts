@@ -2,10 +2,11 @@
  *  Copyright 2025 Glass Devtools, Inc. All rights reserved.
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
+// Modified 2026-09-17 by Arowtech: settings labels use Kuunda nls (EN default + FR).
 
 import { IInstantiationService } from '../../../../platform/instantiation/common/instantiation.js';
 import { EditorInput } from '../../../common/editor/editorInput.js';
-import * as nls from '../../../../nls.js';
+import { kuundaLocalize, kuundaLocalize2 } from '../../kuundaBrand/common/kuundaNls.js';
 import { EditorExtensions } from '../../../common/editor.js';
 import { EditorPane } from '../../../browser/parts/editor/editorPane.js';
 import { IEditorGroup, IEditorGroupsService } from '../../../services/editor/common/editorGroupsService.js';
@@ -49,7 +50,7 @@ class VoidSettingsInput extends EditorInput {
 	}
 
 	override getName(): string {
-		return nls.localize('voidSettingsInputsName', 'Kuunda Vibe Settings');
+		return kuundaLocalize('kuunda.settings.title');
 	}
 
 	override getIcon() {
@@ -112,7 +113,7 @@ class VoidSettingsPane extends EditorPane {
 
 // register Settings pane
 Registry.as<IEditorPaneRegistry>(EditorExtensions.EditorPane).registerEditorPane(
-	EditorPaneDescriptor.create(VoidSettingsPane, VoidSettingsPane.ID, nls.localize('VoidSettingsPane', "Kuunda Vibe Settings Pane")),
+	EditorPaneDescriptor.create(VoidSettingsPane, VoidSettingsPane.ID, kuundaLocalize('kuunda.settings.pane')),
 	[new SyncDescriptor(VoidSettingsInput)]
 );
 
@@ -123,7 +124,7 @@ registerAction2(class extends Action2 {
 	constructor() {
 		super({
 			id: VOID_TOGGLE_SETTINGS_ACTION_ID,
-			title: nls.localize2('voidSettings', "Kuunda Vibe: Toggle Settings"),
+			title: kuundaLocalize2('kuunda.settings.toggle'),
 			icon: Codicon.settingsGear,
 			menu: [
 				{
@@ -172,7 +173,7 @@ registerAction2(class extends Action2 {
 	constructor() {
 		super({
 			id: VOID_OPEN_SETTINGS_ACTION_ID,
-			title: nls.localize2('voidSettingsAction2', "Kuunda Vibe: Open Settings"),
+			title: kuundaLocalize2('kuunda.settings.openCommand'),
 			f1: true,
 			icon: Codicon.settingsGear,
 		});
@@ -202,7 +203,7 @@ MenuRegistry.appendMenuItem(MenuId.GlobalActivity, {
 	group: '0_command',
 	command: {
 		id: VOID_TOGGLE_SETTINGS_ACTION_ID,
-		title: nls.localize('voidSettingsActionGear', "Kuunda Vibe Settings")
+		title: kuundaLocalize('kuunda.settings.title')
 	},
 	order: 1
 });

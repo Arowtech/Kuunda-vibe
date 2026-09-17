@@ -43,9 +43,22 @@ describe('Phase 1 — branding Kuunda Vibe', () => {
 			assert.notEqual(value.en, value.fr);
 		}
 		const contribution = read('src/vs/workbench/contrib/kuundaBrand/browser/kuundaBrand.contribution.ts');
-		assert.match(contribution, /localize\(\s*'kuunda\.about\.attribution'/);
-		assert.match(contribution, /localize\(\s*'kuunda\.product\.tagline'/);
-		assert.match(contribution, /Default language: English/);
+		assert.match(contribution, /kuundaLocalize\(\s*'kuunda\.about\.attribution'/);
+		assert.match(contribution, /kuundaLocalize\(\s*'kuunda\.product\.tagline'/);
+		assert.match(read('src/vs/workbench/contrib/kuundaBrand/common/kuundaNls.ts'), /Default language: English/);
+		assert.ok(Object.prototype.hasOwnProperty.call(strings, 'kuunda.product.tagline'));
+	});
+
+	it('kuundaNls.ts reste aligné sur strings.json et lit la locale', () => {
+		const strings = JSON.parse(read('src/vs/workbench/contrib/kuundaBrand/common/strings.json'));
+		const nlsSrc = read('src/vs/workbench/contrib/kuundaBrand/common/kuundaNls.ts');
+		assert.match(nlsSrc, /getNLSLanguage/);
+		assert.match(nlsSrc, /function resolveKuundaString/);
+		for (const [key, value] of Object.entries(strings)) {
+			assert.match(nlsSrc, new RegExp(`['"]${key.replace(/\./g, '\\.')}['"]`));
+			assert.ok(nlsSrc.includes(value.en), `${key} en manquant dans kuundaNls.ts`);
+			assert.ok(nlsSrc.includes(value.fr), `${key} fr manquant dans kuundaNls.ts`);
+		}
 	});
 
 	it('les libellés Windows / transfert ne disent plus Void', () => {
@@ -57,8 +70,10 @@ describe('Phase 1 — branding Kuunda Vibe', () => {
 		assert.match(transfer, /'\.kuunda-vibe'/);
 		assert.doesNotMatch(transfer, /'\.void-editor'/);
 		const settings = read('src/vs/workbench/contrib/void/browser/voidSettingsPane.ts');
-		assert.match(settings, /Kuunda Vibe Settings/);
+		assert.match(settings, /kuundaLocalize\('kuunda\.settings\.title'\)/);
 		assert.doesNotMatch(settings, /Void\\'s Settings/);
+		const fileMenu = read('src/vs/workbench/contrib/files/browser/fileActions.contribution.ts');
+		assert.match(fileMenu, /kuundaLocalize\('kuunda\.settings\.openMenu'\)/);
 	});
 
 	it('workbench charge la contribution kuundaBrand isolée', () => {
