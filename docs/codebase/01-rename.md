@@ -1,10 +1,10 @@
 # 01 — Renommage éditeur (Kuunda Vibe)
 
 **Phase :** 1
-**Validation steward :** validée le 17 sept. 2026. Compilation Electron hors scope.
+**Validation steward :** identité validée le 17 sept. 2026. Build de validation unsigned (Phase 1.5) via `kuunda-builder`.
 **Point de départ :** Void `main` (commit shallow import, dépôt archivé https://github.com/voideditor/void), version produit Void 1.4.9 / Code - OSS 1.99.3.
 
-Cette phase **importe** le fork Void et remplace l'identité produit. Elle ne fusionne pas avec la Phase 2 (autocomplete / chat).
+Cette phase **importe** le fork Void, remplace l'identité produit, et produit un binaire interne non signé. Elle ne fusionne pas avec la Phase 2 (autocomplete / chat).
 
 ## Identité
 
@@ -43,9 +43,20 @@ Les `aiKey` Application Insights des `extensions/*/package.json` et le `token=` 
 
 Les fixtures de `packages/kuunda-ai/test/kuunda-ai.test.mjs` (PKCS8 Play / App Store, et `sk_live_*` pour `looksLikeSecret`) sont des faux positifs `private-key` et `stripe-access-token` : matériel de test, pas des secrets réels. Allowlist ciblée sur ce fichier, car `gitleaks detect` scanne l’historique.
 
+## Build de validation (Phase 1.5)
+
+Pipeline GitHub Actions `kuunda-builder`, adapté de [void-builder](https://github.com/voideditor/void-builder) :
+
+- Windows x64 : gulp `vscode-win32-x64-min-ci` + `vscode-win32-x64-user-setup` → `.exe` Inno (unsigned)
+- macOS arm64 : gulp `vscode-darwin-arm64-min-ci` + `hdiutil` → `.dmg` (unsigned)
+- Canal `internal` uniquement ; pas de signature Authenticode / Apple ; pas de `wrangler deploy`
+
+Déclenchement : Actions → `kuunda-builder` → `win32-and-darwin`. Artefacts : `kuunda-vibe-win32-x64-unsigned` et `kuunda-vibe-darwin-arm64-unsigned`.
+
+Node de compilation Electron : **20.18.2** (`.nvmrc`, imposé par Void/VS Code). Les tests Kuunda restent Node 24.
+
 ## Hors de portée
 
 - Chat / inline / agent (Phases 2–3)
 - Ledger / GeniusPay (3bis)
-- Packaging installateurs signés (Phase 9)
-- `npm install` / compilation Electron : environnement local lourd, pas un livrable de ce premier import
+- Packaging installateurs **signés** et canal `stable` (Phase 9)

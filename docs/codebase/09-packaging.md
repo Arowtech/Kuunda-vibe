@@ -4,7 +4,7 @@
 **Validation steward :** en cours  
 **Prérequis :** Phase 8bis validée (17 sept. 2026)
 
-Pipeline d’installateurs Windows / macOS, signature de code, auto-update signé. **Pas** de compilation Electron dans cette livraison. **Pas** de `wrangler deploy`. **Pas** de release publique.
+Pipeline d’installateurs Windows / macOS, signature de code, auto-update signé. La compilation Electron **unsigned interne** est le build de validation Phase 1.5 (`kuunda-builder`). Cette phase 9 ajoute la politique de signature et d’update. **Pas** de `wrangler deploy`. **Pas** de release publique.
 
 ## Livrables
 
@@ -26,7 +26,7 @@ Pipeline d’installateurs Windows / macOS, signature de code, auto-update sign�
 ## Hors de portée / restes
 
 - Phase 10
-- Produire un `.exe` / `.dmg` réel (gulp compile Electron)
+- Signature Authenticode / notarization Apple (secrets steward)
 - `wrangler deploy`
 - Diffusion publique / stores
 - Certificats Authenticode / Apple Developer (secrets steward)

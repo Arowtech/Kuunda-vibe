@@ -1,7 +1,6 @@
-# kuunda-builder — Windows / macOS packaging plan (Phase 9)
-# Renamed from void-builder. Does not compile Electron in this job.
-# Does not wrangler-deploy. Internal channel only.
-
+# kuunda-builder — adapted from void-builder (VSCodium fork).
+# Internal unsigned Windows .exe and macOS .dmg.
+# Does not wrangler-deploy. No Authenticode / Apple signing (channel=internal).
 name: kuunda-builder
 
 on:
@@ -10,8 +9,9 @@ on:
       platform:
         description: Target platform
         type: choice
-        default: win32-x64
+        default: win32-and-darwin
         options:
+          - win32-and-darwin
           - win32-x64
           - win32-arm64
           - darwin-x64
@@ -23,14 +23,28 @@ on:
         options:
           - internal
           - staging
+      compile:
+        description: Compile Electron and produce installers
+        type: boolean
+        default: true
 
 permissions:
   contents: read
+  actions: write
+
+concurrency:
+  group: kuunda-builder-${{ github.workflow }}-${{ github.ref }}-${{ inputs.platform }}
+  cancel-in-progress: false
+
+env:
+  CHANNEL: ${{ inputs.channel }}
+  PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+  NODE_OPTIONS: --max-old-space-size=8192
 
 jobs:
   plan:
     name: Plan package
-    runs-on: ${{ startsWith(inputs.platform, 'darwin') && 'macos-latest' || 'windows-latest' }}
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -40,6 +54,121 @@ jobs:
         env:
           HAS_WINDOWS_CERT: ${{ secrets.WINDOWS_CERT_PFX != '' }}
           HAS_APPLE_IDENTITY: ${{ secrets.APPLE_CERTIFICATE != '' }}
-        run: node scripts/kuunda-builder/plan.mjs "${{ inputs.platform }}" "${{ inputs.channel }}" "${{ github.sha }}"
+        run: node scripts/kuunda-builder/plan.mjs "${{ startsWith(inputs.platform, 'darwin') && 'darwin-arm64' || 'win32-x64' }}" "${{ inputs.channel }}" "${{ github.sha }}"
       - name: Unit tests (no Electron compile)
         run: npm test
+
+  windows-x64:
+    name: Windows x64 unsigned setup
+    needs: plan
+    if: ${{ inputs.compile && (inputs.platform == 'win32-and-darwin' || inputs.platform == 'win32-x64') }}
+    runs-on: windows-latest
+    timeout-minutes: 360
+    env:
+      VSCODE_ARCH: x64
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20.18.2'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Compile and package unsigned EXE
+        shell: pwsh
+        run: ./scripts/kuunda-builder/compile-windows.ps1 x64
+      - name: Upload Windows installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: kuunda-vibe-win32-x64-unsigned
+          path: artifacts/*.exe
+          if-no-files-found: error
+          retention-days: 14
+
+  windows-arm64:
+    name: Windows arm64 unsigned setup
+    needs: plan
+    if: ${{ inputs.compile && inputs.platform == 'win32-arm64' }}
+    runs-on: windows-latest
+    timeout-minutes: 360
+    env:
+      VSCODE_ARCH: arm64
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20.18.2'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Compile and package unsigned EXE
+        shell: pwsh
+        run: ./scripts/kuunda-builder/compile-windows.ps1 arm64
+      - name: Upload Windows installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: kuunda-vibe-win32-arm64-unsigned
+          path: artifacts/*.exe
+          if-no-files-found: error
+          retention-days: 14
+
+  macos-arm64:
+    name: macOS arm64 unsigned DMG
+    needs: plan
+    if: ${{ inputs.compile && (inputs.platform == 'win32-and-darwin' || inputs.platform == 'darwin-arm64') }}
+    runs-on: macos-14
+    timeout-minutes: 360
+    env:
+      VSCODE_ARCH: arm64
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20.18.2'
+      - name: Compile and package unsigned DMG
+        run: |
+          chmod +x scripts/kuunda-builder/compile-darwin.sh
+          ./scripts/kuunda-builder/compile-darwin.sh arm64
+      - name: Upload macOS disk image
+        uses: actions/upload-artifact@v4
+        with:
+          name: kuunda-vibe-darwin-arm64-unsigned
+          path: artifacts/*.dmg
+          if-no-files-found: error
+          retention-days: 14
+
+  macos-x64:
+    name: macOS x64 unsigned DMG
+    needs: plan
+    if: ${{ inputs.compile && inputs.platform == 'darwin-x64' }}
+    runs-on: macos-13
+    timeout-minutes: 360
+    env:
+      VSCODE_ARCH: x64
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20.18.2'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Compile and package unsigned DMG
+        run: |
+          chmod +x scripts/kuunda-builder/compile-darwin.sh
+          ./scripts/kuunda-builder/compile-darwin.sh x64
+      - name: Upload macOS disk image
+        uses: actions/upload-artifact@v4
+        with:
+          name: kuunda-vibe-darwin-x64-unsigned
+          path: artifacts/*.dmg
+          if-no-files-found: error
+          retention-days: 14

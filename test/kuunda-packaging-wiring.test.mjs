@@ -24,6 +24,13 @@ describe('Phase 9 — branchement packaging / updates', () => {
 		assert.doesNotMatch(read('.github/workflows/kuunda-builder.yml'), /wrangler deploy/);
 		assert.match(read('.github/workflows/kuunda-builder.yml'), /HAS_WINDOWS_CERT/);
 		assert.equal(read('.github/workflows/kuunda-builder.yml').includes('WINDOWS_CERT_PFX: ${{ secrets.WINDOWS_CERT_PFX }}'), false);
+		assert.match(read('.github/workflows/kuunda-builder.yml'), /compile-windows\.ps1/);
+		assert.match(read('.github/workflows/kuunda-builder.yml'), /compile-darwin\.sh/);
+		assert.match(read('.github/workflows/kuunda-builder.yml'), /upload-artifact/);
+		assert.match(read('scripts/kuunda-builder/compile-windows.ps1'), /vscode-win32-\$Arch-user-setup/);
+		assert.match(read('scripts/kuunda-builder/compile-darwin.sh'), /hdiutil create/);
+		assert.doesNotMatch(read('scripts/kuunda-builder/compile-windows.ps1'), /wrangler/);
+		assert.doesNotMatch(read('scripts/kuunda-builder/compile-darwin.sh'), /codesign/);
 		assert.match(read('src/vs/platform/update/electron-main/updateService.win32.ts'), /assertKuundaSignedFile/);
 		assert.match(read('src/vs/platform/update/electron-main/updateService.win32.ts'), /_applySpecificUpdate refused/);
 		assert.match(read('src/vs/platform/update/electron-main/updateService.darwin.ts'), /assertKuundaSignedFile/);

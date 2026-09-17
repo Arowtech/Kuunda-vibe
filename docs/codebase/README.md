@@ -35,7 +35,7 @@ Ce guide est mis à jour **à chaque phase**. Il n'est pas un README marketing.
 | --- | --- |
 | 0 Licence et gouvernance | **Validée** (steward, 16 sept. 2026) |
 | 0bis Infrastructure et sécurité plateforme | **Validée** (steward, 17 sept. 2026) — SLA/restore/promotion SQL hors P1 |
-| 1 Renommage éditeur | **Validée** (steward, 17 sept. 2026) |
+| 1 Renommage éditeur | **En cours** — identité livrée ; build de validation unsigned (1.5) |
 | 2 Complétion et édition assistée | **Validée** (steward, 17 sept. 2026) |
 | 3 Agent autonome | **Validée** (steward, 17 sept. 2026 — ouverture 3bis) |
 | 3bis Crédits et facturation | **Validée** (steward, 17 sept. 2026 — ouverture Phase 4) |
