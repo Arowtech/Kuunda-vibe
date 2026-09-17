@@ -27,6 +27,9 @@ on:
         description: Compile Electron and produce installers
         type: boolean
         default: true
+  push:
+    tags:
+      - 'internal-build-*'
 
 permissions:
   contents: read
@@ -54,14 +57,14 @@ jobs:
         env:
           HAS_WINDOWS_CERT: ${{ secrets.WINDOWS_CERT_PFX != '' }}
           HAS_APPLE_IDENTITY: ${{ secrets.APPLE_CERTIFICATE != '' }}
-        run: node scripts/kuunda-builder/plan.mjs "${{ startsWith(inputs.platform, 'darwin') && 'darwin-arm64' || 'win32-x64' }}" "${{ inputs.channel }}" "${{ github.sha }}"
+        run: node scripts/kuunda-builder/plan.mjs "${{ startsWith(inputs.platform, 'darwin') && 'darwin-arm64' || 'win32-x64' }}" "${{ inputs.channel || 'internal' }}" "${{ github.sha }}"
       - name: Unit tests (no Electron compile)
         run: npm test
 
   windows-x64:
     name: Windows x64 unsigned setup
     needs: plan
-    if: ${{ inputs.compile && (inputs.platform == 'win32-and-darwin' || inputs.platform == 'win32-x64') }}
+    if: ${{ github.event_name == 'push' || (inputs.compile && (inputs.platform == 'win32-and-darwin' || inputs.platform == 'win32-x64')) }}
     runs-on: windows-latest
     timeout-minutes: 360
     env:
@@ -90,7 +93,7 @@ jobs:
   windows-arm64:
     name: Windows arm64 unsigned setup
     needs: plan
-    if: ${{ inputs.compile && inputs.platform == 'win32-arm64' }}
+    if: ${{ github.event_name != 'push' && inputs.compile && inputs.platform == 'win32-arm64' }}
     runs-on: windows-latest
     timeout-minutes: 360
     env:
@@ -119,7 +122,7 @@ jobs:
   macos-arm64:
     name: macOS arm64 unsigned DMG
     needs: plan
-    if: ${{ inputs.compile && (inputs.platform == 'win32-and-darwin' || inputs.platform == 'darwin-arm64') }}
+    if: ${{ github.event_name == 'push' || (inputs.compile && (inputs.platform == 'win32-and-darwin' || inputs.platform == 'darwin-arm64')) }}
     runs-on: macos-14
     timeout-minutes: 360
     env:
@@ -146,7 +149,7 @@ jobs:
   macos-x64:
     name: macOS x64 unsigned DMG
     needs: plan
-    if: ${{ inputs.compile && inputs.platform == 'darwin-x64' }}
+    if: ${{ github.event_name != 'push' && inputs.compile && inputs.platform == 'darwin-x64' }}
     runs-on: macos-13
     timeout-minutes: 360
     env:
