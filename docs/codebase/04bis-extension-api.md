@@ -44,7 +44,8 @@ Déclaration dans le `package.json` de l'extension :
 | `agent.capabilities` | `agent` | `{ maxSteps, providers }` — pas de clés |
 | `agent.getPolicy` | `agent` | `{ tools }` niveaux effectifs (`allow`/`confirm`/…) — pas de clés |
 | `credits.balance` | `credits` | `{ remaining }` — pas d'id compte, pas de paiement |
-| `cloud.status` | `kuundaCloud` | `{ available: false, phase: 6 }` jusqu'à la Phase 6 |
+| `cloud.status` | `kuundaCloud` | `{ available: true, enabled, projectRef?, env? }` — pas de clé |
+| `publish.status` | `kuundaPublish` | `{ available: true, visible, jobStatus?, targets? }` — pas de clé store |
 
 F1 : `kuunda.ext.grantAccess`, `kuunda.ext.revokeAccess`, `kuunda.ext.showApi`.
 
@@ -59,5 +60,3 @@ F1 : `kuunda.ext.grantAccess`, `kuunda.ext.revokeAccess`, `kuunda.ext.showApi`.
 
 - Marketplace propriétaire hébergé (revue `approved` prévue, pas d'hébergeur en v1)
 - `vscode.kuunda` proposed API / extHost (rebase)
-- Sélecteur de type de projet (Phase 5)
-- Provisioning Kuunda Cloud (Phase 6)

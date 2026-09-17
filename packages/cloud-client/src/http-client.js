@@ -84,6 +84,26 @@ export function createPlatformClient(options = {}) {
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify(body)
 			});
+		},
+		/** @type {import('./contracts.js').IKuundaProvisioningClient['listProjectTables']} */
+		listProjectTables(projectId) {
+			return request(`/v1/provisioning/projects/${encodeURIComponent(projectId)}/tables`);
+		},
+		/** @type {import('./contracts.js').IPublishClient['enqueuePublishJob']} */
+		enqueuePublishJob(body) {
+			return request('/v1/publishing/jobs', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify(body),
+			});
+		},
+		/** @type {import('./contracts.js').IPublishClient['getPublishJob']} */
+		getPublishJob(jobId, userId) {
+			return request(`/v1/publishing/jobs/${encodeURIComponent(jobId)}?userId=${encodeURIComponent(userId)}`);
+		},
+		/** @type {import('./contracts.js').IPublishClient['getPublishLogs']} */
+		getPublishLogs(jobId, userId) {
+			return request(`/v1/publishing/jobs/${encodeURIComponent(jobId)}/logs?userId=${encodeURIComponent(userId)}`);
 		}
 	};
 }

@@ -14,6 +14,9 @@ Ce guide est mis à jour **à chaque phase**. Il n'est pas un README marketing.
 | [03bis-credits.md](03bis-credits.md) | Phase 3bis : crédits UI + contrats (ledger privé) |
 | [04-devtools.md](04-devtools.md) | Phase 4 : terminal agent, git multi-repo, multi-root, `.projectrules` |
 | [04bis-extension-api.md](04bis-extension-api.md) | Phase 4bis : API VSIX/Open VSX + permissions Kuunda |
+| [05-project-type.md](05-project-type.md) | Phase 5 : sélecteur de type de projet + templates |
+| [06-kuunda-cloud.md](06-kuunda-cloud.md) | Phase 6 : Kuunda Cloud par défaut |
+| [07-publishing.md](07-publishing.md) | Phase 7 : publication mobile Google Play / App Store |
 | `LICENSE` | Apache-2.0 (texte officiel non modifié) |
 | `LICENSE-VS-Code.txt` | MIT Code - OSS (Microsoft) |
 | `NOTICE` | Chaîne d'attribution Microsoft → Void → Arowtech |
@@ -34,11 +37,14 @@ Ce guide est mis à jour **à chaque phase**. Il n'est pas un README marketing.
 | 3bis Crédits et facturation | **Validée** (steward, 17 sept. 2026 — ouverture Phase 4) |
 | 4 Outils de développement | **Validée** (steward, 17 sept. 2026) |
 | 4bis API d'extensions | **Validée** (steward, 17 sept. 2026) |
-| 5–10 | Non commencées |
+| 5 Type de projet | **Validée** (steward, 17 sept. 2026) |
+| 6 Kuunda Cloud par défaut | **Validée** (steward, 17 sept. 2026) |
+| 7 Pipeline de publication mobile | **En cours** |
+| 8–10 | Non commencées |
 
 Ne pas fusionner les phases. Ne pas démarrer N+1 sans validation explicite de N.
 
-## Arbre (Phase 4bis)
+## Arbre (Phase 7)
 
 ```
 src/vs/                          fork Void / Code - OSS
@@ -48,12 +54,15 @@ resources/branding/              logos steward
 src/vs/workbench/contrib/kuundaAi/      Tab / @Codebase / diffs (P2) + agent (P3)
 src/vs/workbench/contrib/kuundaBilling/  solde / plans / alertes (3bis)
 src/vs/workbench/contrib/kuundaExt/     API extensions VSIX (P4bis)
-packages/cloud-client/           contrats HTTP publics (crédits, billing)
-packages/kuunda-ai/              algorithmes testables (BM25, hunks, Tab, permissions, compact, cwd, rules, git, API ext)
+src/vs/workbench/contrib/kuundaProject/ type de projet + scaffold (P5)
+src/vs/workbench/contrib/kuundaCloud/    provision Cloud + panel (P6)
+src/vs/workbench/contrib/kuundaPublish/  publication mobile + panneau (P7)
+packages/cloud-client/           contrats HTTP publics (crédits, billing, provisioning, publishing)
+packages/kuunda-ai/              algorithmes testables (BM25, hunks, Tab, permissions, compact, cwd, rules, git, API ext, type projet, cloud, publish)
 product.json                     nom Kuunda Vibe
 ```
 
 ## Stack figée
 
-Voir `00-licence-et-gouvernance.md`, `00bis-infrastructure.md`, `01-rename.md`, `02-autocomplete-chat.md`, `03-agent.md`, `03bis-credits.md`, `04-devtools.md`, `04bis-extension-api.md`.
+Voir `00-licence-et-gouvernance.md`, `00bis-infrastructure.md`, `01-rename.md`, `02-autocomplete-chat.md`, `03-agent.md`, `03bis-credits.md`, `04-devtools.md`, `04bis-extension-api.md`, `05-project-type.md`, `06-kuunda-cloud.md`, `07-publishing.md`.
 `engines` de compilation : ceux de Void/VS Code. Tests Kuunda : `npm test` (Node 24).

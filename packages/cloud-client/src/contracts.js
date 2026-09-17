@@ -46,16 +46,49 @@
  * @property {(userId: string, planId: string) => Promise<CheckoutResult>} startCheckout
  *
  * @typedef {object} ProvisioningRequest
- * @property {string} projectId
+ * @property {string} userId
  * @property {string} displayName
+ * @property {string} [projectId]
+ * @property {string} [projectType]
+ * @property {boolean} [replace]
  *
  * @typedef {object} ProvisioningResult
  * @property {string} projectId
  * @property {string} kuundaProjectRef
  * @property {'sandbox' | 'production'} env
+ * @property {string} [url]
+ * @property {string} [anonKey]
+ * @property {Array<{ name: string, rowCount?: number }>} [tables]
  *
  * @typedef {object} IKuundaProvisioningClient
  * @property {(req: ProvisioningRequest) => Promise<ProvisioningResult>} provisionProject
+ * @property {(projectId: string) => Promise<{ kuundaProjectRef: string, tables: Array<{ name: string, rowCount?: number }> }>} listProjectTables
+ *
+ * @typedef {'google_play' | 'app_store'} PublishTarget
+ *
+ * @typedef {'queued' | 'running' | 'succeeded' | 'failed' | 'pending_ci'} PublishJobStatus
+ *
+ * @typedef {object} PublishJobRequest
+ * @property {string} userId
+ * @property {PublishTarget[]} targets
+ * @property {string} version
+ * @property {string} packageId
+ * @property {boolean} [googlePlayConfigured]
+ * @property {boolean} [appStoreConfigured]
+ * @property {boolean} [signatureReady]
+ *
+ * @typedef {object} PublishJob
+ * @property {string} id
+ * @property {PublishJobStatus} status
+ * @property {PublishTarget[]} targets
+ * @property {string} [version]
+ * @property {string} [packageId]
+ * @property {string} [failureCode]
+ *
+ * @typedef {object} IPublishClient
+ * @property {(req: PublishJobRequest) => Promise<PublishJob>} enqueuePublishJob
+ * @property {(jobId: string, userId: string) => Promise<PublishJob>} getPublishJob
+ * @property {(jobId: string, userId: string) => Promise<{ logs: string[] }>} getPublishLogs
  *
  * @typedef {object} UpdateArtifact
  * @property {Uint8Array} bytes

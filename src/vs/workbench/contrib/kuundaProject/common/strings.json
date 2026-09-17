@@ -1,0 +1,146 @@
+{
+	"kuunda.project.tagline": {
+		"en": "Pick a project type before Kuunda Vibe scaffolds a new workspace.",
+		"fr": "Choisissez un type de projet avant que Kuunda Vibe n’échafaude un espace de travail."
+	},
+	"kuunda.project.create": {
+		"en": "Kuunda Vibe: New Project",
+		"fr": "Kuunda Vibe : nouveau projet"
+	},
+	"kuunda.project.create.type": {
+		"en": "What kind of project is this? A type is required.",
+		"fr": "Quel type de projet est-ce ? Un type est obligatoire."
+	},
+	"kuunda.project.create.type.website": {
+		"en": "Website",
+		"fr": "Site web"
+	},
+	"kuunda.project.create.type.webapp": {
+		"en": "Web application",
+		"fr": "Application web"
+	},
+	"kuunda.project.create.type.mobile": {
+		"en": "Mobile application",
+		"fr": "Application mobile"
+	},
+	"kuunda.project.create.type.other": {
+		"en": "Other",
+		"fr": "Autre"
+	},
+	"kuunda.project.create.publish": {
+		"en": "Where should this mobile app be published later?",
+		"fr": "Où cette application mobile devra-t-elle être publiée plus tard ?"
+	},
+	"kuunda.project.create.publish.google_play": {
+		"en": "Google Play",
+		"fr": "Google Play (Android)"
+	},
+	"kuunda.project.create.publish.app_store": {
+		"en": "App Store",
+		"fr": "App Store (iOS)"
+	},
+	"kuunda.project.create.publish.both": {
+		"en": "Google Play and App Store",
+		"fr": "Google Play et App Store"
+	},
+	"kuunda.project.create.publish.none": {
+		"en": "None for now",
+		"fr": "Aucune pour l’instant"
+	},
+	"kuunda.project.create.name": {
+		"en": "Project folder name",
+		"fr": "Nom du dossier projet"
+	},
+	"kuunda.project.create.parent": {
+		"en": "Select the parent folder",
+		"fr": "Choisir le dossier parent"
+	},
+	"kuunda.project.create.open": {
+		"en": "Select",
+		"fr": "Sélectionner"
+	},
+	"kuunda.project.create.ok": {
+		"en": "Created {0} ({1}).",
+		"fr": "Projet {0} créé ({1})."
+	},
+	"kuunda.project.create.cancelled": {
+		"en": "Project creation cancelled. No files were written.",
+		"fr": "Création annulée. Aucun fichier n’a été écrit."
+	},
+	"kuunda.project.create.error": {
+		"en": "Could not create the project: {0}",
+		"fr": "Impossible de créer le projet : {0}"
+	},
+	"kuunda.project.error.type_required": {
+		"en": "A project type is required.",
+		"fr": "Un type de projet est obligatoire."
+	},
+	"kuunda.project.error.name_required": {
+		"en": "Use a folder name with letters, numbers, dots, dashes or underscores. Windows reserved names (CON, PRN, AUX, NUL, COM1, LPT1, …) are refused.",
+		"fr": "Utilisez un nom de dossier avec lettres, chiffres, points, tirets ou underscores. Les noms réservés Windows (CON, PRN, AUX, NUL, COM1, LPT1, …) sont refusés."
+	},
+	"kuunda.project.error.publish_required": {
+		"en": "A mobile project must pick Google Play, App Store, both, or none for now.",
+		"fr": "Un projet mobile doit choisir Google Play, App Store, les deux, ou aucune pour l’instant."
+	},
+	"kuunda.project.error.publish_not_applicable": {
+		"en": "Publish targets apply only to mobile projects.",
+		"fr": "Les cibles de publication ne s’appliquent qu’aux projets mobiles."
+	},
+	"kuunda.project.error.not_a_directory": {
+		"en": "The destination must be a folder, not a file.",
+		"fr": "La destination doit être un dossier, pas un fichier."
+	},
+	"kuunda.project.error.already_kuunda_project": {
+		"en": "That folder is already a Kuunda project. Open it instead of creating over it.",
+		"fr": "Ce dossier est déjà un projet Kuunda. Ouvrez-le au lieu de le recréer."
+	},
+	"kuunda.project.error.parent_missing": {
+		"en": "The parent folder does not exist.",
+		"fr": "Le dossier parent n’existe pas."
+	},
+	"kuunda.project.error.invalid_manifest": {
+		"en": "That folder has a broken .kuunda/project.json. Fix or remove it before creating a project there.",
+		"fr": "Ce dossier a un .kuunda/project.json invalide. Réparez-le ou supprimez-le avant d’y créer un projet."
+	},
+	"kuunda.project.error.write_failed": {
+		"en": "Could not write the project files. Check folder permissions and try again.",
+		"fr": "Impossible d’écrire les fichiers du projet. Vérifiez les permissions du dossier puis réessayez."
+	},
+	"kuunda.project.empty.title": {
+		"en": "Create a Kuunda Vibe project?",
+		"fr": "Créer un projet Kuunda Vibe ?"
+	},
+	"kuunda.project.empty.detail": {
+		"en": "New projects must pick a type (Website, Web app, Mobile, Other) before files are generated.",
+		"fr": "Un nouveau projet doit choisir un type (site web, application web, mobile, autre) avant la génération des fichiers."
+	},
+	"kuunda.project.empty.create": {
+		"en": "New Project",
+		"fr": "Nouveau projet"
+	},
+	"kuunda.project.empty.open": {
+		"en": "Open Folder",
+		"fr": "Ouvrir un dossier"
+	},
+	"kuunda.project.empty.later": {
+		"en": "Later",
+		"fr": "Plus tard"
+	},
+	"kuunda.project.showType": {
+		"en": "Kuunda Vibe: Show Project Type",
+		"fr": "Kuunda Vibe : afficher le type de projet"
+	},
+	"kuunda.project.showType.none": {
+		"en": "This folder is not a Kuunda project. Use New Project to scaffold one.",
+		"fr": "Ce dossier n’est pas un projet Kuunda. Utilisez Nouveau projet pour en créer un."
+	},
+	"kuunda.project.showType.ok": {
+		"en": "{0}: {1}",
+		"fr": "{0} : {1}"
+	},
+	"kuunda.project.showType.mobile": {
+		"en": "{0}: {1} (publish {2})",
+		"fr": "{0} : {1} (publication {2})"
+	}
+}

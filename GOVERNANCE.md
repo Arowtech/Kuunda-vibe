@@ -1,6 +1,6 @@
 # Gouvernance — Kuunda Vibe
 
-**Statut :** Phase 4bis validée, dépôt public `https://github.com/Arowtech/Kuunda-vibe.git`
+**Statut :** Phase 7 en cours (Phase 6 validée), dépôt public `https://github.com/Arowtech/Kuunda-vibe.git`
 **Steward :** Arowtech
 **Licence du dépôt public :** Apache-2.0 (cœur Code - OSS : MIT)
 

@@ -21,5 +21,9 @@ Réutiliser le mécanisme VS Code / Void déjà présent, plus un helper isolé 
 
 - `src/vs/workbench/contrib/kuundaAi/` : mêmes règles pour les chaînes Phase 2 et Phase 3 (`kuunda.ai.*`, `kuunda.agent.*`).
 - `src/vs/workbench/contrib/kuundaBilling/` : chaînes 3bis (`kuunda.billing.*`).
+- `src/vs/workbench/contrib/kuundaExt/` : chaînes 4bis (`kuunda.ext.*`, `kuunda.api.*`).
+- `src/vs/workbench/contrib/kuundaProject/` : chaînes Phase 5 (`kuunda.project.*`).
+- `src/vs/workbench/contrib/kuundaCloud/` : chaînes Phase 6 (`kuunda.cloud.*`).
+- `src/vs/workbench/contrib/kuundaPublish/` : chaînes Phase 7 (`kuunda.publish.*`).
 
 Le français n'est jamais la seule langue d'une chaîne : l'anglais est le repli si `fr` manque.

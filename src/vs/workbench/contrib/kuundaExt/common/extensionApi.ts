@@ -7,7 +7,7 @@ export const KUUNDA_API_VERSION = '1.0.0';
 export const KUUNDA_EXTENSION_FORMAT = 'vsix';
 export const OPEN_VSX_GALLERY = 'openvsx';
 
-export const KUUNDA_API_PERMISSIONS = ['agent', 'credits', 'kuundaCloud'] as const;
+export const KUUNDA_API_PERMISSIONS = ['agent', 'credits', 'kuundaCloud', 'kuundaPublish'] as const;
 export type KuundaApiPermission = typeof KUUNDA_API_PERMISSIONS[number];
 
 export const KUUNDA_API_METHODS = {
@@ -16,6 +16,7 @@ export const KUUNDA_API_METHODS = {
 	'agent.getPolicy': { permission: 'agent' },
 	'credits.balance': { permission: 'credits' },
 	'cloud.status': { permission: 'kuundaCloud' },
+	'publish.status': { permission: 'kuundaPublish' },
 } as const;
 
 export type KuundaApiMethod = keyof typeof KUUNDA_API_METHODS;
@@ -145,7 +146,7 @@ export function describeKuundaApi(): { version: string; format: string; marketpl
 }
 
 export function containsForbiddenSecret(value: unknown): boolean {
-	return /^(secret|password|credential|msisdn|hmac|token|authorization|api[_-]?key)$/i.test(String(value || ''));
+	return /^(secret|password|credential|msisdn|hmac|token|authorization|api[_-]?key|anon[_-]?key|service[_-]?role)$/i.test(String(value || ''));
 }
 
 export function redactApiPayload(payload: unknown): unknown {
@@ -155,6 +156,9 @@ export function redactApiPayload(payload: unknown): unknown {
 	const out: Record<string, unknown> | unknown[] = Array.isArray(payload) ? [] : {};
 	for (const [key, value] of Object.entries(payload as Record<string, unknown>)) {
 		if (containsForbiddenSecret(key) || containsForbiddenSecret(value)) {
+			continue;
+		}
+		if (typeof value === 'string' && /kuunda_anon_|service_role|sk_|whsec_/i.test(value)) {
 			continue;
 		}
 		if (value && typeof value === 'object') {

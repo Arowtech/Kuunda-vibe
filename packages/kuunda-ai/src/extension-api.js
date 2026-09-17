@@ -7,7 +7,7 @@ export const KUUNDA_API_VERSION = '1.0.0';
 export const KUUNDA_EXTENSION_FORMAT = 'vsix';
 export const OPEN_VSX_GALLERY = 'openvsx';
 
-export const KUUNDA_API_PERMISSIONS = Object.freeze(['agent', 'credits', 'kuundaCloud']);
+export const KUUNDA_API_PERMISSIONS = Object.freeze(['agent', 'credits', 'kuundaCloud', 'kuundaPublish']);
 
 export const KUUNDA_API_METHODS = Object.freeze({
 	'api.version': { permission: null },
@@ -15,6 +15,7 @@ export const KUUNDA_API_METHODS = Object.freeze({
 	'agent.getPolicy': { permission: 'agent' },
 	'credits.balance': { permission: 'credits' },
 	'cloud.status': { permission: 'kuundaCloud' },
+	'publish.status': { permission: 'kuundaPublish' },
 });
 
 export const MARKETPLACE_SOURCES = Object.freeze(['openvsx', 'sideload', 'kuunda_marketplace', 'builtin']);
@@ -141,7 +142,7 @@ export function describeKuundaApi() {
 }
 
 export function containsForbiddenSecret(value) {
-	return /^(secret|password|credential|msisdn|hmac|token|authorization|api[_-]?key)$/i.test(String(value || ''));
+	return /^(secret|password|credential|msisdn|hmac|token|authorization|api[_-]?key|anon[_-]?key|service[_-]?role)$/i.test(String(value || ''));
 }
 
 export function redactApiPayload(payload) {
@@ -151,6 +152,9 @@ export function redactApiPayload(payload) {
 	const out = Array.isArray(payload) ? [] : {};
 	for (const [key, value] of Object.entries(payload)) {
 		if (containsForbiddenSecret(key) || containsForbiddenSecret(value)) {
+			continue;
+		}
+		if (typeof value === 'string' && /kuunda_anon_|service_role|sk_|whsec_/i.test(value)) {
 			continue;
 		}
 		if (value && typeof value === 'object') {

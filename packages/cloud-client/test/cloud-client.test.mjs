@@ -49,10 +49,27 @@ describe('platform HTTP client', () => {
 		await client.signup('u1');
 		await client.consume('u1', 1, 'agent_usage');
 		await client.startCheckout('u1', 'plus');
+		await client.provisionProject({ userId: 'u1', displayName: 'shop', projectType: 'webapp' });
+		await client.listProjectTables('proj_ab');
+		await client.enqueuePublishJob({
+			userId: 'u1',
+			targets: ['google_play'],
+			version: '1.0.0',
+			packageId: 'com.example.app',
+			googlePlayConfigured: true,
+			signatureReady: true,
+		});
+		await client.getPublishJob('job_ab', 'u1');
+		await client.getPublishLogs('job_ab', 'u1');
 		assert.deepEqual(paths, [
 			'POST /v1/credits/signup',
 			'POST /v1/credits/consume',
 			'POST /v1/billing/checkout',
+			'POST /v1/provisioning/projects',
+			'GET /v1/provisioning/projects/proj_ab/tables',
+			'POST /v1/publishing/jobs',
+			'GET /v1/publishing/jobs/job_ab',
+			'GET /v1/publishing/jobs/job_ab/logs',
 		]);
 	});
 });

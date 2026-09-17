@@ -1,4 +1,4 @@
-// Modified 2026-09-17 by Arowtech: append Kuunda @Codebase hits, compact long agent context, project rules and git.
+// Modified 2026-09-17 by Arowtech: append Kuunda @Codebase hits, compact long agent context, project rules, git and project type.
 import { Disposable } from '../../../../base/common/lifecycle.js';
 import { deepClone } from '../../../../base/common/objects.js';
 import { IModelService } from '../../../../editor/common/services/model.js';
@@ -18,6 +18,9 @@ import { IMCPService } from '../common/mcpService.js';
 import { ToolName } from '../common/toolsServiceTypes.js';
 import { IKuundaCodebaseService } from '../../kuundaAi/common/kuundaCodebaseService.js';
 import { IKuundaWorkspaceService } from '../../kuundaAi/common/kuundaWorkspaceService.js';
+import { IKuundaProjectService } from '../../kuundaProject/common/kuundaProjectService.js';
+import { IKuundaCloudService } from '../../kuundaCloud/common/kuundaCloudService.js';
+import { IKuundaPublishService } from '../../kuundaPublish/common/kuundaPublishService.js';
 import { compactChatContext, contextBudgetChars } from '../../kuundaAi/common/contextCompact.js';
 
 export const EMPTY_MESSAGE = '(empty message)'
@@ -543,6 +546,9 @@ class ConvertToLLMMessageService extends Disposable implements IConvertToLLMMess
 		@IMCPService private readonly mcpService: IMCPService,
 		@IKuundaCodebaseService private readonly kuundaCodebaseService: IKuundaCodebaseService,
 		@IKuundaWorkspaceService private readonly kuundaWorkspaceService: IKuundaWorkspaceService,
+		@IKuundaProjectService private readonly kuundaProjectService: IKuundaProjectService,
+		@IKuundaCloudService private readonly kuundaCloudService: IKuundaCloudService,
+		@IKuundaPublishService private readonly kuundaPublishService: IKuundaPublishService,
 	) {
 		super()
 	}
@@ -579,12 +585,17 @@ class ConvertToLLMMessageService extends Disposable implements IConvertToLLMMess
 		const persistentTerminalIDs = this.terminalToolService.listPersistentTerminalIds()
 		const systemMessage = chat_systemMessage({ workspaceFolders, openedURIs, directoryStr, activeURI, persistentTerminalIDs, chatMode, mcpTools, includeXMLToolDefinitions })
 		try {
-			const extra = await this.kuundaWorkspaceService.formatDevContext()
+			const extra = [
+				await this.kuundaWorkspaceService.formatDevContext(),
+				await this.kuundaProjectService.formatContext(),
+				await this.kuundaCloudService.formatContext(),
+				await this.kuundaPublishService.formatContext(),
+			].filter(Boolean).join('\n\n')
 			if (extra) {
 				return systemMessage + '\n\n' + extra
 			}
 		} catch {
-			// Git / rules are best-effort.
+			// Git / rules / project type are best-effort.
 		}
 		return systemMessage
 	}

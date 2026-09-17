@@ -11,7 +11,7 @@ Ils sont isolés dans un **dépôt privé distinct**, sous licence propriétaire
 | Élément | Dépôt | Licence |
 | --- | --- | --- |
 | Éditeur (fork Void / Code - OSS), UI, agent-core open, interfaces | `Arowtech/Kuunda-vibe` (public) | Apache-2.0 + MIT héritée |
-| Facturation, crédits, Genius Pay, provisioning opérateur Kuunda Cloud, custody des clés de signature des mises à jour | `Arowtech/kuunda-vibe-cloud` (privé) | Propriétaire Arowtech |
+| Facturation, crédits, Genius Pay, provisioning opérateur Kuunda Cloud, custody des clés de signature des mises à jour, runners de publication mobile | `Arowtech/kuunda-vibe-cloud` (privé) | Propriétaire Arowtech |
 
 Le nom exact du dépôt privé peut être ajusté en Phase 0bis ; le principe d'isolation ne l'est pas.
 
@@ -26,7 +26,7 @@ Le nom exact du dépôt privé peut être ajusté en Phase 0bis ; le principe d'
 
 Le dépôt public peut contenir, et doit contenir dès les phases concernées :
 
-- les **contrats TypeScript** (`ICreditsClient`, `IBillingClient`, `IKuundaProvisioningClient`, `IUpdateIntegrityVerifier`, etc.) ;
+- les **contrats TypeScript** (`ICreditsClient`, `IBillingClient`, `IKuundaProvisioningClient`, `IPublishClient`, `IUpdateIntegrityVerifier`, etc.) ;
 - un **client HTTP** sans secret, qui parle à `api.ide.kuunda-cloud.com` ;
 - l'UI de solde / plans si elle n'embarque aucune règle tarifaire confidentielle ni aucune clé ;
 - la documentation des permissions demandées à l'utilisateur.
@@ -42,6 +42,7 @@ Ces artefacts sont Apache-2.0. Ils ne révèlent pas la logique anti-fraude, les
 | `kuunda-cloud-operator` | Provisioning avec credentials **plateforme** (distincts des credentials projet utilisateur) |
 | `credits-ledger` | Source de vérité financière |
 | `update-control-plane` | Custody de la clé de signature des binaires IDE, politique de révocation |
+| `mobile-ci` | Abstraction runners GitHub, jobs de publication, secrets store / dispatch CI |
 
 Aucun de ces modules n'est cloné, copié, ni « temporairement » collé dans le dépôt public, y compris pour un prototype.
 

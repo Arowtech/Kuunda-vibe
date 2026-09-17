@@ -12,7 +12,7 @@ Ce logiciel est fourni « AS IS », sans garantie. Les marques Kuunda, Kuunda Vi
 
 ## État du dépôt
 
-Phase 4bis (API d'extensions VSIX / Open VSX) validée. Phase 5 non commencée.
+Phase 6 (Kuunda Cloud par défaut) validée. Phase 7 (publication mobile) en cours.
 
 - Contribuer : [CONTRIBUTING.md](CONTRIBUTING.md)
 - Gouvernance : [GOVERNANCE.md](GOVERNANCE.md)

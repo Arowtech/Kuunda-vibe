@@ -49,6 +49,49 @@ import {
 	redactApiPayload,
 	marketplaceSourceFromInstall,
 	canGrantPermission,
+	PROJECT_TYPES,
+	sanitizeProjectName,
+	decideProjectCreate,
+	parseProjectManifest,
+	scaffoldProjectFiles,
+	selectFilesToWrite,
+	formatProjectContext,
+	publishOptionFromTargets,
+	PROJECT_MANIFEST_PATH,
+	decideDestination,
+	CLOUD_ENABLED_DEFAULT,
+	CLOUD_ENV_PATH,
+	CLOUD_CLIENT_PATH,
+	SECRET_PLACEHOLDER,
+	parseCloudSettings,
+	redactCloudPayload,
+	decideCloudProvisioning,
+	publicCloudRecord,
+	mergeGitignore,
+	persistableAnonKey,
+	scaffoldCloudFiles,
+	formatCloudContext,
+	formatCloudPanel,
+	serializeManifestWithCloud,
+	isPublishPanelVisible,
+	decidePublish,
+	inspectPlayServiceAccount,
+	inspectAppStoreP8,
+	inspectAppStoreIds,
+	inspectKeystore,
+	verifyPublishFiles,
+	sanitizePublishError,
+	redactPublishPayload,
+	redactPublishLog,
+	scaffoldPublishFiles,
+	formatPublishPanel,
+	formatPublishContext,
+	parsePublishLocal,
+	persistablePublishLocal,
+	buildPublishRequest,
+	PUBLISH_LOCAL_PATH,
+	PUBLISH_PLAY_JSON_PATH,
+	PUBLISH_WORKFLOW_PATH,
 } from '../src/index.js';
 
 describe('Phase 2.1 — autocomplete Tab policy', () => {
@@ -432,3 +475,235 @@ describe('Phase 4bis — API d’extension', () => {
 		assert.equal('secret' in redactApiPayload({ remaining: 12, secret: 'hidden' }), false);
 	});
 });
+
+describe('Phase 5 — type de projet', () => {
+	it('refuse un projet sans type, nom ou cible mobile', () => {
+		assert.deepEqual(PROJECT_TYPES, ['website', 'webapp', 'mobile', 'other']);
+		assert.equal(sanitizeProjectName('../secret'), '');
+		assert.equal(sanitizeProjectName('My App'), 'My-App');
+		assert.equal(sanitizeProjectName('CON'), '');
+		assert.equal(sanitizeProjectName('com1.txt'), '');
+		assert.equal(decideDestination({ parentKind: 'missing' }).error, 'parent_missing');
+		assert.equal(decideDestination({ parentKind: 'folder', folderKind: 'file' }).error, 'not_a_directory');
+		assert.equal(decideDestination({ parentKind: 'folder', folderKind: 'folder', manifestExists: true, manifestValid: true }).error, 'already_kuunda_project');
+		assert.equal(decideDestination({ parentKind: 'folder', folderKind: 'missing', manifestExists: true, manifestValid: false }).error, 'invalid_manifest');
+		assert.equal(decideProjectCreate({ name: 'shop' }).error, 'type_required');
+		assert.equal(decideProjectCreate({ type: 'website', name: '' }).error, 'name_required');
+		assert.equal(decideProjectCreate({ type: 'mobile', name: 'shop' }).error, 'publish_required');
+		assert.equal(decideProjectCreate({ type: 'website', name: 'shop', publishOption: 'google_play' }).error, 'publish_not_applicable');
+		assert.equal(decideProjectCreate({ type: 'website', name: 'shop', destinationKind: 'file' }).error, 'not_a_directory');
+		assert.equal(decideProjectCreate({ type: 'website', name: 'shop', existingManifest: true }).error, 'already_kuunda_project');
+		const mobile = decideProjectCreate({ type: 'mobile', name: 'shop', publishOption: 'both' });
+		assert.equal(mobile.ok, true);
+		assert.deepEqual(mobile.ok ? mobile.publishTargets : [], ['google_play', 'app_store']);
+		assert.equal(publishOptionFromTargets(['app_store']), 'app_store');
+	});
+
+	it('génère un template sans secret et n’écrase pas les fichiers existants', () => {
+		const website = scaffoldProjectFiles({ type: 'website', name: 'landing' });
+		assert.equal(website.ok, true);
+		if (!website.ok) {
+			return;
+		}
+		assert.ok(website.files.some((file) => file.path === PROJECT_MANIFEST_PATH));
+		assert.equal(website.files.at(-1)?.path, PROJECT_MANIFEST_PATH);
+		assert.ok(website.files.some((file) => file.path === 'index.html'));
+		const parsed = parseProjectManifest(website.files.find((file) => file.path === PROJECT_MANIFEST_PATH)?.content);
+		assert.equal(parsed.ok && parsed.manifest.type, 'website');
+		const blob = website.files.map((file) => file.content).join('\n');
+		assert.doesNotMatch(blob, /sk-|api[_-]?key|service_role|whsec_|BEGIN [A-Z ]+PRIVATE KEY/i);
+		const skipped = selectFilesToWrite(website.files, ['index.html']);
+		assert.ok(skipped.skipped.includes('index.html'));
+		assert.ok(skipped.written.some((file) => file.path === PROJECT_MANIFEST_PATH));
+		const mobile = scaffoldProjectFiles({ type: 'mobile', name: 'shop', publishTargets: ['google_play'] });
+		assert.equal(mobile.ok, true);
+		if (!mobile.ok) {
+			return;
+		}
+		assert.ok(mobile.files.some((file) => file.path === 'store/play/README.md'));
+		assert.equal(mobile.files.some((file) => file.path === 'store/appstore/README.md'), false);
+		const none = scaffoldProjectFiles({ type: 'mobile', name: 'local', publishTargets: [] });
+		assert.equal(none.ok, true);
+		if (!none.ok) {
+			return;
+		}
+		assert.equal(none.files.some((file) => file.path.startsWith('store/')), false);
+		assert.match(formatProjectContext([{ folderName: 'shop', manifest: none.ok ? none.manifest : undefined }]), /mobile/);
+	});
+});
+
+describe('Phase 6 — Kuunda Cloud par défaut', () => {
+	it('provisionne par défaut, rédige les secrets, et ignore git pour les clés projet', () => {
+		assert.equal(CLOUD_ENABLED_DEFAULT, true);
+		assert.equal(decideCloudProvisioning({ enabled: false }).action, 'skip');
+		assert.equal(decideCloudProvisioning({ enabled: true }).action, 'pending_user');
+		assert.equal(decideCloudProvisioning({ enabled: true, userId: 'u1', apiOk: false }).action, 'pending_api');
+		assert.equal(decideCloudProvisioning({ enabled: true, userId: 'u1', alreadyProvisioned: true }).action, 'reuse');
+		assert.equal(decideCloudProvisioning({ enabled: true, userId: 'u1', apiOk: true }).action, 'provision');
+		assert.equal(decideCloudProvisioning({ enabled: true, userId: 'u1' }).action, 'provision');
+		assert.equal(sanitizeCloudUrlSafe(), undefined);
+		assert.equal(publicCloudRecord({ url: 'https://evil.example', enabled: true }).url, undefined);
+		assert.equal(publicCloudRecord({ url: 'https://proj-ab.kuunda-cloud.com', projectRef: '../etc' }).projectRef, undefined);
+		assert.equal(publicCloudRecord({ url: 'https://proj-ab.kuunda-cloud.com', projectRef: 'proj_ab' }).url, 'https://proj-ab.kuunda-cloud.com');
+		assert.equal(persistableAnonKey('service_role_xxx'), SECRET_PLACEHOLDER);
+		assert.equal(persistableAnonKey('ok\nPATH=/tmp'), SECRET_PLACEHOLDER);
+		assert.equal(persistableAnonKey('kuunda_anon_x='), SECRET_PLACEHOLDER);
+		assert.equal('anonKey' in redactCloudPayload({ projectRef: 'proj_ab', anonKey: 'kuunda_anon_x' }), false);
+		const parsed = parseCloudSettings({ cloud: { enabled: false, projectRef: 'proj_deadbeef', env: 'sandbox' } });
+		assert.equal(parsed.enabled, false);
+		assert.equal(parsed.projectRef, 'proj_deadbeef');
+	});
+
+	it('échafaude le client CRUD et des fichiers secrets gitignorés, jamais service_role', () => {
+		const scaffold = scaffoldCloudFiles({
+			type: 'webapp',
+			url: 'https://proj-ab.kuunda-cloud.com',
+			projectRef: 'proj_ab',
+			anonKey: 'service_role_nope',
+			existingGitignore: 'node_modules\n',
+		});
+		assert.equal(scaffold.ok, true);
+		assert.ok(scaffold.files.some((file) => file.path === CLOUD_CLIENT_PATH));
+		assert.ok(scaffold.files.some((file) => file.path === CLOUD_ENV_PATH && file.gitignored));
+		const env = scaffold.files.find((file) => file.path === CLOUD_ENV_PATH);
+		assert.match(env?.content || '', /KUUNDA_ANON_KEY="<SET VIA SECRET STORE>"/);
+		assert.doesNotMatch(scaffold.files.map((file) => file.content).join('\n'), /service_role_nope/);
+		const gitignore = scaffold.files.find((file) => file.path === '.gitignore');
+		assert.match(gitignore?.content || '', /\.env\.local/);
+		assert.equal(mergeGitignore('.env.local\n.kuunda/cloud.local.json\n').changed, false);
+		const manifest = serializeManifestWithCloud({ type: 'webapp', name: 'shop' }, scaffold.cloud);
+		assert.match(manifest, /"enabled": true/);
+		assert.doesNotMatch(manifest, /anonKey|service_role|sk_/);
+		assert.match(formatCloudContext(scaffold.cloud), /proj_ab/);
+		assert.match(formatCloudPanel({ cloud: scaffold.cloud, tables: [{ name: 'items', rowCount: 0 }] }), /items \(0\)/);
+		assert.match(formatCloudPanel({ cloud: scaffold.cloud, tables: [{ name: 'items\n- evil', rowCount: 0 }] }), /unknown \(0\)/);
+		const website = scaffoldProjectFiles({ type: 'website', name: 'landing' });
+		assert.equal(website.ok, true);
+		if (website.ok) {
+			assert.match(website.files.find((file) => file.path === 'README.md')?.content || '', /Kuunda Cloud is enabled by default/);
+		}
+	});
+});
+
+function sanitizeCloudUrlSafe() {
+	return publicCloudRecord({ url: 'http://proj_ab.kuunda-cloud.com' }).url;
+}
+
+const SAMPLE_P8 = `-----BEGIN PRIVATE KEY-----
+MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgAAAAAAAAAAAAAAAA
+-----END PRIVATE KEY-----
+`;
+
+describe('Phase 7 — publication mobile', () => {
+	it('n’affiche le panneau que pour mobile et refuse les cibles incomplètes', () => {
+		assert.equal(isPublishPanelVisible({ type: 'webapp' }), false);
+		assert.equal(isPublishPanelVisible({ type: 'mobile', publishTargets: [] }), true);
+		assert.equal(decidePublish({ type: 'webapp' }).error, 'not_mobile');
+		assert.equal(decidePublish({ type: 'mobile', publishTargets: [] }).error, 'no_targets');
+		assert.equal(decidePublish({
+			type: 'mobile',
+			publishTargets: ['google_play'],
+			credentials: { googlePlay: true },
+			signatureReady: true,
+		}).error, 'incomplete_metadata');
+		assert.equal(decidePublish({
+			type: 'mobile',
+			publishTargets: ['google_play'],
+			credentials: {},
+			metadata: { version: '1.0.0', packageId: 'com.example.app' },
+			signatureReady: true,
+		}).error, 'missing_credentials');
+		assert.equal(decidePublish({
+			type: 'mobile',
+			publishTargets: ['google_play'],
+			credentials: { googlePlay: true },
+			metadata: { version: '1.0.0', packageId: 'com.example.app' },
+		}).error, 'missing_signature');
+		const ok = decidePublish({
+			type: 'mobile',
+			publishTargets: ['google_play', 'app_store'],
+			credentials: { googlePlay: true, appStore: true },
+			metadata: { version: '1.2.3', packageId: 'com.example.app' },
+			signatureReady: true,
+		});
+		assert.equal(ok.ok, true);
+		assert.deepEqual(ok.targets, ['google_play', 'app_store']);
+	});
+
+	it('inspecte les credentials sans persister la clé privée, et rédige les logs', () => {
+		const play = inspectPlayServiceAccount({
+			type: 'service_account',
+			client_email: 'ci@x.iam.gserviceaccount.com',
+			private_key: SAMPLE_P8,
+		});
+		assert.equal(play.ok, true);
+		assert.equal(play.clientEmail, 'ci@x.iam.gserviceaccount.com');
+		assert.equal('private_key' in play, false);
+		assert.equal(inspectPlayServiceAccount({
+			type: 'service_account',
+			client_email: 'ci@x.iam.gserviceaccount.com',
+		}).error, 'invalid_play_json');
+		assert.equal(inspectPlayServiceAccount('{not json').error, 'invalid_play_json');
+		assert.equal(inspectAppStoreP8(SAMPLE_P8).ok, true);
+		assert.equal(inspectAppStoreP8('short').error, 'invalid_p8');
+		assert.equal(inspectAppStoreIds({ keyId: 'AB12CD34', issuerId: '12345678-1234-1234-1234-1234567890ab' }).ok, true);
+		assert.equal(inspectAppStoreIds({ keyId: 'x', issuerId: 'y' }).error, 'invalid_store_ids');
+		assert.equal(inspectKeystore(16).error, 'invalid_keystore');
+		assert.equal(inspectKeystore(64).ok, true);
+		assert.equal(verifyPublishFiles({
+			publishTargets: ['google_play'],
+			files: { playJson: true, keystore: false },
+		}).error, 'missing_signature');
+		assert.equal(sanitizePublishError('missing_credentials'), 'missing_credentials');
+		assert.equal(sanitizePublishError('DROP TABLE jobs'), 'write_failed');
+		assert.equal('private_key' in redactPublishPayload({ packageId: 'com.example.app', private_key: SAMPLE_P8 }), false);
+		assert.equal(redactPublishLog(SAMPLE_P8), '[redacted]');
+		assert.equal(redactPublishLog('build_not_dispatched'), 'build_not_dispatched');
+		const local = parsePublishLocal({
+			version: '1.0.0',
+			packageId: 'com.example.app',
+			googlePlay: { configured: true, clientEmail: 'ci@x.iam.gserviceaccount.com', private_key: SAMPLE_P8 },
+		});
+		assert.equal(local.googlePlay.configured, true);
+		assert.doesNotMatch(persistablePublishLocal(local), /BEGIN PRIVATE KEY|private_key/);
+		const request = buildPublishRequest({
+			userId: 'u1',
+			decision: okDecision(),
+			credentials: { googlePlay: true },
+			signatureReady: true,
+		});
+		assert.equal(request.ok, true);
+		assert.equal('private_key' in request.body, false);
+		assert.equal(request.body.googlePlayConfigured, true);
+	});
+
+	it('échafaude un workflow public et un publish.local gitignoré', () => {
+		const scaffold = scaffoldPublishFiles({ existingGitignore: 'node_modules\n' });
+		assert.equal(scaffold.ok, true);
+		assert.ok(scaffold.files.some((file) => file.path === PUBLISH_WORKFLOW_PATH));
+		assert.ok(scaffold.files.some((file) => file.path === PUBLISH_LOCAL_PATH && file.gitignored));
+		const gitignore = scaffold.files.find((file) => file.path === '.gitignore');
+		assert.match(gitignore?.content || '', /play-service-account\.json/);
+		assert.match(gitignore?.content || '', new RegExp(PUBLISH_PLAY_JSON_PATH.replace('.', '\\.')));
+		const panel = formatPublishPanel({
+			manifest: { type: 'mobile', publishTargets: ['google_play'] },
+			local: { version: '1.0.0', packageId: 'com.example.app', googlePlay: { configured: true, clientEmail: 'ci@x.iam.gserviceaccount.com' } },
+			job: { status: 'pending_ci' },
+			logs: [SAMPLE_P8, 'build_not_dispatched'],
+		});
+		assert.match(panel, /pending_ci/);
+		assert.match(panel, /build_not_dispatched/);
+		assert.doesNotMatch(panel, /BEGIN PRIVATE KEY/);
+		assert.match(formatPublishContext({ manifest: { type: 'mobile', publishTargets: ['app_store'] } }), /app_store/);
+		assert.equal(formatPublishContext({ manifest: { type: 'website' } }), '');
+	});
+});
+
+function okDecision() {
+	return {
+		ok: true,
+		action: 'enqueue',
+		targets: ['google_play'],
+		metadata: { version: '1.0.0', packageId: 'com.example.app' },
+	};
+}

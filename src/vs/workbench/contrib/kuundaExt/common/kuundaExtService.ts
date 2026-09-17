@@ -15,6 +15,8 @@ import { IKuundaAgentService } from '../../kuundaAi/common/kuundaAgentService.js
 import { MAX_AGENT_STEPS } from '../../kuundaAi/common/agentLoop.js';
 import { DEFAULT_TOOL_PERMISSIONS } from '../../kuundaAi/common/permissionPolicy.js';
 import { IKuundaBillingService } from '../../kuundaBilling/common/kuundaBillingService.js';
+import { IKuundaCloudService } from '../../kuundaCloud/common/kuundaCloudService.js';
+import { IKuundaPublishService } from '../../kuundaPublish/common/kuundaPublishService.js';
 import {
 	KUUNDA_API_PERMISSIONS,
 	KuundaApiPermission,
@@ -61,6 +63,8 @@ export class KuundaExtService extends Disposable implements IKuundaExtService {
 		@IWorkbenchExtensionEnablementService private readonly extensionEnablementService: IWorkbenchExtensionEnablementService,
 		@IKuundaAgentService private readonly agentService: IKuundaAgentService,
 		@IKuundaBillingService private readonly billingService: IKuundaBillingService,
+		@IKuundaCloudService private readonly cloudService: IKuundaCloudService,
+		@IKuundaPublishService private readonly publishService: IKuundaPublishService,
 	) {
 		super();
 	}
@@ -186,7 +190,10 @@ export class KuundaExtService extends Disposable implements IKuundaExtService {
 			return { remaining: this.billingService.lastBalance()?.remaining ?? null };
 		}
 		if (method === 'cloud.status') {
-			return { available: false, phase: 6 };
+			return this.cloudService.lastPublicStatus();
+		}
+		if (method === 'publish.status') {
+			return this.publishService.lastPublicStatus();
 		}
 		return {};
 	}
