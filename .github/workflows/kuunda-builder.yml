@@ -65,7 +65,7 @@ jobs:
     name: Windows x64 unsigned setup
     needs: plan
     if: ${{ github.event_name == 'push' || (inputs.compile && (inputs.platform == 'win32-and-darwin' || inputs.platform == 'win32-x64')) }}
-    runs-on: windows-latest
+    runs-on: windows-2022
     timeout-minutes: 360
     env:
       VSCODE_ARCH: x64
@@ -94,7 +94,7 @@ jobs:
     name: Windows arm64 unsigned setup
     needs: plan
     if: ${{ github.event_name != 'push' && inputs.compile && inputs.platform == 'win32-arm64' }}
-    runs-on: windows-latest
+    runs-on: windows-2022
     timeout-minutes: 360
     env:
       VSCODE_ARCH: arm64
