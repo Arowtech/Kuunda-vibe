@@ -1,0 +1,25 @@
+title = "Kuunda Vibe gitleaks"
+
+# Custom --config replaces the built-in ruleset unless we extend it.
+# Keep default detection; only ignore known Code-OSS / Void false positives.
+[extend]
+useDefault = true
+
+# Microsoft Application Insights instrumentation keys shipped publicly in
+# vscode / Void extension manifests. They are not Kuunda credentials.
+[[allowlists]]
+description = "Code-OSS public aiKey in extension package.json"
+targetRules = ["generic-api-key"]
+condition = "AND"
+regexTarget = "line"
+regexes = ['''"aiKey"\s*:\s*"[0-9a-fA-F-]+"''']
+paths = ['''(^|/)extensions/[^/]+/package\.json$''']
+
+# Skipped VS Code unit-test fixture: Firebase Storage URL with a query token.
+[[allowlists]]
+description = "VS Code uri.test.ts Firebase storage fixture"
+targetRules = ["generic-api-key"]
+condition = "AND"
+regexTarget = "line"
+regexes = ['''firebasestorage\.googleapis\.com/.+[?&]token=''']
+paths = ['''(^|/)src/vs/base/test/common/uri\.test\.ts$''']

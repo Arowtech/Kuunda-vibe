@@ -170,8 +170,14 @@ describe('Phase 0 — CI secret scan', () => {
 		assert.match(workflow, /GITLEAKS_VERSION: "8\.30\.1"/);
 		assert.match(workflow, /gitleaks detect/);
 		assert.match(workflow, /--exit-code 1/);
+		assert.match(workflow, /--config \.gitleaks\.toml/);
 		assert.doesNotMatch(workflow, /uses:\s*gitleaks\/gitleaks-action/);
+		assert.equal(existsSync(join(root, '.gitleaks.toml')), true);
 		assert.doesNotMatch(workflow, /secrets\.GITLEAKS_LICENSE/);
+		const gitleaksConfig = read('.gitleaks.toml');
+		assert.match(gitleaksConfig, /useDefault\s*=\s*true/);
+		assert.match(gitleaksConfig, /"aiKey"/);
+		assert.match(gitleaksConfig, /uri\.test\.ts/);
 	});
 });
 
