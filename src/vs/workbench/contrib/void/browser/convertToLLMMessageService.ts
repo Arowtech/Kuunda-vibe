@@ -1,3 +1,4 @@
+// Modified 2026-09-17 by Arowtech: append Kuunda @Codebase hits to the chat system message.
 import { Disposable } from '../../../../base/common/lifecycle.js';
 import { deepClone } from '../../../../base/common/objects.js';
 import { IModelService } from '../../../../editor/common/services/model.js';
@@ -18,6 +19,7 @@ import { URI } from '../../../../base/common/uri.js';
 import { EndOfLinePreference } from '../../../../editor/common/model.js';
 import { ToolName } from '../common/toolsServiceTypes.js';
 import { IMCPService } from '../common/mcpService.js';
+import { IKuundaCodebaseService } from '../../kuundaAi/common/kuundaCodebaseService.js';
 
 export const EMPTY_MESSAGE = '(empty message)'
 
@@ -541,6 +543,7 @@ class ConvertToLLMMessageService extends Disposable implements IConvertToLLMMess
 		@IVoidSettingsService private readonly voidSettingsService: IVoidSettingsService,
 		@IVoidModelService private readonly voidModelService: IVoidModelService,
 		@IMCPService private readonly mcpService: IMCPService,
+		@IKuundaCodebaseService private readonly kuundaCodebaseService: IKuundaCodebaseService,
 	) {
 		super()
 	}
@@ -680,8 +683,24 @@ class ConvertToLLMMessageService extends Disposable implements IConvertToLLMMess
 		} = getModelCapabilities(providerName, modelName, overridesOfModel)
 
 		const { disableSystemMessage } = this.voidSettingsService.state.globalSettings;
-		const fullSystemMessage = await this._generateChatMessagesSystemMessage(chatMode, specialToolFormat)
-		const systemMessage = disableSystemMessage ? '' : fullSystemMessage;
+		let systemMessage = disableSystemMessage ? '' : await this._generateChatMessagesSystemMessage(chatMode, specialToolFormat);
+		if (!disableSystemMessage) {
+			const lastUser = [...chatMessages].reverse().find(m => m.role === 'user');
+			if (lastUser && lastUser.role === 'user') {
+				const query = lastUser.displayContent || lastUser.content;
+				if (query.trim()) {
+					try {
+						const hits = await this.kuundaCodebaseService.search(query, 8);
+						const extra = this.kuundaCodebaseService.formatContext(hits);
+						if (extra) {
+							systemMessage += '\n\n' + extra;
+						}
+					} catch {
+						// Codebase index is best-effort; chat still works without it.
+					}
+				}
+			}
+		}
 
 		const modelSelectionOptions = this.voidSettingsService.state.optionsOfModelSelection['Chat'][modelSelection.providerName]?.[modelSelection.modelName]
 

@@ -2,7 +2,7 @@
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
-// Modified 2026-09-17 by Arowtech: register isolated Kuunda Vibe branding contribution.
+// Modified 2026-09-17 by Arowtech: register isolated Kuunda branding + AI contributions.
 
 //#region --- editor/workbench core
 
@@ -19,6 +19,7 @@ import './contrib/void/browser/void.contribution.js'; // Void added this
 
 //#region --- Kuunda Vibe (Arowtech, Apache-2.0)
 import './contrib/kuundaBrand/browser/kuundaBrand.contribution.js';
+import './contrib/kuundaAi/browser/kuundaAi.contribution.js';
 //#endregion
 
 //#region --- workbench actions

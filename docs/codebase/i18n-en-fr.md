@@ -19,6 +19,6 @@ Réutiliser le mécanisme VS Code / Void déjà présent, plus un helper isolé 
 - catalogue bilingue dans `common/strings.json` (source de test) aligné sur `KUUNDA_STRINGS` ;
 - ne pas dupliquer un second framework i18n (i18next, etc.) par-dessus VS Code.
 
-Les libellés hérités de VS Code dans `src/vs/workbench/browser/` restent en anglais (pipeline nls Code - OSS). Les chaînes Kuunda nouvelles passent par `kuundaLocalize`.
+- `src/vs/workbench/contrib/kuundaAi/` : mêmes règles pour les chaînes Phase 2.
 
 Le français n'est jamais la seule langue d'une chaîne : l'anglais est le repli si `fr` manque.

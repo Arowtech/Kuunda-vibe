@@ -1,7 +1,7 @@
 # 01 — Renommage éditeur (Kuunda Vibe)
 
 **Phase :** 1
-**Validation steward :** livrable Phase 1 prêt (import + branding). Compilation Electron hors scope.
+**Validation steward :** validée le 17 sept. 2026. Compilation Electron hors scope.
 **Point de départ :** Void `main` (commit shallow import, dépôt archivé https://github.com/voideditor/void), version produit Void 1.4.9 / Code - OSS 1.99.3.
 
 Cette phase **importe** le fork Void et remplace l'identité produit. Elle ne fusionne pas avec la Phase 2 (autocomplete / chat).

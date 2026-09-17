@@ -2,6 +2,7 @@
  *  Copyright 2025 Glass Devtools, Inc. All rights reserved.
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
+// Modified 2026-09-17 by Arowtech: empty / EOL lines request multi-line Tab completions.
 
 import { Disposable } from '../../../../base/common/lifecycle.js';
 import { ILanguageFeaturesService } from '../../../../editor/common/services/languageFeatures.js';
@@ -21,7 +22,7 @@ import { isWindows } from '../../../../base/common/platform.js';
 import { IVoidSettingsService } from '../common/voidSettingsService.js';
 import { FeatureName } from '../common/voidSettingsTypes.js';
 import { IConvertToLLMMessageService } from './convertToLLMMessageService.js';
-// import { IContextGatheringService } from './contextGatheringService.js';
+import { decideAutocompleteMode } from '../../kuundaAi/common/autocompletePolicy.js';
 
 
 
@@ -535,7 +536,7 @@ type CompletionOptions = {
 }
 const getCompletionOptions = (prefixAndSuffix: PrefixAndSuffixInfo, relevantContext: string, justAcceptedAutocompletion: boolean): CompletionOptions => {
 
-	let { prefix, suffix, prefixToTheLeftOfCursor, suffixToTheRightOfCursor, suffixLines, prefixLines } = prefixAndSuffix
+	let { prefix, suffix, suffixToTheRightOfCursor, suffixLines, prefixLines } = prefixAndSuffix
 
 	// trim prefix and suffix to not be very large
 	suffixLines = suffix.split(_ln).slice(0, 25)
@@ -543,69 +544,53 @@ const getCompletionOptions = (prefixAndSuffix: PrefixAndSuffixInfo, relevantCont
 	prefix = prefixLines.join(_ln)
 	suffix = suffixLines.join(_ln)
 
-	let completionOptions: CompletionOptions
+	const decision = decideAutocompleteMode({
+		prefix,
+		suffix,
+		justAccepted: justAcceptedAutocompletion,
+		lineBreak: _ln,
+	})
 
-	// if line is empty, do multiline completion
-	const isLineEmpty = !prefixToTheLeftOfCursor.trim() && !suffixToTheRightOfCursor.trim()
-	const isLinePrefixEmpty = removeAllWhitespace(prefixToTheLeftOfCursor).length === 0
-	const isLineSuffixEmpty = removeAllWhitespace(suffixToTheRightOfCursor).length === 0
-
-	// TODO add context to prefix
-	// llmPrefix = '\n\n/* Relevant context:\n' + relevantContext + '\n*/\n' + llmPrefix
-
-	// if we just accepted an autocompletion, predict a multiline completion starting on the next line
-	if (justAcceptedAutocompletion && isLineSuffixEmpty) {
-		const prefixWithNewline = prefix + _ln
-		completionOptions = {
-			predictionType: 'multi-line-start-on-next-line',
-			shouldGenerate: true,
-			llmPrefix: prefixWithNewline,
-			llmSuffix: suffix,
-			stopTokens: [`${_ln}${_ln}`] // double newlines
-		}
-	}
-	// if the current line is empty, predict a single-line completion
-	else if (isLineEmpty) {
-		completionOptions = {
-			predictionType: 'single-line-fill-middle',
-			shouldGenerate: true,
-			llmPrefix: prefix,
-			llmSuffix: suffix,
-			stopTokens: allLinebreakSymbols
-		}
-	}
-	// if suffix is 3 or fewer characters, attempt to complete the line ignorning it
-	else if (removeAllWhitespace(suffixToTheRightOfCursor).length <= 3) {
-		const suffixLinesIgnoringThisLine = suffixLines.slice(1)
-		const suffixStringIgnoringThisLine = suffixLinesIgnoringThisLine.length === 0 ? '' : _ln + suffixLinesIgnoringThisLine.join(_ln)
-		completionOptions = {
-			predictionType: 'single-line-redo-suffix',
-			shouldGenerate: true,
-			llmPrefix: prefix,
-			llmSuffix: suffixStringIgnoringThisLine,
-			stopTokens: allLinebreakSymbols
-		}
-	}
-	// else attempt to complete the middle of the line if there is a prefix (the completion looks bad if there is no prefix)
-	else if (!isLinePrefixEmpty) {
-		completionOptions = {
-			predictionType: 'single-line-fill-middle',
-			shouldGenerate: true,
-			llmPrefix: prefix,
-			llmSuffix: suffix,
-			stopTokens: allLinebreakSymbols
-		}
-	} else {
-		completionOptions = {
+	if (!decision.shouldGenerate) {
+		return {
 			predictionType: 'do-not-predict',
 			shouldGenerate: false,
 			llmPrefix: prefix,
 			llmSuffix: suffix,
-			stopTokens: []
+			stopTokens: [],
 		}
 	}
 
-	return completionOptions
+	if (decision.mode === 'multi-line') {
+		return {
+			predictionType: 'multi-line-start-on-next-line',
+			shouldGenerate: true,
+			llmPrefix: justAcceptedAutocompletion ? prefix + _ln : prefix,
+			llmSuffix: suffix,
+			stopTokens: decision.stopSequences,
+		}
+	}
+
+	const suffixWsLen = removeAllWhitespace(suffixToTheRightOfCursor).length
+	if (suffixWsLen > 0 && suffixWsLen <= 3) {
+		const suffixLinesIgnoringThisLine = suffixLines.slice(1)
+		const suffixStringIgnoringThisLine = suffixLinesIgnoringThisLine.length === 0 ? '' : _ln + suffixLinesIgnoringThisLine.join(_ln)
+		return {
+			predictionType: 'single-line-redo-suffix',
+			shouldGenerate: true,
+			llmPrefix: prefix,
+			llmSuffix: suffixStringIgnoringThisLine,
+			stopTokens: allLinebreakSymbols,
+		}
+	}
+
+	return {
+		predictionType: 'single-line-fill-middle',
+		shouldGenerate: true,
+		llmPrefix: prefix,
+		llmSuffix: suffix,
+		stopTokens: decision.stopSequences.length ? decision.stopSequences : allLinebreakSymbols,
+	}
 
 }
 

@@ -3,6 +3,7 @@
  *  Copyright 2025 Glass Devtools, Inc. All rights reserved.
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
+// Modified 2026-09-17 by Arowtech: Tab (autocomplete) is enabled by default for Kuunda Vibe.
 
 import { defaultModelsOfProvider, defaultProviderSettings, ModelOverrides } from './modelCapabilities.js';
 import { ToolApprovalType } from './toolsServiceTypes.js';
@@ -457,7 +458,7 @@ export type GlobalSettings = {
 export const defaultGlobalSettings: GlobalSettings = {
 	autoRefreshModels: true,
 	aiInstructions: '',
-	enableAutocomplete: false,
+	enableAutocomplete: true,
 	syncApplyToChat: true,
 	syncSCMToChat: true,
 	enableFastApply: true,

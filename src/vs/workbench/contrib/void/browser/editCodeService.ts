@@ -2,6 +2,7 @@
  *  Copyright 2025 Glass Devtools, Inc. All rights reserved.
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
+// Modified 2026-09-17 by Arowtech: apply streaming diffs also parse Cursor SEARCH/REPLACE via kuundaAi.
 
 import { Disposable } from '../../../../base/common/lifecycle.js';
 import { registerSingleton, InstantiationType } from '../../../../platform/instantiation/common/extensions.js';
@@ -31,7 +32,7 @@ import { VOID_ACCEPT_DIFF_ACTION_ID, VOID_REJECT_DIFF_ACTION_ID } from './action
 import { mountCtrlK } from './react/out/quick-edit-tsx/index.js'
 import { QuickEditPropsType } from './quickEditActions.js';
 import { IModelContentChangedEvent } from '../../../../editor/common/textModelEvents.js';
-import { extractCodeFromFIM, extractCodeFromRegular, ExtractedSearchReplaceBlock, extractSearchReplaceBlocks } from '../common/helpers/extractCodeFromResult.js';
+import { extractCodeFromFIM, extractCodeFromRegular, ExtractedSearchReplaceBlock } from '../common/helpers/extractCodeFromResult.js';
 import { INotificationService, } from '../../../../platform/notification/common/notification.js';
 import { EditorOption } from '../../../../editor/common/config/editorOptions.js';
 import { Emitter } from '../../../../base/common/event.js';
@@ -46,6 +47,7 @@ import { deepClone } from '../../../../base/common/objects.js';
 import { acceptBg, acceptBorder, buttonFontSize, buttonTextColor, rejectBg, rejectBorder } from '../common/helpers/colors.js';
 import { DiffArea, Diff, CtrlKZone, VoidFileSnapshot, DiffAreaSnapshotEntry, diffAreaSnapshotKeys, DiffZone, TrackingZone, ComputedDiff } from '../common/editCodeServiceTypes.js';
 import { IConvertToLLMMessageService } from './convertToLLMMessageService.js';
+import { extractApplyBlocks } from '../../kuundaAi/common/extractApplyBlocks.js';
 // import { isMacintosh } from '../../../../base/common/platform.js';
 // import { VOID_OPEN_SETTINGS_ACTION_ID } from './voidSettingsPane.js';
 
@@ -1614,7 +1616,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 
 
 	private _instantlyApplySRBlocks(uri: URI, blocksStr: string) {
-		const blocks = extractSearchReplaceBlocks(blocksStr)
+		const blocks = extractApplyBlocks(blocksStr)
 		if (blocks.length === 0) throw new Error(`No Search/Replace blocks were received!`)
 
 		const { model } = this._voidModelService.getModel(uri)
@@ -1803,7 +1805,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 					//               ^
 					//              currStreamingBlockNum
 
-					const blocks = extractSearchReplaceBlocks(fullText)
+					const blocks = extractApplyBlocks(fullText)
 
 					for (let blockNum = currStreamingBlockNum; blockNum < blocks.length; blockNum += 1) {
 						const block = blocks[blockNum]
@@ -1966,7 +1968,7 @@ class EditCodeService extends Disposable implements IEditCodeService {
 						const { fullText } = params
 						onText(params)
 
-						const blocks = extractSearchReplaceBlocks(fullText)
+						const blocks = extractApplyBlocks(fullText)
 						if (blocks.length === 0) {
 							this._notificationService.info(`Kuunda Vibe: We ran Fast Apply, but the LLM didn't output any changes.`)
 						}

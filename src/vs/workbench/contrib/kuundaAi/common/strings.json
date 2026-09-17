@@ -1,0 +1,10 @@
+{
+	"kuunda.ai.tagline": {
+		"en": "Code completion, inline edit, codebase chat, and streaming diffs.",
+		"fr": "Complétion de code, édition inline, chat codebase et diffs en flux."
+	},
+	"kuunda.ai.reindex": {
+		"en": "Kuunda Vibe: Reindex Codebase",
+		"fr": "Kuunda Vibe : réindexer le codebase"
+	}
+}

@@ -2,6 +2,7 @@
  *  Copyright 2025 Glass Devtools, Inc. All rights reserved.
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
+// Modified 2026-09-17 by Arowtech: @codebase mention stages the workspace root.
 
 import React, { forwardRef, ForwardRefExoticComponent, MutableRefObject, RefAttributes, useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { IInputBoxStyles, InputBox } from '../../../../../../../base/browser/ui/inputbox/inputBox.js';
@@ -284,6 +285,13 @@ const getOptionsAtPath = async (accessor: ReturnType<typeof useAccessor>, path: 
 
 
 	const allOptions: Option[] = [
+		...(accessor.get('IWorkspaceContextService').getWorkspace().folders[0] ? [{
+			fullName: 'codebase',
+			abbreviatedName: 'codebase',
+			iconInMenu: Folder,
+			leafNodeType: 'Folder' as const,
+			uri: accessor.get('IWorkspaceContextService').getWorkspace().folders[0].uri,
+		}] : []),
 		{
 			fullName: 'files',
 			abbreviatedName: 'files',
