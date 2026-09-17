@@ -1,4 +1,4 @@
-// Modified 2026-09-17 by Arowtech: append Kuunda @Codebase hits and compact long agent context.
+// Modified 2026-09-17 by Arowtech: append Kuunda @Codebase hits, compact long agent context, project rules and git.
 import { Disposable } from '../../../../base/common/lifecycle.js';
 import { deepClone } from '../../../../base/common/objects.js';
 import { IModelService } from '../../../../editor/common/services/model.js';
@@ -14,12 +14,10 @@ import { IVoidSettingsService } from '../common/voidSettingsService.js';
 import { ChatMode, FeatureName, ModelSelection, ProviderName } from '../common/voidSettingsTypes.js';
 import { IDirectoryStrService } from '../common/directoryStrService.js';
 import { ITerminalToolService } from './terminalToolService.js';
-import { IVoidModelService } from '../common/voidModelService.js';
-import { URI } from '../../../../base/common/uri.js';
-import { EndOfLinePreference } from '../../../../editor/common/model.js';
-import { ToolName } from '../common/toolsServiceTypes.js';
 import { IMCPService } from '../common/mcpService.js';
+import { ToolName } from '../common/toolsServiceTypes.js';
 import { IKuundaCodebaseService } from '../../kuundaAi/common/kuundaCodebaseService.js';
+import { IKuundaWorkspaceService } from '../../kuundaAi/common/kuundaWorkspaceService.js';
 import { compactChatContext, contextBudgetChars } from '../../kuundaAi/common/contextCompact.js';
 
 export const EMPTY_MESSAGE = '(empty message)'
@@ -274,7 +272,7 @@ const prepareOpenAIOrAnthropicMessages = ({
 	// A COMPLETE HACK: last message is system message for context purposes
 
 	const sysMsgParts: string[] = []
-	if (aiInstructions) sysMsgParts.push(`GUIDELINES (from the user's .voidrules file):\n${aiInstructions}`)
+	if (aiInstructions) sysMsgParts.push(`GUIDELINES (from the user's .projectrules / .kuunda/rules / .voidrules):\n${aiInstructions}`)
 	if (systemMessage) sysMsgParts.push(systemMessage)
 	const combinedSystemMessage = sysMsgParts.join('\n\n')
 
@@ -542,39 +540,21 @@ class ConvertToLLMMessageService extends Disposable implements IConvertToLLMMess
 		@IDirectoryStrService private readonly directoryStrService: IDirectoryStrService,
 		@ITerminalToolService private readonly terminalToolService: ITerminalToolService,
 		@IVoidSettingsService private readonly voidSettingsService: IVoidSettingsService,
-		@IVoidModelService private readonly voidModelService: IVoidModelService,
 		@IMCPService private readonly mcpService: IMCPService,
 		@IKuundaCodebaseService private readonly kuundaCodebaseService: IKuundaCodebaseService,
+		@IKuundaWorkspaceService private readonly kuundaWorkspaceService: IKuundaWorkspaceService,
 	) {
 		super()
 	}
 
-	// Read .voidrules files from workspace folders
-	private _getVoidRulesFileContents(): string {
-		try {
-			const workspaceFolders = this.workspaceContextService.getWorkspace().folders;
-			let voidRules = '';
-			for (const folder of workspaceFolders) {
-				const uri = URI.joinPath(folder.uri, '.voidrules')
-				const { model } = this.voidModelService.getModel(uri)
-				if (!model) continue
-				voidRules += model.getValue(EndOfLinePreference.LF) + '\n\n';
-			}
-			return voidRules.trim();
-		}
-		catch (e) {
-			return ''
-		}
-	}
-
-	// Get combined AI instructions from settings and .voidrules files
+	// Get combined AI instructions from settings and Kuunda/Void project rules
 	private _getCombinedAIInstructions(): string {
 		const globalAIInstructions = this.voidSettingsService.state.globalSettings.aiInstructions;
-		const voidRulesFileContent = this._getVoidRulesFileContents();
+		const projectRules = this.kuundaWorkspaceService.getCachedRulesText();
 
 		const ans: string[] = []
 		if (globalAIInstructions) ans.push(globalAIInstructions)
-		if (voidRulesFileContent) ans.push(voidRulesFileContent)
+		if (projectRules) ans.push(projectRules)
 		return ans.join('\n\n')
 	}
 
@@ -598,6 +578,14 @@ class ConvertToLLMMessageService extends Disposable implements IConvertToLLMMess
 
 		const persistentTerminalIDs = this.terminalToolService.listPersistentTerminalIds()
 		const systemMessage = chat_systemMessage({ workspaceFolders, openedURIs, directoryStr, activeURI, persistentTerminalIDs, chatMode, mcpTools, includeXMLToolDefinitions })
+		try {
+			const extra = await this.kuundaWorkspaceService.formatDevContext()
+			if (extra) {
+				return systemMessage + '\n\n' + extra
+			}
+		} catch {
+			// Git / rules are best-effort.
+		}
 		return systemMessage
 	}
 
@@ -684,6 +672,7 @@ class ConvertToLLMMessageService extends Disposable implements IConvertToLLMMess
 		} = getModelCapabilities(providerName, modelName, overridesOfModel)
 
 		const { disableSystemMessage } = this.voidSettingsService.state.globalSettings;
+		await this.kuundaWorkspaceService.ensureRules()
 		let systemMessage = disableSystemMessage ? '' : await this._generateChatMessagesSystemMessage(chatMode, specialToolFormat);
 		if (!disableSystemMessage) {
 			const lastUser = [...chatMessages].reverse().find(m => m.role === 'user');

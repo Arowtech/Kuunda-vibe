@@ -2,6 +2,7 @@
  *  Copyright 2025 Glass Devtools, Inc. All rights reserved.
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
+// Modified 2026-09-17 by Arowtech: do not treat git stderr warnings as failure; expose porcelain status.
 
 import { promisify } from 'util'
 import { exec as _exec } from 'child_process'
@@ -20,11 +21,13 @@ const MAX_DIFF_LENGTH = 8000
 const MAX_DIFF_FILES = 10
 
 const git = async (command: string, path: string): Promise<string> => {
-	const { stdout, stderr } = await exec(`${command}`, { cwd: path })
-	if (stderr) {
-		throw new Error(stderr)
+	try {
+		const { stdout } = await exec(command, { cwd: path, windowsHide: true })
+		return String(stdout || '').trim()
+	} catch (err) {
+		const msg = err && (err.stderr || err.message)
+		throw new Error(String(msg || 'git_failed').trim() || 'git_failed')
 	}
-	return stdout.trim()
 }
 
 const getNumStat = async (path: string, useStagedChanges: boolean): Promise<NumStat[]> => {
@@ -78,5 +81,9 @@ export class VoidSCMService implements IVoidSCMService {
 
 	gitLog(path: string): Promise<string> {
 		return git('git log --pretty=format:"%h|%s|%ad" --date=short --no-merges -n 5', path)
+	}
+
+	gitStatus(path: string): Promise<string> {
+		return git('git status --porcelain=v1 -b', path)
 	}
 }

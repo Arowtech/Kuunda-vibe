@@ -49,3 +49,31 @@ export {
 	AGENT_PROVIDERS,
 	isSupportedAgentProvider,
 } from './providers.js';
+export {
+	normalizeFsPath,
+	isAbsoluteFsPath,
+	pathIsInside,
+	pickWorkspaceFolder,
+	listWorkspaceRoots,
+	formatWorkspaceRoots,
+	joinFsPath,
+	canonicalizeFsPath,
+	resolveRelativeCwd,
+} from './workspace-roots.js';
+export {
+	TERMINAL_TOOL_NAMES,
+	classifyShellCommand,
+	resolveAgentCwd,
+} from './terminal-access.js';
+export {
+	PROJECT_RULE_FILENAMES,
+	MAX_PROJECT_RULES_CHARS,
+	collectProjectRules,
+	formatProjectRules,
+} from './project-rules.js';
+export {
+	MAX_GIT_CONTEXT_CHARS,
+	parseGitStatusPorcelain,
+	formatGitSnapshot,
+	formatMultiRepoGit,
+} from './git-snapshot.js';

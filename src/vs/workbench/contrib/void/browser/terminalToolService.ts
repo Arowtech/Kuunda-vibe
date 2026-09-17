@@ -2,6 +2,7 @@
  *  Copyright 2025 Glass Devtools, Inc. All rights reserved.
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
+// Modified 2026-09-17 by Arowtech: persistent agent terminals are named Kuunda Agent.
 
 import { Disposable, IDisposable, toDisposable } from '../../../../base/common/lifecycle.js';
 import { removeAnsiEscapeCodes } from '../../../../base/common/strings.js';
@@ -53,15 +54,16 @@ export const ITerminalToolService = createDecorator<ITerminalToolService>('Termi
 
 
 export const persistentTerminalNameOfId = (id: string) => {
-	if (id === '1') return 'Void Agent'
-	return `Void Agent (${id})`
+	if (id === '1') return 'Kuunda Agent'
+	return `Kuunda Agent (${id})`
 }
 export const idOfPersistentTerminalName = (name: string) => {
-	if (name === 'Void Agent') return '1'
+	if (name === 'Kuunda Agent' || name === 'Void Agent') return '1'
 
-	const match = name.match(/Void Agent \((\d+)\)/)
+	const match = name.match(/(?:Kuunda|Void) Agent \((\d+)\)/)
 	if (!match) return null
-	if (Number.isInteger(match[1]) && Number(match[1]) >= 1) return match[1]
+	const id = Number(match[1])
+	if (Number.isInteger(id) && id >= 1) return String(id)
 	return null
 }
 

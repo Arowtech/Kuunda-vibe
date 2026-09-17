@@ -47,7 +47,7 @@ describe('Phase 2 — branchement IDE kuundaAi', () => {
 		const strings = JSON.parse(read('src/vs/workbench/contrib/kuundaAi/common/strings.json'));
 		const nlsSrc = read('src/vs/workbench/contrib/kuundaAi/common/kuundaAiNls.ts');
 		for (const [key, value] of Object.entries(strings)) {
-			assert.match(key, /^kuunda\.(ai|agent)\./);
+			assert.match(key, /^kuunda\.(ai|agent|terminal|dev|git)\./);
 			assert.ok(value.en && value.fr);
 			assert.notEqual(value.en, value.fr);
 			assert.ok(nlsSrc.includes(value.en), `${key} en manquant`);

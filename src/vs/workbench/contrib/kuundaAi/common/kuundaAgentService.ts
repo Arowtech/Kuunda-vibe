@@ -12,6 +12,7 @@ import { generateUuid } from '../../../../base/common/uuid.js';
 import { BackgroundJob, collectCheckpointPaths, createBackgroundJob, transitionBackgroundJob } from './backgroundJob.js';
 import { DEFAULT_TOOL_PERMISSIONS, PermissionLevel } from './permissionPolicy.js';
 import { AGENT_PROVIDERS } from './agentProviders.js';
+import { TERMINAL_TOOL_NAMES } from './terminalAccess.js';
 
 const POLICY_STORAGE_KEY = 'kuunda.agent.policyOverrides';
 
@@ -29,6 +30,7 @@ export interface IKuundaAgentService {
 	review(id: string): void;
 	getPolicyOverrides(): { [toolName: string]: PermissionLevel };
 	setToolPermission(toolName: string, level: PermissionLevel): void;
+	setTerminalAccess(level: PermissionLevel): void;
 	listPermissionTools(): string[];
 }
 
@@ -131,6 +133,12 @@ export class KuundaAgentService extends Disposable implements IKuundaAgentServic
 		this.policyOverrides = { ...this.policyOverrides, [toolName]: level };
 		this.storageService.store(POLICY_STORAGE_KEY, JSON.stringify(this.policyOverrides), StorageScope.APPLICATION, StorageTarget.USER);
 		this._onDidChangeJobs.fire();
+	}
+
+	setTerminalAccess(level: PermissionLevel): void {
+		for (const toolName of TERMINAL_TOOL_NAMES) {
+			this.setToolPermission(toolName, level);
+		}
 	}
 
 	listPermissionTools(): string[] {

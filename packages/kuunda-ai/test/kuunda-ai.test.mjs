@@ -27,6 +27,18 @@ import {
 	isSupportedAgentProvider,
 	BYOK_PROVIDERS,
 	LOCAL_AGENT_PROVIDERS,
+	pickWorkspaceFolder,
+	pathIsInside,
+	formatWorkspaceRoots,
+	resolveAgentCwd,
+	classifyShellCommand,
+	TERMINAL_TOOL_NAMES,
+	formatProjectRules,
+	PROJECT_RULE_FILENAMES,
+	parseGitStatusPorcelain,
+	formatMultiRepoGit,
+	joinFsPath,
+	resolveRelativeCwd,
 } from '../src/index.js';
 
 describe('Phase 2.1 — autocomplete Tab policy', () => {
@@ -280,5 +292,83 @@ describe('Phase 3.6 — job d’arrière-plan livrant un diff à revoir', () => 
 			{ role: 'checkpoint', voidFileSnapshotOfURI: { 'src/a.ts': {}, 'src/b.ts': {} } },
 		]);
 		assert.deepEqual(paths, ['src/a.ts', 'src/b.ts']);
+	});
+});
+
+describe('Phase 4.1 — terminal agent cwd', () => {
+	it('refuse un cwd hors workspace', () => {
+		const folders = ['C:/proj/app', 'C:/proj/api'];
+		assert.equal(pathIsInside('C:/proj/app/src/a.ts', 'C:/proj/app'), true);
+		assert.equal(pickWorkspaceFolder('C:/proj/api/index.ts', folders), 'C:/proj/api');
+		const inside = resolveAgentCwd({ cwd: 'C:/proj/app/src', workspaceFolders: folders });
+		assert.equal(inside.ok, true);
+		const outside = resolveAgentCwd({ cwd: 'C:/Windows', workspaceFolders: folders });
+		assert.equal(outside.ok, false);
+		assert.equal(outside.error, 'outside_workspace');
+		assert.equal(resolveAgentCwd({ cwd: null, workspaceFolders: [] }).error, 'no_workspace');
+		assert.equal(classifyShellCommand('git status'), 'git');
+		assert.equal(classifyShellCommand('npm test'), 'shell');
+		assert.equal(resolveAgentCwd({ cwd: '../secret', workspaceFolders: folders }).ok, false);
+		assert.equal(resolveAgentCwd({ cwd: 'C:/proj/app/../../Windows', workspaceFolders: folders }).ok, false);
+		assert.equal(joinFsPath('C:/proj/app', '../secret'), 'C:/proj/secret');
+		assert.deepEqual([...TERMINAL_TOOL_NAMES], [
+			'run_command',
+			'open_persistent_terminal',
+			'run_persistent_command',
+			'kill_persistent_terminal',
+		]);
+	});
+});
+
+describe('Phase 4.3 — multi-root', () => {
+	it('liste plus d’un dossier', () => {
+		const text = formatWorkspaceRoots(['/ws/frontend', '/ws/backend']);
+		assert.match(text, /multi-root/);
+		assert.match(text, /frontend/);
+		assert.match(text, /backend/);
+		assert.equal(formatWorkspaceRoots(['/ws/only']), '');
+	});
+
+	it('un cwd relatif api vise le dossier api, pas app/api', () => {
+		const folders = ['C:/proj/app', 'C:/proj/api'];
+		assert.equal(resolveRelativeCwd('api', folders), 'C:/proj/api');
+		const resolved = resolveAgentCwd({ cwd: 'api/src', workspaceFolders: folders, command: 'git status' });
+		assert.equal(resolved.ok, true);
+		if (resolved.ok) {
+			assert.equal(resolved.folder, 'C:/proj/api');
+			assert.equal(resolved.cwd, 'C:/proj/api/src');
+			assert.equal(resolved.kind, 'git');
+		}
+	});
+});
+
+describe('Phase 4.4 — .projectrules', () => {
+	it('formate les règles par dossier', () => {
+		const text = formatProjectRules([
+			{ folderName: 'app', fileName: '.projectrules', content: 'Use TypeScript.' },
+			{ folderName: 'api', fileName: '.voidrules', content: '' },
+		]);
+		assert.match(text, /Project rules/);
+		assert.match(text, /app\/\.projectrules/);
+		assert.match(text, /Use TypeScript/);
+		assert.ok(PROJECT_RULE_FILENAMES.includes('.projectrules'));
+	});
+});
+
+describe('Phase 4.2 — git multi-repo', () => {
+	it('parse porcelain et formate plusieurs racines', () => {
+		const rows = parseGitStatusPorcelain('## main...origin/main\n M src/a.ts\n?? new.js\n');
+		assert.equal(rows.length, 2);
+		assert.equal(rows[0].path, 'src/a.ts');
+		assert.equal(rows.some((row) => row.path.includes('main')), false);
+		const text = formatMultiRepoGit([
+			{ folderName: 'app', branch: 'main', stat: ' src/a.ts | 2 ++', log: 'abc|init|2026-09-17', status: '?? new.js' },
+			{ folderName: 'api', branch: 'dev', stat: ' index.ts | 1 +', log: 'def|wip|2026-09-16' },
+		]);
+		assert.match(text, /Git repositories/);
+		assert.match(text, /app/);
+		assert.match(text, /api/);
+		assert.match(text, /branch: main/);
+		assert.match(text, /\?\? new\.js/);
 	});
 });

@@ -2,6 +2,7 @@
  *  Copyright 2025 Glass Devtools, Inc. All rights reserved.
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
+// Modified 2026-09-17 by Arowtech: cwd tool param must stay inside the workspace.
 
 import { URI } from '../../../../../base/common/uri.js';
 import { IFileService } from '../../../../../platform/files/common/files.js';
@@ -165,7 +166,7 @@ const paginationParam = {
 
 const terminalDescHelper = `You can use this tool to run any command: sed, grep, etc. Do not edit any files with this tool; use edit_file instead. When working with git and other tools that open an editor (e.g. git diff), you should pipe to cat to get all results and not get stuck in vim.`
 
-const cwdHelper = 'Optional. The directory in which to run the command. Defaults to the first workspace folder.'
+const cwdHelper = 'Optional. Working directory; MUST stay inside a workspace folder. A relative name like `api` resolves to that workspace folder. Defaults to the first workspace folder.'
 
 export type SnakeCase<S extends string> =
 	// exact acronym URI

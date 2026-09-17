@@ -13,6 +13,7 @@ import { IQuickInputService } from '../../../../platform/quickinput/common/quick
 import { kuundaAiLocalize, kuundaAiLocalize2 } from '../common/kuundaAiNls.js';
 import { IKuundaCodebaseService } from '../common/kuundaCodebaseService.js';
 import { IKuundaAgentService } from '../common/kuundaAgentService.js';
+import { IKuundaWorkspaceService } from '../common/kuundaWorkspaceService.js';
 import { IChatThreadService } from '../../void/browser/chatThreadService.js';
 import { PERMISSION_LEVELS, type PermissionLevel } from '../common/permissionPolicy.js';
 
@@ -145,6 +146,73 @@ registerAction2(class extends Action2 {
 		}
 		chat.switchToThread(job.threadId);
 		agent.review(job.id);
+	}
+});
+
+registerAction2(class extends Action2 {
+	constructor() {
+		super({
+			id: 'kuunda.terminal.setAccess',
+			f1: true,
+			title: kuundaAiLocalize2('kuunda.terminal.setAccess'),
+		});
+	}
+
+	async run(accessor: ServicesAccessor): Promise<void> {
+		const quick = accessor.get(IQuickInputService);
+		const notify = accessor.get(INotificationService);
+		const agent = accessor.get(IKuundaAgentService);
+		const picked = await quick.pick(
+			PERMISSION_LEVELS.map((id) => ({ label: id, id })),
+			{ placeHolder: kuundaAiLocalize('kuunda.terminal.setAccess.level') },
+		);
+		if (!picked?.id) {
+			return;
+		}
+		agent.setTerminalAccess(picked.id as PermissionLevel);
+		notify.info(`terminal: ${picked.id}`);
+	}
+});
+
+registerAction2(class extends Action2 {
+	constructor() {
+		super({
+			id: 'kuunda.dev.reloadRules',
+			f1: true,
+			title: kuundaAiLocalize2('kuunda.dev.reloadRules'),
+		});
+	}
+
+	async run(accessor: ServicesAccessor): Promise<void> {
+		const workspace = accessor.get(IKuundaWorkspaceService);
+		const notify = accessor.get(INotificationService);
+		const text = await workspace.refreshRules();
+		if (!text) {
+			notify.info(kuundaAiLocalize('kuunda.dev.reloadRules.none'));
+			return;
+		}
+		notify.info(kuundaAiLocalize('kuunda.dev.reloadRules.ok'));
+	}
+});
+
+registerAction2(class extends Action2 {
+	constructor() {
+		super({
+			id: 'kuunda.git.showStatus',
+			f1: true,
+			title: kuundaAiLocalize2('kuunda.git.showStatus'),
+		});
+	}
+
+	async run(accessor: ServicesAccessor): Promise<void> {
+		const workspace = accessor.get(IKuundaWorkspaceService);
+		const notify = accessor.get(INotificationService);
+		const text = await workspace.formatGitContext();
+		if (!text) {
+			notify.info(kuundaAiLocalize('kuunda.git.showStatus.none'));
+			return;
+		}
+		notify.info(text.slice(0, 500));
 	}
 });
 

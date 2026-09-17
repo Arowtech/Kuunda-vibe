@@ -70,6 +70,34 @@ export const KUUNDA_AI_STRINGS = {
 		en: 'No background agent diff is waiting for review.',
 		fr: 'Aucun diff d’agent d’arrière-plan n’attend de relecture.',
 	},
+	'kuunda.terminal.setAccess': {
+		en: 'Kuunda Vibe: Set Agent Terminal Access',
+		fr: 'Kuunda Vibe : définir l’accès terminal de l’agent',
+	},
+	'kuunda.terminal.setAccess.level': {
+		en: 'Terminal access for the agent (default: confirm)',
+		fr: 'Accès terminal de l’agent (défaut : confirm)',
+	},
+	'kuunda.dev.reloadRules': {
+		en: 'Kuunda Vibe: Reload Project Rules',
+		fr: 'Kuunda Vibe : recharger les règles de projet',
+	},
+	'kuunda.dev.reloadRules.none': {
+		en: 'No .projectrules (or .kuunda/rules / .voidrules) found in the workspace.',
+		fr: 'Aucun fichier .projectrules (ni .kuunda/rules / .voidrules) dans l’espace de travail.',
+	},
+	'kuunda.dev.reloadRules.ok': {
+		en: 'Project rules reloaded.',
+		fr: 'Règles de projet rechargées.',
+	},
+	'kuunda.git.showStatus': {
+		en: 'Kuunda Vibe: Show Workspace Git Status',
+		fr: 'Kuunda Vibe : afficher le statut Git des dossiers',
+	},
+	'kuunda.git.showStatus.none': {
+		en: 'No git repository in the open workspace folders.',
+		fr: 'Aucun dépôt Git dans les dossiers ouverts.',
+	},
 } as const;
 
 export type KuundaAiStringKey = keyof typeof KUUNDA_AI_STRINGS;

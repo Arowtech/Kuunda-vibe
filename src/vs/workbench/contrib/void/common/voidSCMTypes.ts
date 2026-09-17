@@ -31,6 +31,10 @@ export interface IVoidSCMService {
 	 * @param path Path to the git repository
 	 */
 	gitLog(path: string): Promise<string>
+	/**
+	 * Porcelain status including untracked files (`git status --porcelain -b`)
+	 */
+	gitStatus(path: string): Promise<string>
 }
 
 export const IVoidSCMService = createDecorator<IVoidSCMService>('voidSCMService')

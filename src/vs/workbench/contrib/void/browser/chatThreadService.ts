@@ -2,7 +2,7 @@
  *  Copyright 2025 Glass Devtools, Inc. All rights reserved.
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
-// Modified 2026-09-17 by Arowtech: Kuunda agent permissions, step cap, background jobs, credits gate.
+// Modified 2026-09-17 by Arowtech: Kuunda agent permissions, step cap, background jobs, credits gate, terminal cwd.
 
 import { Disposable } from '../../../../base/common/lifecycle.js';
 import { registerSingleton, InstantiationType } from '../../../../platform/instantiation/common/extensions.js';
@@ -45,6 +45,7 @@ import { MAX_AGENT_STEPS, planAfterTool, planAgentTurn } from '../../kuundaAi/co
 import { collectCheckpointPaths, IKuundaAgentService } from '../../kuundaAi/common/kuundaAgentService.js';
 import { kuundaAiLocalize } from '../../kuundaAi/common/kuundaAiNls.js';
 import { IKuundaBillingService } from '../../kuundaBilling/common/kuundaBillingService.js';
+import { IKuundaWorkspaceService } from '../../kuundaAi/common/kuundaWorkspaceService.js';
 
 
 // related to retrying when LLM message has error
@@ -335,6 +336,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		@IMCPService private readonly _mcpService: IMCPService,
 		@IKuundaAgentService private readonly _kuundaAgent: IKuundaAgentService,
 		@IKuundaBillingService private readonly _kuundaBilling: IKuundaBillingService,
+		@IKuundaWorkspaceService private readonly _kuundaWorkspace: IKuundaWorkspaceService,
 	) {
 		super()
 		this.state = { allThreads: {}, currentThreadId: null as unknown as string } // default state
@@ -628,6 +630,24 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		const isBuiltInTool = isABuiltinToolName(toolName)
 
 
+		const bindAgentTerminalCwd = (): boolean => {
+			if (!isBuiltInTool || (toolName !== 'run_command' && toolName !== 'open_persistent_terminal')) {
+				return true
+			}
+			const cwd = (toolParams as { cwd?: string | null }).cwd ?? null
+			const command = toolName === 'run_command' ? String((toolParams as { command?: string }).command || '') : ''
+			const resolved = this._kuundaWorkspace.resolveAgentCwd(cwd, command)
+			if (!resolved.ok) {
+				const errorMessage = resolved.error === 'outside_workspace'
+					? 'Terminal command refused: working directory is outside the workspace.'
+					: 'Terminal command refused: open a workspace folder first.'
+				this._addMessageToThread(threadId, { role: 'tool', type: 'tool_error', rawParams: opts.unvalidatedToolParams, result: errorMessage, name: toolName, content: errorMessage, id: toolId, params: toolParams, mcpServerName })
+				return false
+			}
+			;(toolParams as { cwd: string | null }).cwd = resolved.cwd
+			return true
+		}
+
 		if (!opts.preapproved) { // skip this if pre-approved
 			// 1. validate tool params
 			try {
@@ -647,6 +667,11 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 			// once validated, add checkpoint for edit
 			if (toolName === 'edit_file') { this._addToolEditCheckpoint({ threadId, uri: (toolParams as BuiltinToolCallParams['edit_file']).uri }) }
 			if (toolName === 'rewrite_file') { this._addToolEditCheckpoint({ threadId, uri: (toolParams as BuiltinToolCallParams['rewrite_file']).uri }) }
+
+			// Refuse a cwd outside the workspace before asking for terminal approval.
+			if (!bindAgentTerminalCwd()) {
+				return {}
+			}
 
 			// 2. if tool requires approval, break from the loop, awaiting approval
 
@@ -674,6 +699,9 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		}
 		else {
 			toolParams = opts.validatedParams
+			if (!bindAgentTerminalCwd()) {
+				return {}
+			}
 		}
 
 
