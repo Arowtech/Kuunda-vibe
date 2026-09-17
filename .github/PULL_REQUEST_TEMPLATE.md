@@ -13,7 +13,7 @@
 ## Checklist
 
 - [ ] J'ai lu `CONTRIBUTING.md` et `GOVERNANCE.md`
-- [ ] CLA : `I have read and agree to the Kuunda Vibe Individual CLA.` (si contributeur externe)
+- [ ] CLA : `I have read and agree to the Kuunda Vibe Individual CLA.` (si contributeur externe ; job CI `cla`)
 - [ ] Aucun secret, clé API, identifiant store, ni donnée de paiement
 - [ ] `npm test` est vert
 - [ ] Fichiers hérités Void/VS Code modifiés portent une notice de changement

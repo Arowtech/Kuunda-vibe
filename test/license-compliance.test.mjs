@@ -143,9 +143,12 @@ describe('Phase 0 — contribution et CLA', () => {
 		assert.match(contributing, /CLA-CORPORATE\.md/);
 		assert.match(governance, /CLA obligatoire/);
 		assert.match(governance, /Revue obligatoire/);
-		assert.match(governance, /CI verte obligatoire/);
+		assert.match(governance, /job `cla`/);
 		assert.match(governance, /Aucun secret/);
 		assert.match(read('.github/PULL_REQUEST_TEMPLATE.md'), /Individual CLA/);
+		assert.match(read('.github/workflows/cla.yml'), /name: CLA/);
+		assert.match(read('.github/workflows/cla.yml'), /cla-check\.mjs/);
+		assert.match(read('.github/scripts/cla-check.mjs'), /INDIVIDUAL_SENTENCE/);
 	});
 
 	it('les CLA accordent copyright et brevet à Arowtech et justifient le §5', () => {
@@ -218,6 +221,7 @@ describe('Phase 0 — package public', () => {
 		assert.equal(pkg.private, true);
 		assert.equal(pkg.author.name, 'Arowtech');
 		assert.match(pkg.scripts.test, /test\/license-compliance\.test\.mjs/);
+		assert.match(pkg.scripts.test, /test\/cla-check\.test\.mjs/);
 		assert.match(pkg.scripts.test, /packages\/cloud-client\/test\/cloud-client\.test\.mjs/);
 		assert.match(pkg.scripts.test, /test\/branding\.test\.mjs/);
 		assert.match(pkg.scripts.test, /packages\/kuunda-ai\/test\/kuunda-ai\.test\.mjs/);

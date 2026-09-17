@@ -8,9 +8,9 @@ Merci. Lisez d'abord `GOVERNANCE.md`, `NOTICE`, `LICENSE` et `docs/legal/COMPOSA
 2. Signez le CLA :
    - personne physique : `docs/legal/CLA-INDIVIDUAL.md`
    - entité : `docs/legal/CLA-CORPORATE.md`
-3. Sur votre première PR, collez : `I have read and agree to the Kuunda Vibe Individual CLA.` (ou l'équivalent corporate).
+3. Sur votre première PR, collez : `I have read and agree to the Kuunda Vibe Individual CLA.` (ou l'équivalent corporate). Le job CI `cla` bloque le merge tant que la phrase est absente.
 
-Les employés Arowtech n'ont pas à signer le CLA externe.
+Les employés Arowtech (association GitHub `OWNER` / `MEMBER`) n'ont pas à signer le CLA externe.
 
 ## Environnement de test (Phase 0)
 
