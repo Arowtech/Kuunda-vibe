@@ -4,6 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { getNLSLanguage, localize, type ILocalizedString } from '../../../../nls.js';
+import { classifyPaymentFailure } from './creditPolicy.js';
 
 export const KUUNDA_BILLING_STRINGS = {
 	'kuunda.billing.tagline': {
@@ -62,6 +63,18 @@ export const KUUNDA_BILLING_STRINGS = {
 		en: 'Payment failed. No payment credentials were stored in the IDE.',
 		fr: 'Paiement échoué. Aucun identifiant de paiement n’a été stocké dans l’IDE.',
 	},
+	'kuunda.billing.checkout': {
+		en: 'Kuunda Vibe: Top Up or Change Plan',
+		fr: 'Kuunda Vibe : recharger ou changer de plan',
+	},
+	'kuunda.billing.checkout.needUser': {
+		en: 'Set a credits account id before checkout. No payment credentials are stored in the IDE.',
+		fr: 'Définissez un identifiant de compte crédits avant le paiement. Aucun identifiant de paiement n’est stocké dans l’IDE.',
+	},
+	'kuunda.billing.checkout.unavailable': {
+		en: 'Checkout is unavailable. Open plans from the account page, or try again later.',
+		fr: 'Paiement indisponible. Ouvrez les plans depuis la page compte, ou réessayez plus tard.',
+	},
 } as const;
 
 export type KuundaBillingStringKey = keyof typeof KUUNDA_BILLING_STRINGS;
@@ -78,4 +91,16 @@ export function kuundaBillingLocalize(key: KuundaBillingStringKey, ...args: Arra
 
 export function kuundaBillingLocalize2(key: KuundaBillingStringKey): ILocalizedString {
 	return { original: KUUNDA_BILLING_STRINGS[key].en, value: kuundaBillingLocalize(key) };
+}
+
+const PAY_KEYS = {
+	insufficient_funds: 'kuunda.billing.pay.insufficient_funds',
+	timeout: 'kuunda.billing.pay.timeout',
+	declined: 'kuunda.billing.pay.declined',
+	canceled: 'kuunda.billing.pay.canceled',
+	unknown: 'kuunda.billing.pay.unknown',
+} as const;
+
+export function paymentFailureMessage(code: string | undefined): string {
+	return kuundaBillingLocalize(PAY_KEYS[classifyPaymentFailure(code)]);
 }

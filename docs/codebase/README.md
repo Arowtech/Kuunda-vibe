@@ -29,7 +29,7 @@ Ce guide est mis à jour **à chaque phase**. Il n'est pas un README marketing.
 | 1 Renommage éditeur | **Validée** (steward, 17 sept. 2026) |
 | 2 Complétion et édition assistée | **Validée** (steward, 17 sept. 2026) |
 | 3 Agent autonome | **Validée** (steward, 17 sept. 2026 — ouverture 3bis) |
-| 3bis Crédits et facturation | **En cours** |
+| 3bis Crédits et facturation | **Validée** (steward, 17 sept. 2026 — ouverture Phase 4) |
 | 4–10 | Non commencées |
 
 Ne pas fusionner les phases. Ne pas démarrer N+1 sans validation explicite de N.

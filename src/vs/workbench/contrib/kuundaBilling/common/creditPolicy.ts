@@ -17,6 +17,30 @@ export type CreditsBalance = {
 	alert?: CreditAlertLevel;
 };
 
+export type BillingPlan = {
+	id: string;
+	name: string;
+	kind?: 'included' | 'topup';
+	includedQuota?: number;
+	price?: { amount: number; currency: string };
+};
+
+export type TransactionSummary = {
+	id: string;
+	status: string;
+	amount: number;
+	currency: string;
+	createdAt: string;
+	failureCode?: string;
+};
+
+export type CheckoutResult = {
+	checkoutUrl: string;
+	planId?: string;
+	amount?: number;
+	currency?: string;
+};
+
 export function creditAlertLevel(remaining: number, includedQuota: number): CreditAlertLevel {
 	if (remaining <= 0) {
 		return 'empty';

@@ -54,5 +54,17 @@
 	"kuunda.billing.pay.unknown": {
 		"en": "Payment failed. No payment credentials were stored in the IDE.",
 		"fr": "Paiement échoué. Aucun identifiant de paiement n’a été stocké dans l’IDE."
+	},
+	"kuunda.billing.checkout": {
+		"en": "Kuunda Vibe: Top Up or Change Plan",
+		"fr": "Kuunda Vibe : recharger ou changer de plan"
+	},
+	"kuunda.billing.checkout.needUser": {
+		"en": "Set a credits account id before checkout. No payment credentials are stored in the IDE.",
+		"fr": "Définissez un identifiant de compte crédits avant le paiement. Aucun identifiant de paiement n’est stocké dans l’IDE."
+	},
+	"kuunda.billing.checkout.unavailable": {
+		"en": "Checkout is unavailable. Open plans from the account page, or try again later.",
+		"fr": "Paiement indisponible. Ouvrez les plans depuis la page compte, ou réessayez plus tard."
 	}
 }

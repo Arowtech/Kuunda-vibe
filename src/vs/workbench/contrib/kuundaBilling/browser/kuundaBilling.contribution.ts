@@ -107,6 +107,47 @@ registerAction2(class extends Action2 {
 	}
 });
 
+registerAction2(class extends Action2 {
+	constructor() {
+		super({
+			id: 'kuunda.billing.checkout',
+			f1: true,
+			title: kuundaBillingLocalize2('kuunda.billing.checkout'),
+		});
+	}
+
+	async run(accessor: ServicesAccessor): Promise<void> {
+		const billing = accessor.get(IKuundaBillingService);
+		const notify = accessor.get(INotificationService);
+		const quick = accessor.get(IQuickInputService);
+		const opener = accessor.get(IOpenerService);
+		if (!billing.getUserId()) {
+			notify.info(kuundaBillingLocalize('kuunda.billing.checkout.needUser'));
+			return;
+		}
+		const plans = await billing.listPlans();
+		const paid = plans.filter((plan) => (plan.price?.amount ?? 0) > 0);
+		if (paid.length === 0) {
+			notify.info(kuundaBillingLocalize('kuunda.billing.checkout.unavailable'));
+			return;
+		}
+		const picked = await quick.pick(paid.map((plan) => ({
+			id: plan.id,
+			label: plan.name,
+			description: plan.id,
+		})));
+		if (!picked?.id) {
+			return;
+		}
+		const result = await billing.startCheckout(picked.id);
+		if (!result?.checkoutUrl) {
+			notify.info(kuundaBillingLocalize('kuunda.billing.checkout.unavailable'));
+			return;
+		}
+		await opener.open(URI.parse(result.checkoutUrl));
+	}
+});
+
 Registry.as<IWorkbenchContributionsRegistry>(WorkbenchExtensions.Workbench).registerWorkbenchContribution(
 	KuundaBillingContribution,
 	LifecyclePhase.Restored

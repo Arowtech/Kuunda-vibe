@@ -1,7 +1,7 @@
 # 03bis — Crédits et facturation (propriétaire)
 
 **Phase :** 3bis
-**Validation steward :** en cours
+**Validation steward :** validée le 17 sept. 2026 (ouverture Phase 4).
 **Prérequis :** Phase 3 commencée puis ouverte explicitement vers 3bis (17 sept. 2026)
 
 Frontière figée (Phase 0.2) : **UI + contrats** dans ce dépôt public ; **ledger, tarifs, Genius Pay** dans `Arowtech/kuunda-vibe-cloud`.
@@ -21,12 +21,14 @@ Frontière figée (Phase 0.2) : **UI + contrats** dans ce dépôt public ; **led
 ## Isolation
 
 - `packages/cloud-client` : contrats + HTTP zéro secret.
-- `src/vs/workbench/contrib/kuundaBilling/` : UI nls EN/FR, status bar, commandes.
+- `src/vs/workbench/contrib/kuundaBilling/` : UI nls EN/FR, status bar, commandes F1 (`setUser`, `refresh`, `openPlans`, `checkout`).
 - Accroche Void : `ensureCanRunAgent` / `recordUsage` dans `chatThreadService` (notice Arowtech).
 - Aucun tarif XOF, HMAC, ou MSISDN dans ce dépôt.
 
 ## Hors de portée
 
 - Auth session réelle (reste 501 côté API)
+- Persist ledger SQL (`sql/0002` privé, Worker isolate mémoire jusqu'au deploy + adaptateur)
+- Session Genius Pay live (`wrangler secret` + API fournisseur — le checkout IDE ouvre l'URL hébergée)
 - SLA / restore SQL (ouverts depuis 0bis)
 - Terminal agent / `.projectrules` (Phase 4)

@@ -12,7 +12,7 @@ Ce logiciel est fourni « AS IS », sans garantie. Les marques Kuunda, Kuunda Vi
 
 ## État du dépôt
 
-Phase 3bis (crédits) en cours : UI solde / plans dans l'IDE ; ledger Genius Pay dans le dépôt privé. Phase 3 (agent) validée.
+Phase 3bis (crédits) validée : UI solde / plans / checkout dans l'IDE ; ledger Genius Pay dans le dépôt privé.
 
 - Contribuer : [CONTRIBUTING.md](CONTRIBUTING.md)
 - Gouvernance : [GOVERNANCE.md](GOVERNANCE.md)

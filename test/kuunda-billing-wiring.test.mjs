@@ -28,10 +28,28 @@ describe('Phase 3bis — branchement crédits IDE', () => {
 		assert.match(http, /\/v1\/credits\/signup/);
 		assert.match(http, /\/v1\/credits\/consume/);
 		assert.match(http, /\/v1\/billing\/checkout/);
+		assert.match(http, /\/v1\/billing\/transactions/);
 		assert.doesNotMatch(http, /sk_|whsec_|BEGIN /);
 		const contracts = read('packages/cloud-client/src/contracts.js');
 		assert.match(contracts, /classifyPaymentFailure/);
 		assert.match(contracts, /creditAlertLevel/);
+	});
+
+	it('l’IDE appelle checkout, plans et transactions (pas seulement le contrat)', () => {
+		const service = read('src/vs/workbench/contrib/kuundaBilling/common/kuundaBillingService.ts');
+		assert.match(service, /startCheckout/);
+		assert.match(service, /listPlans/);
+		assert.match(service, /listTransactions/);
+		assert.match(service, /\/v1\/billing\/checkout/);
+		assert.match(service, /paymentFailureMessage/);
+		assert.match(service, /notifyAlertOnce/);
+		const contrib = read('src/vs/workbench/contrib/kuundaBilling/browser/kuundaBilling.contribution.ts');
+		assert.match(contrib, /kuunda\.billing\.checkout/);
+		assert.match(contrib, /startCheckout/);
+		assert.match(contrib, /listPlans/);
+		const nls = read('src/vs/workbench/contrib/kuundaBilling/common/kuundaBillingNls.ts');
+		assert.match(nls, /paymentFailureMessage/);
+		assert.match(nls, /classifyPaymentFailure/);
 	});
 
 	it('chaque clé nls kuundaBilling a en et fr distincts', () => {
