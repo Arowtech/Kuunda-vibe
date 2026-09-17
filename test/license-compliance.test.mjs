@@ -184,6 +184,7 @@ describe('Phase 0 — CI secret scan', () => {
 		assert.match(gitleaksConfig, /uri\.test\.ts/);
 		assert.match(gitleaksConfig, /kuunda-ai\.test\.mjs/);
 		assert.match(gitleaksConfig, /targetRules = \["private-key", "stripe-access-token"\]/);
+		assert.match(gitleaksConfig, /id = "kuunda-github-pat"/);
 	});
 });
 

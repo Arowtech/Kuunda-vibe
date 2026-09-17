@@ -33,3 +33,11 @@ paths = ['''(^|/)src/vs/base/test/common/uri\.test\.ts$''']
 description = "Dummy PKCS8 and Stripe-like fixtures in kuunda-ai.test.mjs"
 targetRules = ["private-key", "stripe-access-token"]
 paths = ['''(^|/)packages/kuunda-ai/test/kuunda-ai\.test\.mjs$''']
+
+# Default Gitleaks allowlists ignore some well-known documentation PATs
+# (e.g. ghp_ + a–z + 0–9). Keep a Kuunda-specific rule so those still fail CI.
+[[rules]]
+id = "kuunda-github-pat"
+description = "GitHub PAT (not subject to Gitleaks global example allowlist)"
+regex = '''ghp_[0-9a-zA-Z]{36}'''
+tags = ["key", "GitHub"]
