@@ -199,6 +199,7 @@ describe('Phase 0 — package public', () => {
 		assert.equal(pkg.dependencies, undefined);
 		assert.equal(pkg.devDependencies, undefined);
 		assert.match(pkg.scripts.test, /test\/license-compliance\.test\.mjs/);
+		assert.match(pkg.scripts.test, /packages\/cloud-client\/test\/cloud-client\.test\.mjs/);
 		assert.equal(existsSync(join(root, 'test/license-compliance.test.mjs')), true);
 	});
 });

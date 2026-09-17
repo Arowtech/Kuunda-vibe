@@ -11,7 +11,7 @@ Ils sont isolés dans un **dépôt privé distinct**, sous licence propriétaire
 | Élément | Dépôt | Licence |
 | --- | --- | --- |
 | Éditeur (fork Void / Code - OSS), UI, agent-core open, interfaces | `Arowtech/Kuunda-vibe` (public) | Apache-2.0 + MIT héritée |
-| Facturation, crédits, Genius Pay, provisioning opérateur Kuunda Cloud, custody des clés de signature des mises à jour | `Arowtech/kuunda-vibe-cloud` (privé, à créer en Phase 0bis) | Propriétaire Arowtech |
+| Facturation, crédits, Genius Pay, provisioning opérateur Kuunda Cloud, custody des clés de signature des mises à jour | `Arowtech/kuunda-vibe-cloud` (privé) | Propriétaire Arowtech |
 
 Le nom exact du dépôt privé peut être ajusté en Phase 0bis ; le principe d'isolation ne l'est pas.
 

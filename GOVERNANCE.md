@@ -52,9 +52,10 @@ Pas de commits directs sur `main` une fois la protection activée.
 
 ## 5. Langues
 
+- **Interface utilisateur de l'IDE :** bilingue **anglais + français**, **anglais par défaut**. Toute chaîne visible (menus, commandes, écran d'accueil, paramètres, messages d'erreur) passe par le système de nls/i18n de VS Code (`nls.localize` / packs `vscode-nls`), avec `en` comme locale de repli et `fr` fourni dès l'introduction de la chaîne. Ne jamais coder une chaîne UI en dur dans une seule langue.
 - **Code et commentaires dans `src/` hérités de VS Code / Void :** anglais, pour rester rebase-able.
-- **Modules Kuunda isolés** (`src/vs/workbench/contrib/kuunda-*/` une fois créés) : anglais pour le code, afin d'éviter un îlot linguistique.
-- **Documentation interne Phase 0 / gouvernance :** français.
+- **Modules Kuunda isolés** (`src/vs/workbench/contrib/kuunda-*/` une fois créés) : identifiants, APIs et commentaires en anglais ; libellés utilisateur via nls EN/FR.
+- **Documentation interne / gouvernance :** français.
 - **CLA :** anglais (texte qui fait foi), résumé français non contraignant.
 - Issues et PR : français ou anglais.
 
