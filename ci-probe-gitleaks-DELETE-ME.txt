@@ -1,0 +1,3 @@
+# CI probe only. This is NOT a real credential.
+# Pattern: GitHub PAT (gitleaks github-pat). Delete this branch after the job fails.
+GITHUB_TOKEN=ghp_abcdefghijklmnopqrstuvwxyz1234567890
