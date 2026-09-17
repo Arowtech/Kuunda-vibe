@@ -1,7 +1,7 @@
 # 00bis — Infrastructure et sécurité de plateforme
 
 **Phase :** 0bis
-**Validation steward :** en attente
+**Validation steward :** 17 sept. 2026 (P0/0bis validées ; SQL sandbox lkg7ol1a ; SLA et restore ledger reportés hors P1)
 **Contrainte transverse :** IDE bilingue EN/FR, anglais par défaut (`i18n-en-fr.md`) — UI IDE en Phase 1. Le shell Pages (vitrine/dashboard) est déjà EN par défaut + FR.
 
 Cette phase **précède** tout développement fonctionnel d'éditeur. Elle ne fusionne pas avec la Phase 1.
@@ -31,7 +31,7 @@ Aucune extension Open VSX (pas d'éditeur).
 | `api.ide.kuunda-cloud.com` | Worker API |
 | `updates.ide.kuunda-cloud.com` | Worker updates isolé |
 
-**Non déployé** : compte Cloudflare / jetons absents. Détail dans le dépôt privé `docs/DNS.md`.
+Déployé (17 sept. 2026) : `ide.kuunda-cloud.com`, `api.ide.kuunda-cloud.com` (`/healthz` OK), `updates.ide.kuunda-cloud.com`. Dashboard compte via `/app/`. Détail DNS/WAF dans le dépôt privé.
 
 ## Due diligence Kuunda Cloud (0bis.5)
 
@@ -45,7 +45,7 @@ Mesures sandbox `proj_75ff301f30844160a4390ff024ec940csbx` le 16 sept. 2026 :
 | SLA | Non documenté en self-serve. | Facturation prod **non fiable** tant qu'un contrat SLA n'est pas signé. |
 | Isolation | Schémas `proj_<id>` / `proj_<id>sbx` par projet. | Ledger dans un **projet plateforme dédié**, jamais dans `proj_*` utilisateur. |
 
-SQL proposé (non appliqué) : dépôt privé `sql/0001_platform_schema.sql`.
+SQL sandbox `lkg7ol1a` appliqué (`platform_accounts`, `platform_credit_ledger`, `platform_payment_events`). Promotion prod + restore + SLA : ouverts, hors Phase 1.
 
 ## 0bis.6 GitHub
 
@@ -63,4 +63,4 @@ WAF : `docs/WAF.md` — à cocher dans le dashboard Cloudflare au premier deploy
 
 - Import Void (Phase 1)
 - Ledger crédits réel, UI agent, publishing stores (Phases 3bis–7)
-- `wrangler deploy` sans jeton Cloudflare
+- `wrangler deploy` sans jeton Cloudflare (Workers Builds Git utilisé)

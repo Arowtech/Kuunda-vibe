@@ -11,12 +11,12 @@
 | Docs gouvernance / légal interne | français |
 | CLA | anglais qui fait foi |
 
-## Mise en œuvre (à appliquer en Phase 1, pas avant)
+## Mise en œuvre (Phase 1)
 
 Réutiliser le mécanisme VS Code / Void déjà présent :
 
-- clés nls dans le code (`nls.localize('kuunda.xxx', 'English default')`) ;
-- pack `fr` pour chaque clé Kuunda nouvelle ;
+- clés nls dans `src/vs/workbench/contrib/kuundaBrand/` (`nls.localize('kuunda.xxx', 'English default')`) ;
+- équivalent français dans `common/strings.json` pour chaque clé Kuunda nouvelle ;
 - ne pas dupliquer un second framework i18n (i18next, etc.) par-dessus VS Code.
 
 Le français n'est jamais la seule langue d'une chaîne : l'anglais est le repli si `fr` manque.

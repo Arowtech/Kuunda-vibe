@@ -1,0 +1,45 @@
+# 01 — Renommage éditeur (Kuunda Vibe)
+
+**Phase :** 1
+**Validation steward :** livrable Phase 1 prêt (import + branding). Compilation Electron hors scope.
+**Point de départ :** Void `main` (commit shallow import, dépôt archivé https://github.com/voideditor/void), version produit Void 1.4.9 / Code - OSS 1.99.3.
+
+Cette phase **importe** le fork Void et remplace l'identité produit. Elle ne fusionne pas avec la Phase 2 (autocomplete / chat).
+
+## Identité
+
+| Champ `product.json` | Valeur |
+| --- | --- |
+| `nameShort` / `nameLong` | Kuunda Vibe |
+| `applicationName` | `kuunda-vibe` |
+| `dataFolderName` | `.kuunda-vibe` |
+| `urlProtocol` | `kuunda-vibe` |
+| `darwinBundleIdentifier` | `com.arowtech.kuundavibe` |
+
+Les champs `voidVersion` / `voidRelease` restent : le code `contrib/void` les lit. On ne les renomme pas (rebase).
+
+## Logos
+
+Sources steward (17 sept. 2026) :
+
+- `resources/branding/icon.png` — picto (carré orange, curseur + point blanc)
+- `resources/branding/wordmark.png` — picto + mot « VIBE »
+
+Dérivés build VS Code (chemins hérités, **non** renommés pour rester rebase-able) :
+
+- `resources/linux/code.png`
+- `resources/win32/code.ico`
+- `resources/darwin/code.icns`
+
+Les notices Microsoft / Glass Devtools dans les sources **ne sont pas** remplacées par ces logos (Apache §4(c) / §6).
+
+## i18n
+
+Mécanisme VS Code `nls.localize`. Chaînes Kuunda nouvelles : anglais par défaut + français dans `src/vs/workbench/contrib/kuundaBrand/common/strings.json`. Module isolé `src/vs/workbench/contrib/kuundaBrand/` (Apache-2.0 Arowtech).
+
+## Hors de portée
+
+- Chat / inline / agent (Phases 2–3)
+- Ledger / GeniusPay (3bis)
+- Packaging installateurs signés (Phase 9)
+- `npm install` / compilation Electron : environnement local lourd, pas un livrable de ce premier import

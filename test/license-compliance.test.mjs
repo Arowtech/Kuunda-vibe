@@ -10,9 +10,21 @@ function read(relPath) {
 	return readFileSync(join(root, relPath), 'utf8');
 }
 
+const SKIP_DIRS = new Set([
+	'.git',
+	'node_modules',
+	'src',
+	'extensions',
+	'build',
+	'cli',
+	'out',
+	'resources',
+	'.build'
+]);
+
 function walkFiles(dir, acc = []) {
 	for (const entry of readdirSync(dir)) {
-		if (entry === '.git' || entry === 'node_modules') {
+		if (SKIP_DIRS.has(entry)) {
 			continue;
 		}
 		const full = join(dir, entry);
@@ -32,7 +44,7 @@ describe('Phase 0 — fichiers de gouvernance', () => {
 		assert.equal(manifest.projectLicense, 'Apache-2.0');
 		assert.equal(manifest.steward, 'Arowtech');
 		assert.equal(manifest.originalWork.copyrightHolder, 'Arowtech');
-		assert.equal(manifest.phase, 0);
+		assert.ok(manifest.phase === 0 || manifest.phase === 1);
 		assert.ok(manifest.upstream.some((u) => u.copyrightHolder === 'Microsoft Corporation' && u.license === 'MIT'));
 		assert.ok(manifest.upstream.some((u) => u.copyrightHolder === 'Glass Devtools, Inc.' && u.license === 'Apache-2.0'));
 	});
@@ -191,15 +203,15 @@ describe('Phase 0 — absence de secrets versionnés', () => {
 });
 
 describe('Phase 0 — package public', () => {
-	it('package.json déclare Apache-2.0, Node >= 24, et aucun dependency', () => {
+	it('package.json reste Apache-2.0 et les tests Kuunda restent le script test', () => {
 		const pkg = JSON.parse(read('package.json'));
 		assert.equal(pkg.license, 'Apache-2.0');
-		assert.equal(pkg.engines.node, '>=24.0.0');
 		assert.equal(pkg.private, true);
-		assert.equal(pkg.dependencies, undefined);
-		assert.equal(pkg.devDependencies, undefined);
+		assert.equal(pkg.author.name, 'Arowtech');
 		assert.match(pkg.scripts.test, /test\/license-compliance\.test\.mjs/);
 		assert.match(pkg.scripts.test, /packages\/cloud-client\/test\/cloud-client\.test\.mjs/);
+		assert.match(pkg.scripts.test, /test\/branding\.test\.mjs/);
 		assert.equal(existsSync(join(root, 'test/license-compliance.test.mjs')), true);
+		assert.equal(existsSync(join(root, 'ThirdPartyNotices.txt')), true);
 	});
 });

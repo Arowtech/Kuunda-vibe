@@ -1,0 +1,18 @@
+{
+	"kuunda.about.attribution": {
+		"en": "Kuunda Vibe is a fork of Void (Glass Devtools) and Code - OSS (Microsoft). Steward: Arowtech.",
+		"fr": "Kuunda Vibe est un fork de Void (Glass Devtools) et de Code - OSS (Microsoft). Steward : Arowtech."
+	},
+	"kuunda.settings.title": {
+		"en": "Kuunda Vibe Settings",
+		"fr": "Paramètres Kuunda Vibe"
+	},
+	"kuunda.settings.openMenu": {
+		"en": "Open Kuunda Vibe Settings",
+		"fr": "Ouvrir les paramètres Kuunda Vibe"
+	},
+	"kuunda.sidebar.auxiliary": {
+		"en": "Kuunda Vibe Side Bar",
+		"fr": "Barre latérale Kuunda Vibe"
+	}
+}

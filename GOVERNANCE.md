@@ -1,6 +1,6 @@
 # Gouvernance — Kuunda Vibe
 
-**Statut :** Phase 0, dépôt public `https://github.com/Arowtech/Kuunda-vibe.git`
+**Statut :** Phase 1, dépôt public `https://github.com/Arowtech/Kuunda-vibe.git`
 **Steward :** Arowtech
 **Licence du dépôt public :** Apache-2.0 (cœur Code - OSS : MIT)
 
@@ -31,7 +31,7 @@ Tant que la liste des mainteneurs n'est pas publiée ailleurs, le steward assume
 3. **Revue obligatoire** d'au moins un mainteneur qui n'est pas le seul auteur (dès qu'il existe deux mainteneurs ; en phase solo, auto-revue documentée dans la PR).
 4. **CI verte obligatoire** avant merge : job `gitleaks` (Gitleaks CLI 8.30.1) et job `license-compliance`. Un finding Gitleaks bloque le merge.
 5. **Aucun secret** dans la PR (clés, `.env`, identifiants stores, dumps de facturation). Le scan Gitleaks s'ajoute à cette règle, il ne la remplace pas.
-6. **Tests** pour tout module nouveau ou modifié. En Phase 0, c'est `test/license-compliance.test.mjs`.
+6. **Tests** pour tout module nouveau ou modifié. Les tests Kuunda (`npm test`) couvrent licence, cloud-client et branding. Les tests VS Code se lancent via les scripts du dossier `scripts/`.
 7. **Licence** : fichiers nouveaux Arowtech en Apache-2.0 ; fichiers hérités : conserver les headers ; fichiers modifiés : notice de changement (§4(b)).
 8. **Pas de reformatage massif** du code VS Code / Void hors besoin fonctionnel — cela casse les rebases.
 9. Toute action destructive (force-push sur `main`, suppression de tags de release, rotation d'une clé de signature) exige une confirmation écrite du steward.
