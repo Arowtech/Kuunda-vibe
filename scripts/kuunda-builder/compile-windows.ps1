@@ -14,6 +14,8 @@ $env:NODE_OPTIONS = '--max-old-space-size=8192'
 $env:PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD = '1'
 $env:VSCODE_ARCH = $Arch
 $env:npm_config_arch = $Arch
+$env:npm_config_msvs_version = '2022'
+npm.cmd config set msvs_version 2022
 
 function Invoke-Logged([string]$File, [string[]]$NpmArgs) {
 	Write-Host "==> $File $($NpmArgs -join ' ')"
