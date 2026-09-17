@@ -23,6 +23,6 @@ Void / Code - OSS fournissent déjà le terminal intégré, SCM Git et les works
 
 ## Hors de portée
 
-- API d'extensions propriétaire (Phase 4bis)
+- API d'extensions : livrée en Phase 4bis (`04bis-extension-api.md`)
 - `cd` / redirection dans le shell d'un terminal déjà ouvert (Phase 8 affine 3.3)
 - Auth session / ledger SQL (ouverts depuis 0bis / 3bis)

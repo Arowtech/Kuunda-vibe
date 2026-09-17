@@ -33,14 +33,18 @@
 	"nodejsRepository": "https://nodejs.org",
 	"urlProtocol": "kuunda-vibe",
 	"extensionsGallery": {
-		"serviceUrl": "https://marketplace.visualstudio.com/_apis/public/gallery",
-		"itemUrl": "https://marketplace.visualstudio.com/items"
+		"serviceUrl": "https://open-vsx.org/vscode/gallery",
+		"itemUrl": "https://open-vsx.org/vscode/item",
+		"resourceUrlTemplate": "https://open-vsx.org/vscode/asset/{publisher}/{name}/{version}/Microsoft.VisualStudio.Code.WebResources/{path}",
+		"controlUrl": "",
+		"nlsBaseUrl": ""
 	},
 	"builtInExtensions": [],
 	"linkProtectionTrustedDomains": [
 		"https://ide.kuunda-cloud.com",
 		"https://api.ide.kuunda-cloud.com",
 		"https://updates.ide.kuunda-cloud.com",
+		"https://open-vsx.org",
 		"https://github.com/Arowtech/Kuunda-vibe",
 		"https://github.com/voideditor/void",
 		"https://ollama.com"

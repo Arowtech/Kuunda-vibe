@@ -12,7 +12,7 @@ Ce logiciel est fourni « AS IS », sans garantie. Les marques Kuunda, Kuunda Vi
 
 ## État du dépôt
 
-Phase 4 (terminal, git, `.projectrules`) validée. Phase 4bis non commencée.
+Phase 4bis (API d'extensions VSIX / Open VSX) validée. Phase 5 non commencée.
 
 - Contribuer : [CONTRIBUTING.md](CONTRIBUTING.md)
 - Gouvernance : [GOVERNANCE.md](GOVERNANCE.md)

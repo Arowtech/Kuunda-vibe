@@ -77,3 +77,18 @@ export {
 	formatGitSnapshot,
 	formatMultiRepoGit,
 } from './git-snapshot.js';
+export {
+	KUUNDA_API_VERSION,
+	KUUNDA_API_PERMISSIONS,
+	KUUNDA_API_METHODS,
+	isSupportedExtensionFormat,
+	isApiVersionCompatible,
+	parseKuundaContribution,
+	reviewThirdPartyExtension,
+	decideMarketplaceInstall,
+	decideKuundaApiAccess,
+	describeKuundaApi,
+	redactApiPayload,
+	marketplaceSourceFromInstall,
+	canGrantPermission,
+} from './extension-api.js';

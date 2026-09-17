@@ -21,6 +21,7 @@ import './contrib/void/browser/void.contribution.js'; // Void added this
 import './contrib/kuundaBrand/browser/kuundaBrand.contribution.js';
 import './contrib/kuundaAi/browser/kuundaAi.contribution.js';
 import './contrib/kuundaBilling/browser/kuundaBilling.contribution.js';
+import './contrib/kuundaExt/browser/kuundaExt.contribution.js';
 //#endregion
 
 //#region --- workbench actions

@@ -39,6 +39,16 @@ import {
 	formatMultiRepoGit,
 	joinFsPath,
 	resolveRelativeCwd,
+	KUUNDA_API_VERSION,
+	isSupportedExtensionFormat,
+	isApiVersionCompatible,
+	parseKuundaContribution,
+	decideMarketplaceInstall,
+	decideKuundaApiAccess,
+	describeKuundaApi,
+	redactApiPayload,
+	marketplaceSourceFromInstall,
+	canGrantPermission,
 } from '../src/index.js';
 
 describe('Phase 2.1 — autocomplete Tab policy', () => {
@@ -370,5 +380,55 @@ describe('Phase 4.2 — git multi-repo', () => {
 		assert.match(text, /api/);
 		assert.match(text, /branch: main/);
 		assert.match(text, /\?\? new\.js/);
+	});
+});
+
+describe('Phase 4bis — API d’extension', () => {
+	it('reste sur le VSIX et refuse un format propriétaire', () => {
+		assert.equal(isSupportedExtensionFormat('theme.vsix'), true);
+		assert.equal(isSupportedExtensionFormat('pack.kuunda-ext'), false);
+		assert.equal(decideMarketplaceInstall({ format: 'kuunda-ext', source: 'openvsx' }).ok, false);
+		assert.equal(decideMarketplaceInstall({ format: 'vsix', source: 'openvsx' }).ok, true);
+		assert.equal(decideMarketplaceInstall({ format: 'vsix', source: 'kuunda_marketplace', reviewStatus: 'pending' }).error, 'review_required');
+		assert.equal(decideMarketplaceInstall({ format: 'vsix', source: 'kuunda_marketplace', reviewStatus: 'approved' }).ok, true);
+		assert.equal(marketplaceSourceFromInstall({ installSource: 'vsix' }), 'sideload');
+		assert.equal(marketplaceSourceFromInstall({ installSource: 'gallery' }), 'openvsx');
+		assert.equal(canGrantPermission(['agent'], 'credits'), false);
+		assert.equal(canGrantPermission(['agent', 'credits'], 'credits'), true);
+	});
+
+	it('versionne l’API et exige une permission explicite', () => {
+		assert.equal(KUUNDA_API_VERSION, '1.0.0');
+		assert.equal(isApiVersionCompatible('1.0.0'), true);
+		assert.equal(isApiVersionCompatible('1.0'), true);
+		assert.equal(isApiVersionCompatible('2.0.0'), false);
+		const declared = parseKuundaContribution({
+			contributes: { kuunda: { apiVersion: '1.0.0', permissions: ['agent', 'credits', 'unknown'] } },
+		});
+		assert.deepEqual(declared.permissions, ['agent', 'credits']);
+		const denied = decideKuundaApiAccess({
+			method: 'credits.balance',
+			extensionId: 'acme.tools',
+			declaredPermissions: declared.permissions,
+			grantedPermissions: [],
+			source: 'openvsx',
+			apiVersion: '1.0.0',
+		});
+		assert.equal(denied.error, 'not_granted');
+		const allowed = decideKuundaApiAccess({
+			method: 'credits.balance',
+			extensionId: 'acme.tools',
+			declaredPermissions: declared.permissions,
+			grantedPermissions: ['credits'],
+			source: 'openvsx',
+			apiVersion: '1.0.0',
+		});
+		assert.equal(allowed.ok, true);
+		assert.equal(decideKuundaApiAccess({ method: 'api.version', extensionId: 'acme.tools', source: 'openvsx' }).ok, true);
+		const desc = describeKuundaApi();
+		assert.equal(desc.marketplace, 'openvsx');
+		assert.equal(desc.format, 'vsix');
+		assert.equal(redactApiPayload({ remaining: 12, secret: 'hidden' }).remaining, 12);
+		assert.equal('secret' in redactApiPayload({ remaining: 12, secret: 'hidden' }), false);
 	});
 });
