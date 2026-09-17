@@ -34,6 +34,8 @@ import {
 	type CloudRecord,
 	type CloudTable,
 } from './cloudProvision.js';
+import { classifyNetworkError, fetchWithTimeout } from '../../kuundaAi/common/networkPolicy.js';
+import { IKuundaLegalService } from '../../kuundaLegal/common/kuundaLegalService.js';
 
 export type CloudProvisionInput = {
 	type?: string;
@@ -47,6 +49,7 @@ export type CloudProvisionResult = {
 	action: 'skip' | 'reuse' | 'pending_user' | 'pending_api' | 'provision';
 	cloud: CloudRecord;
 	tables: CloudTable[];
+	network?: 'timeout' | 'offline';
 } | { ok: false; error: string };
 
 export type CloudPublicStatus = {
@@ -91,6 +94,7 @@ export class KuundaCloudService extends Disposable implements IKuundaCloudServic
 		@IFileService private readonly fileService: IFileService,
 		@IKuundaProjectService private readonly projectService: IKuundaProjectService,
 		@IKuundaBillingService private readonly billingService: IKuundaBillingService,
+		@IKuundaLegalService private readonly legalService: IKuundaLegalService,
 	) {
 		super();
 		void this.refreshSnapshot();
@@ -143,6 +147,9 @@ export class KuundaCloudService extends Disposable implements IKuundaCloudServic
 	}
 
 	async provisionFolder(folder: URI, input: CloudProvisionInput = {}): Promise<CloudProvisionResult> {
+		if (!this.legalService.decideSend('kuunda_cloud').ok) {
+			return { ok: false, error: 'strict_offline' };
+		}
 		try {
 			const state = await this.readState(folder);
 			const enabled = input.enabled ?? state.cloud.enabled ?? true;
@@ -159,6 +166,7 @@ export class KuundaCloudService extends Disposable implements IKuundaCloudServic
 			let tables: CloudTable[] = alreadyProvisioned && state.cloud.projectRef
 				? (this.safeTables(await this.fetchTables(state.cloud.projectRef)) ?? [{ name: 'items', rowCount: 0 }])
 				: [];
+			let network: 'timeout' | 'offline' | undefined;
 			if (decision.action === 'provision') {
 				try {
 					api = await this.callProvision({
@@ -175,7 +183,13 @@ export class KuundaCloudService extends Disposable implements IKuundaCloudServic
 						api = { ...api, kuundaProjectRef: ref, projectId: ref };
 						tables = this.safeTables(api.tables);
 					}
-				} catch {
+				} catch (error) {
+					const code = classifyNetworkError(error);
+					if (code === 'timeout') {
+						network = 'timeout';
+					} else if (code === 'offline') {
+						network = 'offline';
+					}
 					decision = { ok: true, action: 'pending_api', enabled: true };
 				}
 			}
@@ -202,7 +216,7 @@ export class KuundaCloudService extends Disposable implements IKuundaCloudServic
 			}
 			this.tables = tables;
 			this.remember(cloud, decision.action, tables);
-			return { ok: true, action: decision.action, cloud, tables };
+			return { ok: true, action: decision.action, cloud, tables, network };
 		} catch {
 			return { ok: false, error: 'write_failed' };
 		}
@@ -271,7 +285,7 @@ export class KuundaCloudService extends Disposable implements IKuundaCloudServic
 	}
 
 	private async callProvision(body: { userId: string; displayName: string; projectType: string; replace?: boolean }): Promise<ProvisionApiResult> {
-		const response = await fetch(`${DEFAULT_API_BASE_URL}/v1/provisioning/projects`, {
+		const response = await fetchWithTimeout(`${DEFAULT_API_BASE_URL}/v1/provisioning/projects`, {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
 			body: JSON.stringify(body),
@@ -283,8 +297,11 @@ export class KuundaCloudService extends Disposable implements IKuundaCloudServic
 	}
 
 	private async fetchTables(projectRef: string): Promise<CloudTable[] | undefined> {
+		if (!this.legalService.decideSend('kuunda_cloud').ok) {
+			return undefined;
+		}
 		try {
-			const response = await fetch(`${DEFAULT_API_BASE_URL}/v1/provisioning/projects/${encodeURIComponent(projectRef)}/tables`, {
+			const response = await fetchWithTimeout(`${DEFAULT_API_BASE_URL}/v1/provisioning/projects/${encodeURIComponent(projectRef)}/tables`, {
 				headers: { Accept: 'application/json' },
 			});
 			if (!response.ok) {

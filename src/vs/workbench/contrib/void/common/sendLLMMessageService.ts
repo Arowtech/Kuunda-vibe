@@ -2,6 +2,7 @@
  *  Copyright 2025 Glass Devtools, Inc. All rights reserved.
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
+// Modified 2026-09-17 by Arowtech: strict-offline gate for every LLM send (chat, Tab, Ctrl+K, SCM) and MCP tool schemas.
 
 import { EventLLMMessageOnTextParams, EventLLMMessageOnErrorParams, EventLLMMessageOnFinalMessageParams, ServiceSendLLMMessageParams, MainSendLLMMessageParams, MainLLMMessageAbortParams, ServiceModelListParams, EventModelListOnSuccessParams, EventModelListOnErrorParams, MainModelListParams, OllamaModelResponse, OpenaiCompatibleModelResponse, } from './sendLLMMessageTypes.js';
 
@@ -14,6 +15,8 @@ import { Event } from '../../../../base/common/event.js';
 import { Disposable } from '../../../../base/common/lifecycle.js';
 import { IVoidSettingsService } from './voidSettingsService.js';
 import { IMCPService } from './mcpService.js';
+import { IKuundaLegalService } from '../../kuundaLegal/common/kuundaLegalService.js';
+import { kuundaLegalLocalize } from '../../kuundaLegal/common/kuundaLegalNls.js';
 
 // calls channel to implement features
 export const ILLMMessageService = createDecorator<ILLMMessageService>('llmMessageService');
@@ -63,6 +66,7 @@ export class LLMMessageService extends Disposable implements ILLMMessageService 
 		@IVoidSettingsService private readonly voidSettingsService: IVoidSettingsService,
 		// @INotificationService private readonly notificationService: INotificationService,
 		@IMCPService private readonly mcpService: IMCPService,
+		@IKuundaLegalService private readonly legalService: IKuundaLegalService,
 	) {
 		super()
 
@@ -110,6 +114,12 @@ export class LLMMessageService extends Disposable implements ILLMMessageService 
 			return null
 		}
 
+		const decision = this.legalService.decideSend('llm_cloud', modelSelection.providerName)
+		if (!decision.ok) {
+			onError({ message: kuundaLegalLocalize('kuunda.legal.offline.blocked'), fullError: null })
+			return null
+		}
+
 		if (params.messagesType === 'chatMessages' && (params.messages?.length ?? 0) === 0) {
 			const message = `No messages detected.`
 			onError({ message, fullError: null })
@@ -118,7 +128,7 @@ export class LLMMessageService extends Disposable implements ILLMMessageService 
 
 		const { settingsOfProvider, } = this.voidSettingsService.state
 
-		const mcpTools = this.mcpService.getMCPTools()
+		const mcpTools = this.legalService.isStrictOffline() ? [] : this.mcpService.getMCPTools()
 
 		// add state for request id
 		const requestId = generateUuid();

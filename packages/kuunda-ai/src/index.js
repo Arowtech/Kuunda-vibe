@@ -24,6 +24,7 @@ export {
 export {
 	PERMISSION_LEVELS,
 	DEFAULT_TOOL_PERMISSIONS,
+	PRODUCTION_ADJACENT_DEFAULT,
 	approvalKindOfTool,
 	decideToolPermission,
 } from './permissions.js';
@@ -64,6 +65,8 @@ export {
 	TERMINAL_TOOL_NAMES,
 	classifyShellCommand,
 	resolveAgentCwd,
+	extractLeadingCd,
+	rewritePersistentShell,
 } from './terminal-access.js';
 export {
 	PROJECT_RULE_FILENAMES,
@@ -155,3 +158,39 @@ export {
 	formatPublishContext,
 	formatPublishPanel,
 } from './publish-policy.js';
+export {
+	SECRET_PLACEHOLDER as CREDENTIAL_SECRET_PLACEHOLDER,
+	CREDENTIAL_CLASSES,
+	REQUIRED_GITIGNORE_ENTRIES,
+	SECRET_PATH_PATTERNS,
+	classifyCredentialPath,
+	looksLikeSecret,
+	gitignoreCovers,
+	persistableIsSafe,
+	auditCredentialStorage,
+} from './credential-policy.js';
+export {
+	DEFAULT_REQUEST_TIMEOUT_MS,
+	NETWORK_ERROR_CODES,
+	classifyNetworkError,
+	createTimeoutSignal,
+	fetchWithTimeout,
+} from './network-policy.js';
+export {
+	STRICT_OFFLINE_DEFAULT,
+	EXTERNAL_FEATURES,
+	TRANSACTION_LOG_RETENTION_DAYS,
+	PAYMENT_AGGREGATORS,
+	DEFAULT_PAYMENT_AGGREGATOR_ID,
+	DATA_DISCLOSURE,
+	CREDIT_REFUND_POLICY,
+	isLocalAgentProvider,
+	isKnownPaymentAggregator,
+	resolvePaymentAggregator,
+	decideExternalSend,
+	formatDataDisclosure,
+	formatRefundPolicy,
+	describeLicenseSplit,
+	describeDataSubjectRights,
+	formatDataSubjectRights,
+} from './legal-policy.js';

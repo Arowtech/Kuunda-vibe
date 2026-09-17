@@ -2,6 +2,7 @@
  *  Copyright 2025 Glass Devtools, Inc. All rights reserved.
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
+// Modified 2026-09-17 by Arowtech: hide MCP schemas and refuse tool calls in strict offline mode.
 
 import { URI } from '../../../../base/common/uri.js';
 import { Disposable } from '../../../../base/common/lifecycle.js';
@@ -19,6 +20,7 @@ import { Event, Emitter } from '../../../../base/common/event.js';
 import { InternalToolInfo } from './prompt/prompts.js';
 import { IVoidSettingsService } from './voidSettingsService.js';
 import { MCPUserStateOfName } from './voidSettingsTypes.js';
+import { IKuundaLegalService } from '../../kuundaLegal/common/kuundaLegalService.js';
 
 
 type MCPServiceState = {
@@ -82,6 +84,7 @@ class MCPService extends Disposable implements IMCPService {
 		@IEditorService private readonly editorService: IEditorService,
 		@IMainProcessService private readonly mainProcessService: IMainProcessService,
 		@IVoidSettingsService private readonly voidSettingsService: IVoidSettingsService,
+		@IKuundaLegalService private readonly legalService: IKuundaLegalService,
 	) {
 		super();
 		this.channel = this.mainProcessService.getChannel('void-channel-mcp')
@@ -184,6 +187,9 @@ class MCPService extends Disposable implements IMCPService {
 	}
 
 	public getMCPTools(): InternalToolInfo[] | undefined {
+		if (this.legalService.isStrictOffline()) {
+			return undefined
+		}
 		const allTools: InternalToolInfo[] = []
 		for (const serverName in this.state.mcpServerOfName) {
 			const server = this.state.mcpServerOfName[serverName];
@@ -323,6 +329,9 @@ class MCPService extends Disposable implements IMCPService {
 
 
 	public async callMCPTool(toolData: MCPToolCallParams): Promise<{ result: RawMCPToolCall }> {
+		if (this.legalService.isStrictOffline()) {
+			throw new Error('strict_offline')
+		}
 		const result = await this.channel.call<RawMCPToolCall>('callTool', toolData);
 		if (result.event === 'error') {
 			throw new Error(`Error: ${result.text}`)

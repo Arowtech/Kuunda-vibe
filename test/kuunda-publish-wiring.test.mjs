@@ -33,6 +33,9 @@ describe('Phase 7 — branchement publication mobile', () => {
 		assert.match(service, /verifyPublishFiles/);
 		assert.match(service, /sanitizePublishError/);
 		assert.doesNotMatch(service, /GITHUB_DISPATCH_TOKEN/);
+		const gitignore = read('.gitignore');
+		assert.match(gitignore, /\.kuunda\/play-service-account\.json/);
+		assert.match(gitignore, /\.kuunda\/authkey\.p8/);
 		const ext = read('src/vs/workbench/contrib/kuundaExt/common/kuundaExtService.ts');
 		assert.match(ext, /publish\.status/);
 		assert.match(ext, /lastPublicStatus/);

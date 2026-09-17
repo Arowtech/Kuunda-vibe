@@ -85,7 +85,7 @@ interfaces, as contemplated by the Apache License 2.0 definition of
 Arowtech/kuunda-vibe-cloud, not in this public repository:
 
   - Billing / credits ledger and plan entitlements
-  - Genius Pay payment processing and webhook verification
+  - Payment aggregators (current adapter: Genius Pay webhook verification; other PSPs may be added)
   - Kuunda Cloud platform provisioning that uses operator credentials
   - Mobile publishing job store and signed CI runners
   - IDE update signing-key custody and private distribution control plane

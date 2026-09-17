@@ -12,12 +12,13 @@ Ce logiciel est fourni « AS IS », sans garantie. Les marques Kuunda, Kuunda Vi
 
 ## État du dépôt
 
-Phase 6 (Kuunda Cloud par défaut) validée. Phase 7 (publication mobile) en cours.
+Phase 8 (sécurité et fiabilité) en cours. **8bis conformité / légal** (bloque Phase 9) : [docs/legal/PRIVACY-POLICY.md](docs/legal/PRIVACY-POLICY.md), [conditions](docs/legal/TERMS-OF-USE.md), [remboursements](docs/legal/REFUND-POLICY.md).
 
 - Contribuer : [CONTRIBUTING.md](CONTRIBUTING.md)
 - Gouvernance : [GOVERNANCE.md](GOVERNANCE.md)
 - Guide interne : [docs/codebase/README.md](docs/codebase/README.md)
 - Frontière public / privé : [docs/legal/COMPOSANTS-PROPRIETAIRES.md](docs/legal/COMPOSANTS-PROPRIETAIRES.md)
+- Agrégateurs de paiement (pluggables) : [docs/legal/PAYMENT-AGGREGATORS.md](docs/legal/PAYMENT-AGGREGATORS.md)
 
 ## Tests Kuunda
 

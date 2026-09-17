@@ -8,6 +8,7 @@ export type ApprovalKind = 'edits' | 'terminal' | 'MCP tools' | 'read';
 export type PermissionAction = 'run' | 'wait' | 'refuse';
 
 export const PERMISSION_LEVELS: readonly PermissionLevel[] = ['allow', 'confirm', 'review', 'refuse'];
+export const PRODUCTION_ADJACENT_DEFAULT = true;
 
 export const DEFAULT_TOOL_PERMISSIONS: Readonly<Record<string, PermissionLevel>> = {
 	read_file: 'allow',
@@ -49,10 +50,21 @@ export function decideToolPermission(input: {
 	toolName: string;
 	autoApproveByKind?: { [kind: string]: boolean | undefined };
 	policyOverrides?: { [toolName: string]: PermissionLevel };
+	productionAdjacent?: boolean;
+	strictOffline?: boolean;
 }): { level: PermissionLevel; kind: ApprovalKind; action: PermissionAction } {
 	const toolName = input.toolName || '';
-	const level = input.policyOverrides?.[toolName] ?? DEFAULT_TOOL_PERMISSIONS[toolName] ?? 'confirm';
 	const kind = approvalKindOfTool(toolName);
+	const productionAdjacent = input.productionAdjacent !== false;
+	let level = input.policyOverrides?.[toolName] ?? DEFAULT_TOOL_PERMISSIONS[toolName] ?? 'confirm';
+
+	if (productionAdjacent && kind === 'terminal' && level !== 'refuse') {
+		level = level === 'review' ? 'review' : 'confirm';
+	}
+
+	if (input.strictOffline && kind === 'MCP tools' && level !== 'refuse') {
+		return { level: 'refuse', kind, action: 'refuse' };
+	}
 
 	if (level === 'refuse') {
 		return { level, kind, action: 'refuse' };
@@ -61,6 +73,9 @@ export function decideToolPermission(input: {
 		return { level, kind, action: 'run' };
 	}
 	if (level === 'review') {
+		return { level, kind, action: 'wait' };
+	}
+	if (productionAdjacent && kind === 'terminal') {
 		return { level, kind, action: 'wait' };
 	}
 	if (input.autoApproveByKind?.[kind]) {

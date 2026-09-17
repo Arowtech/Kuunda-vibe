@@ -45,6 +45,8 @@ import {
 	type PublicPublishJob,
 	type PublishLocal,
 } from './publishPolicy.js';
+import { classifyNetworkError, fetchWithTimeout } from '../../kuundaAi/common/networkPolicy.js';
+import { IKuundaLegalService } from '../../kuundaLegal/common/kuundaLegalService.js';
 
 export type PublishWriteResult = { ok: true } | { ok: false; error: string; target?: string };
 
@@ -91,6 +93,7 @@ export class KuundaPublishService extends Disposable implements IKuundaPublishSe
 		@IKuundaProjectService private readonly projectService: IKuundaProjectService,
 		@IKuundaBillingService private readonly billingService: IKuundaBillingService,
 		@IWorkspaceContextService workspaceContextService: IWorkspaceContextService,
+		@IKuundaLegalService private readonly legalService: IKuundaLegalService,
 	) {
 		super();
 		this._register(workspaceContextService.onDidChangeWorkspaceFolders(() => {
@@ -242,6 +245,9 @@ export class KuundaPublishService extends Disposable implements IKuundaPublishSe
 	}
 
 	async startPublish(folder: URI): Promise<PublishStartResult> {
+		if (!this.legalService.decideSend('publish').ok) {
+			return { ok: false, error: 'strict_offline' };
+		}
 		try {
 			const state = await this.requireMobile(folder);
 			if (!state.ok) {
@@ -284,17 +290,8 @@ export class KuundaPublishService extends Disposable implements IKuundaPublishSe
 			let job: PublicPublishJob;
 			if (api.ok) {
 				job = api.job;
-			} else if (api.error !== 'unreachable') {
-				return { ok: false, error: api.error };
 			} else {
-				job = {
-					id: localPublishJobId(),
-					status: 'pending_ci',
-					targets: decision.targets,
-					version: decision.metadata.version,
-					packageId: decision.metadata.packageId,
-				};
-				this.logs = ['platform_unreachable', 'build_not_dispatched'].map(redactPublishLog);
+				return { ok: false, error: api.error };
 			}
 			this.job = job;
 			await this.writeLocal(folder, { ...state.local, lastJobId: job.id });
@@ -325,13 +322,16 @@ export class KuundaPublishService extends Disposable implements IKuundaPublishSe
 	}
 
 	private async refreshJobLogs(jobId: string | undefined): Promise<void> {
+		if (!this.legalService.decideSend('publish').ok) {
+			return;
+		}
 		const id = sanitizeJobId(jobId);
 		const userId = this.billingService.getUserId();
 		if (!id || !userId) {
 			return;
 		}
 		try {
-			const jobResponse = await fetch(`${DEFAULT_API_BASE_URL}/v1/publishing/jobs/${encodeURIComponent(id)}?userId=${encodeURIComponent(userId)}`, {
+			const jobResponse = await fetchWithTimeout(`${DEFAULT_API_BASE_URL}/v1/publishing/jobs/${encodeURIComponent(id)}?userId=${encodeURIComponent(userId)}`, {
 				headers: { Accept: 'application/json' },
 			});
 			if (jobResponse.ok) {
@@ -340,7 +340,7 @@ export class KuundaPublishService extends Disposable implements IKuundaPublishSe
 					this.job = parsed;
 				}
 			}
-			const logsResponse = await fetch(`${DEFAULT_API_BASE_URL}/v1/publishing/jobs/${encodeURIComponent(id)}/logs?userId=${encodeURIComponent(userId)}`, {
+			const logsResponse = await fetchWithTimeout(`${DEFAULT_API_BASE_URL}/v1/publishing/jobs/${encodeURIComponent(id)}/logs?userId=${encodeURIComponent(userId)}`, {
 				headers: { Accept: 'application/json' },
 			});
 			if (logsResponse.ok) {
@@ -354,7 +354,7 @@ export class KuundaPublishService extends Disposable implements IKuundaPublishSe
 
 	private async callEnqueue(body: Record<string, unknown>): Promise<{ ok: true; job: PublicPublishJob } | { ok: false; error: string }> {
 		try {
-			const response = await fetch(`${DEFAULT_API_BASE_URL}/v1/publishing/jobs`, {
+			const response = await fetchWithTimeout(`${DEFAULT_API_BASE_URL}/v1/publishing/jobs`, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
 				body: JSON.stringify(body),
@@ -376,8 +376,9 @@ export class KuundaPublishService extends Disposable implements IKuundaPublishSe
 				return { ok: false, error: 'unreachable' };
 			}
 			return { ok: true, job };
-		} catch {
-			return { ok: false, error: 'unreachable' };
+		} catch (error) {
+			const code = classifyNetworkError(error);
+			return { ok: false, error: code === 'timeout' || code === 'offline' ? code : 'unreachable' };
 		}
 	}
 
@@ -459,8 +460,3 @@ export class KuundaPublishService extends Disposable implements IKuundaPublishSe
 
 registerSingleton(IKuundaPublishService, KuundaPublishService, InstantiationType.Delayed);
 
-function localPublishJobId(): string {
-	const bytes = new Uint8Array(8);
-	crypto.getRandomValues(bytes);
-	return `job_${[...bytes].map((b) => b.toString(16).padStart(2, '0')).join('')}`;
-}

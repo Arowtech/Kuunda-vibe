@@ -170,7 +170,39 @@ registerAction2(class extends Action2 {
 			return;
 		}
 		agent.setTerminalAccess(picked.id as PermissionLevel);
-		notify.info(`terminal: ${picked.id}`);
+		if (picked.id === 'allow' && agent.isProductionAdjacent()) {
+			notify.info(kuundaAiLocalize('kuunda.terminal.allowBlocked'));
+		} else {
+			notify.info(`terminal: ${picked.id}`);
+		}
+	}
+});
+
+registerAction2(class extends Action2 {
+	constructor() {
+		super({
+			id: 'kuunda.agent.setProductionAdjacent',
+			f1: true,
+			title: kuundaAiLocalize2('kuunda.agent.setProductionAdjacent'),
+		});
+	}
+
+	async run(accessor: ServicesAccessor): Promise<void> {
+		const quick = accessor.get(IQuickInputService);
+		const notify = accessor.get(INotificationService);
+		const agent = accessor.get(IKuundaAgentService);
+		const picked = await quick.pick(
+			[
+				{ id: 'on', label: kuundaAiLocalize('kuunda.agent.setProductionAdjacent.on') },
+				{ id: 'off', label: kuundaAiLocalize('kuunda.agent.setProductionAdjacent.off') },
+			],
+			{ placeHolder: kuundaAiLocalize('kuunda.agent.setProductionAdjacent.level') },
+		);
+		if (!picked?.id) {
+			return;
+		}
+		agent.setProductionAdjacent(picked.id === 'on');
+		notify.info(`production-adjacent: ${picked.id}`);
 	}
 });
 

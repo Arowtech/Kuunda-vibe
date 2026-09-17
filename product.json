@@ -8,6 +8,7 @@
 	"win32MutexName": "kuundavibe",
 	"licenseName": "Apache-2.0",
 	"licenseUrl": "https://github.com/Arowtech/Kuunda-vibe/blob/main/LICENSE",
+	"privacyStatementUrl": "https://github.com/Arowtech/Kuunda-vibe/blob/main/docs/legal/PRIVACY-POLICY.md",
 	"serverLicenseUrl": "https://github.com/Arowtech/Kuunda-vibe/blob/main/LICENSE",
 	"serverGreeting": [],
 	"serverLicense": [],

@@ -154,6 +154,18 @@ export const KUUNDA_PUBLISH_STRINGS = {
 		en: 'App Store Connect key id and issuer id must be 4-64 letters, digits or hyphens.',
 		fr: 'L identifiant de cle et l identifiant emetteur App Store Connect doivent faire 4 a 64 lettres, chiffres ou tirets.',
 	},
+	'kuunda.publish.error.strict_offline': {
+		en: 'Strict offline mode is on, so publishing does not contact the platform or stores.',
+		fr: 'Le mode hors ligne strict est active : la publication ne contacte ni la plateforme ni les stores.',
+	},
+	'kuunda.publish.network.timeout': {
+		en: 'The publishing API timed out. No store secret was sent. Retry when the network is back.',
+		fr: 'L API de publication a expire. Aucun secret store n a ete envoye. Reessayez quand le reseau reviendra.',
+	},
+	'kuunda.publish.network.offline': {
+		en: 'The publishing API is unreachable. No store secret was sent.',
+		fr: 'L API de publication est injoignable. Aucun secret store n a ete envoye.',
+	},
 } as const;
 
 export type KuundaPublishStringKey = keyof typeof KUUNDA_PUBLISH_STRINGS;

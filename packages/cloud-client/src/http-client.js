@@ -1,4 +1,5 @@
 import { DEFAULT_API_BASE_URL } from './contracts.js';
+import { DEFAULT_REQUEST_TIMEOUT_MS, fetchWithTimeout } from '../../kuunda-ai/src/network-policy.js';
 
 /**
  * HTTP client with no embedded secrets. The caller injects a bearer token
@@ -8,11 +9,13 @@ import { DEFAULT_API_BASE_URL } from './contracts.js';
  * @param {string} [options.baseUrl]
  * @param {() => Promise<string | null> | string | null} [options.getAccessToken]
  * @param {typeof fetch} [options.fetchImpl]
+ * @param {number} [options.timeoutMs]
  */
 export function createPlatformClient(options = {}) {
 	const baseUrl = (options.baseUrl ?? DEFAULT_API_BASE_URL).replace(/\/$/, '');
 	const fetchImpl = options.fetchImpl ?? globalThis.fetch;
 	const getAccessToken = options.getAccessToken ?? (async () => null);
+	const timeoutMs = options.timeoutMs ?? DEFAULT_REQUEST_TIMEOUT_MS;
 
 	if (typeof fetchImpl !== 'function') {
 		throw new Error('fetch is required');
@@ -29,7 +32,7 @@ export function createPlatformClient(options = {}) {
 		if (token) {
 			headers.set('Authorization', `Bearer ${token}`);
 		}
-		const response = await fetchImpl(`${baseUrl}${path}`, { ...init, headers });
+		const response = await fetchWithTimeout(`${baseUrl}${path}`, { ...init, headers }, { timeoutMs, fetchImpl });
 		if (!response.ok) {
 			throw new Error(`platform_http_${response.status}`);
 		}

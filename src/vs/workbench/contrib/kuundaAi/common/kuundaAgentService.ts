@@ -10,11 +10,12 @@ import { createDecorator } from '../../../../platform/instantiation/common/insta
 import { IStorageService, StorageScope, StorageTarget } from '../../../../platform/storage/common/storage.js';
 import { generateUuid } from '../../../../base/common/uuid.js';
 import { BackgroundJob, collectCheckpointPaths, createBackgroundJob, transitionBackgroundJob } from './backgroundJob.js';
-import { DEFAULT_TOOL_PERMISSIONS, PermissionLevel } from './permissionPolicy.js';
+import { DEFAULT_TOOL_PERMISSIONS, PermissionLevel, PRODUCTION_ADJACENT_DEFAULT } from './permissionPolicy.js';
 import { AGENT_PROVIDERS } from './agentProviders.js';
 import { TERMINAL_TOOL_NAMES } from './terminalAccess.js';
 
 const POLICY_STORAGE_KEY = 'kuunda.agent.policyOverrides';
+const PRODUCTION_ADJACENT_KEY = 'kuunda.agent.productionAdjacent';
 
 export interface IKuundaAgentService {
 	readonly _serviceBrand: undefined;
@@ -29,6 +30,8 @@ export interface IKuundaAgentService {
 	cancelThread(threadId: string): void;
 	review(id: string): void;
 	getPolicyOverrides(): { [toolName: string]: PermissionLevel };
+	isProductionAdjacent(): boolean;
+	setProductionAdjacent(enabled: boolean): void;
 	setToolPermission(toolName: string, level: PermissionLevel): void;
 	setTerminalAccess(level: PermissionLevel): void;
 	listPermissionTools(): string[];
@@ -127,6 +130,22 @@ export class KuundaAgentService extends Disposable implements IKuundaAgentServic
 
 	getPolicyOverrides(): { [toolName: string]: PermissionLevel } {
 		return { ...this.policyOverrides };
+	}
+
+	isProductionAdjacent(): boolean {
+		const raw = this.storageService.get(PRODUCTION_ADJACENT_KEY, StorageScope.APPLICATION);
+		if (raw === '0' || raw === 'false') {
+			return false;
+		}
+		if (raw === '1' || raw === 'true') {
+			return true;
+		}
+		return PRODUCTION_ADJACENT_DEFAULT;
+	}
+
+	setProductionAdjacent(enabled: boolean): void {
+		this.storageService.store(PRODUCTION_ADJACENT_KEY, enabled ? '1' : '0', StorageScope.APPLICATION, StorageTarget.USER);
+		this._onDidChangeJobs.fire();
 	}
 
 	setToolPermission(toolName: string, level: PermissionLevel): void {

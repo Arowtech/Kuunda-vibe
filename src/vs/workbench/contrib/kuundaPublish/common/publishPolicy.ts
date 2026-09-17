@@ -4,6 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { mergeGitignore, SECRET_PLACEHOLDER } from '../../kuundaCloud/common/cloudProvision.js';
+import { persistableIsSafe } from '../../kuundaAi/common/credentialPolicy.js';
 
 export { SECRET_PLACEHOLDER };
 
@@ -286,7 +287,7 @@ export function buildPublishRequest(input: {
 
 export function persistablePublishLocal(local: unknown): string {
 	const parsed = parsePublishLocal(local);
-	return `${JSON.stringify({
+	const payload: Record<string, unknown> = {
 		version: parsed.version,
 		packageId: parsed.packageId,
 		googlePlay: { configured: parsed.googlePlay.configured === true, clientEmail: parsed.googlePlay.clientEmail },
@@ -297,7 +298,13 @@ export function persistablePublishLocal(local: unknown): string {
 		},
 		signatureReady: parsed.signatureReady === true,
 		lastJobId: parsed.lastJobId,
-	}, null, '\t')}\n`;
+	};
+	if (!persistableIsSafe(payload).ok) {
+		payload.googlePlay = { configured: parsed.googlePlay.configured === true };
+		payload.appStore = { configured: parsed.appStore.configured === true };
+		delete payload.lastJobId;
+	}
+	return `${JSON.stringify(payload, null, '\t')}\n`;
 }
 
 export function validatePublishMetadata(input: { version?: unknown; packageId?: unknown } = {}): { ok: true; version: string; packageId: string } | { ok: false; error: string } {
@@ -441,5 +448,6 @@ export function formatPublishPanel(input: { manifest?: { type?: string; publishT
 			lines.push(`- ${line}`);
 		}
 	}
+	lines.push('Store listings for AI-generated apps must disclose AI use and the Kuunda Cloud SDK; IAP credits, if ever used, follow Play / App Store refund rules (docs/legal/STORE-REQUIREMENTS.md).');
 	return lines.join('\n');
 }

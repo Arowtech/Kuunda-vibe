@@ -35,6 +35,7 @@ describe('Phase 3 — branchement IDE agent Kuunda', () => {
 		assert.match(contrib, /kuunda\.agent\.runBackground/);
 		assert.match(contrib, /kuunda\.agent\.setPermission/);
 		assert.match(contrib, /kuunda\.agent\.reviewJobs/);
+		assert.match(contrib, /kuunda\.agent\.setProductionAdjacent/);
 		assert.match(contrib, /openNewThread/);
 		assert.match(contrib, /switchToThread/);
 		assert.match(contrib, /addUserMessageAndStreamResponse/);
@@ -51,6 +52,7 @@ describe('Phase 3 — branchement IDE agent Kuunda', () => {
 		assert.match(service, /supportedProviders/);
 		assert.match(service, /getPolicyOverrides/);
 		assert.match(service, /setToolPermission/);
+		assert.match(service, /isProductionAdjacent/);
 	});
 
 	it('MCP reste branché (service + tools dans le prompt)', () => {

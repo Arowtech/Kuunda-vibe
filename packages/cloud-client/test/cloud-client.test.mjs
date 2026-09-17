@@ -37,6 +37,14 @@ describe('platform HTTP client', () => {
 		await assert.rejects(() => client.listPlans(), /platform_http_401/);
 	});
 
+	it('interrompt un appel trop lent', async () => {
+		const client = createPlatformClient({
+			timeoutMs: 20,
+			fetchImpl: () => new Promise(() => {}),
+		});
+		await assert.rejects(() => client.listPlans(), /platform_timeout/);
+	});
+
 	it('appelle signup, consume et checkout sans secret figé', async () => {
 		/** @type {string[]} */
 		const paths = [];

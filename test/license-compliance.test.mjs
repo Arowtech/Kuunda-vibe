@@ -44,7 +44,7 @@ describe('Phase 0 — fichiers de gouvernance', () => {
 		assert.equal(manifest.projectLicense, 'Apache-2.0');
 		assert.equal(manifest.steward, 'Arowtech');
 		assert.equal(manifest.originalWork.copyrightHolder, 'Arowtech');
-		assert.ok(manifest.phase === 0 || manifest.phase === 1 || manifest.phase === 2 || manifest.phase === 3 || manifest.phase === '3bis' || manifest.phase === 4 || manifest.phase === '4bis' || manifest.phase === 5 || manifest.phase === 6 || manifest.phase === 7);
+		assert.ok(manifest.phase === 0 || manifest.phase === 1 || manifest.phase === 2 || manifest.phase === 3 || manifest.phase === '3bis' || manifest.phase === 4 || manifest.phase === '4bis' || manifest.phase === 5 || manifest.phase === 6 || manifest.phase === 7 || manifest.phase === 8 || manifest.phase === '8bis');
 		assert.ok(manifest.upstream.some((u) => u.copyrightHolder === 'Microsoft Corporation' && u.license === 'MIT'));
 		assert.ok(manifest.upstream.some((u) => u.copyrightHolder === 'Glass Devtools, Inc.' && u.license === 'Apache-2.0'));
 	});
@@ -112,6 +112,7 @@ describe('Phase 0 — fichiers de gouvernance', () => {
 		}
 		assert.match(notice, /Billing \/ credits ledger/);
 		assert.match(notice, /Genius Pay/);
+		assert.match(notice, /Payment aggregators/);
 		assert.match(notice, /Kuunda Cloud platform provisioning/);
 		assert.match(notice, /IDE update signing-key custody/);
 		assert.match(policy, /Arowtech\/kuunda-vibe-cloud/);
@@ -178,6 +179,8 @@ describe('Phase 0 — CI secret scan', () => {
 		assert.match(gitleaksConfig, /useDefault\s*=\s*true/);
 		assert.match(gitleaksConfig, /"aiKey"/);
 		assert.match(gitleaksConfig, /uri\.test\.ts/);
+		assert.match(gitleaksConfig, /kuunda-ai\.test\.mjs/);
+		assert.match(gitleaksConfig, /targetRules = \["private-key"\]/);
 	});
 });
 
@@ -226,6 +229,7 @@ describe('Phase 0 — package public', () => {
 		assert.match(pkg.scripts.test, /test\/kuunda-project-wiring\.test\.mjs/);
 		assert.match(pkg.scripts.test, /test\/kuunda-cloud-wiring\.test\.mjs/);
 		assert.match(pkg.scripts.test, /test\/kuunda-publish-wiring\.test\.mjs/);
+		assert.match(pkg.scripts.test, /test\/kuunda-phase8-wiring\.test\.mjs/);
 		assert.equal(existsSync(join(root, 'test/license-compliance.test.mjs')), true);
 		assert.equal(existsSync(join(root, 'ThirdPartyNotices.txt')), true);
 	});

@@ -30,4 +30,4 @@ LLM : toujours via le canal electron-main Void. Pas de clé dans le dépôt.
 
 - Crédits / Genius Pay / ledger (Phase 3bis, dépôt privé)
 - Terminal « accès agent » étendu et `.projectrules` (Phase 4)
-- Confirmation shell renforcée production-adjacent (Phase 8 affine 3.3 ; le défaut terminal n'est **pas** auto-approve)
+- Confirmation shell renforcée production-adjacent : livrée en Phase 8 (`08-reliability.md`). Le défaut terminal n'est **pas** auto-approve.

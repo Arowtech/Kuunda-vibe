@@ -18,7 +18,7 @@ import { ISCMService } from '../../scm/common/scm.js';
 import { IVoidModelService } from '../../void/common/voidModelService.js';
 import { IVoidSCMService } from '../../void/common/voidSCMTypes.js';
 import { canonicalizeFsPath, folderNameOf, formatWorkspaceRoots } from './workspaceRoots.js';
-import { resolveAgentCwd } from './terminalAccess.js';
+import { resolveAgentCwd, rewritePersistentShell } from './terminalAccess.js';
 import { PROJECT_RULE_FILENAMES, ProjectRuleFile, formatProjectRules } from './projectRules.js';
 import { GitSnapshot, formatMultiRepoGit } from './gitSnapshot.js';
 
@@ -26,6 +26,7 @@ export interface IKuundaWorkspaceService {
 	readonly _serviceBrand: undefined;
 	workspaceFolderPaths(): string[];
 	resolveAgentCwd(cwd: string | null | undefined, command?: string): ReturnType<typeof resolveAgentCwd>;
+	rewritePersistentShell(command: string, cwd?: string | null): ReturnType<typeof rewritePersistentShell>;
 	getCachedRulesText(): string;
 	ensureRules(): Promise<string>;
 	refreshRules(): Promise<string>;
@@ -86,6 +87,10 @@ export class KuundaWorkspaceService extends Disposable implements IKuundaWorkspa
 
 	resolveAgentCwd(cwd: string | null | undefined, command?: string): ReturnType<typeof resolveAgentCwd> {
 		return resolveAgentCwd({ cwd, workspaceFolders: this.workspaceFolderPaths(), command });
+	}
+
+	rewritePersistentShell(command: string, cwd?: string | null): ReturnType<typeof rewritePersistentShell> {
+		return rewritePersistentShell({ command, cwd, workspaceFolders: this.workspaceFolderPaths() });
 	}
 
 	getCachedRulesText(): string {

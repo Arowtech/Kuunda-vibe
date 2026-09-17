@@ -82,5 +82,17 @@
 	"kuunda.cloud.error.write_failed": {
 		"en": "Could not write Kuunda Cloud files. Check folder permissions.",
 		"fr": "Impossible d’écrire les fichiers Kuunda Cloud. Vérifiez les permissions du dossier."
+	},
+	"kuunda.cloud.error.strict_offline": {
+		"en": "Strict offline mode is on, so Kuunda Cloud is not contacted.",
+		"fr": "Le mode hors ligne strict est activé : Kuunda Cloud n’est pas contacté."
+	},
+	"kuunda.cloud.network.timeout": {
+		"en": "Kuunda Cloud timed out. Provisioning will retry when the platform responds.",
+		"fr": "Kuunda Cloud a expiré. Le provisioning réessaiera quand la plateforme répondra."
+	},
+	"kuunda.cloud.network.offline": {
+		"en": "Kuunda Cloud is unreachable. Placeholder credentials stay gitignored until the platform is back.",
+		"fr": "Kuunda Cloud est injoignable. Les identifiants placeholder restent ignorés par git jusqu’au retour de la plateforme."
 	}
 }

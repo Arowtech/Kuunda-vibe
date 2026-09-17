@@ -2,7 +2,7 @@
  *  Copyright 2025 Glass Devtools, Inc. All rights reserved.
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
-// Modified 2026-09-17 by Arowtech: Kuunda agent permissions, step cap, background jobs, credits gate, terminal cwd.
+// Modified 2026-09-17 by Arowtech: Kuunda agent permissions, step cap, background jobs, credits gate, terminal cwd, production-adjacent shell confirm, strict-offline LLM/MCP.
 
 import { Disposable } from '../../../../base/common/lifecycle.js';
 import { registerSingleton, InstantiationType } from '../../../../platform/instantiation/common/extensions.js';
@@ -46,6 +46,8 @@ import { collectCheckpointPaths, IKuundaAgentService } from '../../kuundaAi/comm
 import { kuundaAiLocalize } from '../../kuundaAi/common/kuundaAiNls.js';
 import { IKuundaBillingService } from '../../kuundaBilling/common/kuundaBillingService.js';
 import { IKuundaWorkspaceService } from '../../kuundaAi/common/kuundaWorkspaceService.js';
+import { IKuundaLegalService } from '../../kuundaLegal/common/kuundaLegalService.js';
+import { kuundaLegalLocalize } from '../../kuundaLegal/common/kuundaLegalNls.js';
 
 
 // related to retrying when LLM message has error
@@ -337,6 +339,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		@IKuundaAgentService private readonly _kuundaAgent: IKuundaAgentService,
 		@IKuundaBillingService private readonly _kuundaBilling: IKuundaBillingService,
 		@IKuundaWorkspaceService private readonly _kuundaWorkspace: IKuundaWorkspaceService,
+		@IKuundaLegalService private readonly _kuundaLegal: IKuundaLegalService,
 	) {
 		super()
 		this.state = { allThreads: {}, currentThreadId: null as unknown as string } // default state
@@ -631,7 +634,20 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 
 
 		const bindAgentTerminalCwd = (): boolean => {
-			if (!isBuiltInTool || (toolName !== 'run_command' && toolName !== 'open_persistent_terminal')) {
+			if (!isBuiltInTool || (toolName !== 'run_command' && toolName !== 'open_persistent_terminal' && toolName !== 'run_persistent_command')) {
+				return true
+			}
+			if (toolName === 'run_persistent_command') {
+				const command = String((toolParams as { command?: string }).command || '')
+				const rewritten = this._kuundaWorkspace.rewritePersistentShell(command)
+				if (!rewritten.ok) {
+					const errorMessage = rewritten.error === 'outside_workspace'
+						? 'Terminal command refused: working directory is outside the workspace.'
+						: 'Terminal command refused: open a workspace folder first.'
+					this._addMessageToThread(threadId, { role: 'tool', type: 'tool_error', rawParams: opts.unvalidatedToolParams, result: errorMessage, name: toolName, content: errorMessage, id: toolId, params: toolParams, mcpServerName })
+					return false
+				}
+				;(toolParams as { command: string }).command = rewritten.command
 				return true
 			}
 			const cwd = (toolParams as { cwd?: string | null }).cwd ?? null
@@ -645,6 +661,19 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 				return false
 			}
 			;(toolParams as { cwd: string | null }).cwd = resolved.cwd
+			if (toolName === 'run_command') {
+				const rewritten = this._kuundaWorkspace.rewritePersistentShell(command, resolved.cwd)
+				if (!rewritten.ok) {
+					const errorMessage = rewritten.error === 'outside_workspace'
+						? 'Terminal command refused: working directory is outside the workspace.'
+						: 'Terminal command refused: open a workspace folder first.'
+					this._addMessageToThread(threadId, { role: 'tool', type: 'tool_error', rawParams: opts.unvalidatedToolParams, result: errorMessage, name: toolName, content: errorMessage, id: toolId, params: toolParams, mcpServerName })
+					return false
+				}
+				if (rewritten.rewritten) {
+					;(toolParams as { command: string }).command = rewritten.command
+				}
+			}
 			return true
 		}
 
@@ -680,6 +709,8 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 				toolName,
 				autoApproveByKind: this._settingsService.state.globalSettings.autoApprove,
 				policyOverrides: this._kuundaAgent.getPolicyOverrides(),
+				productionAdjacent: this._kuundaAgent.isProductionAdjacent(),
+				strictOffline: this._kuundaLegal.isStrictOffline(),
 			})
 			if (permission.action === 'refuse') {
 				const errorMessage = 'Tool call was refused by Kuunda agent policy.'
@@ -804,14 +835,25 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 		let shouldSendAnotherMessage = true
 		let isRunningWhenEnd: IsRunningType = undefined
 		const background = !!this._kuundaAgent.jobForThread(threadId)
-		const billingGate = await this._kuundaBilling.ensureCanRunAgent()
-		if (!billingGate.ok) {
+		const offlineGate = this._kuundaLegal.decideSend('llm_cloud', modelSelection?.providerName)
+		if (!offlineGate.ok) {
 			this._notificationService.notify({
 				severity: Severity.Warning,
-				message: billingGate.message || 'credits',
+				message: kuundaLegalLocalize('kuunda.legal.offline.blocked'),
 			})
 			this._setStreamState(threadId, undefined)
 			return
+		}
+		if (!this._kuundaLegal.isStrictOffline()) {
+			const billingGate = await this._kuundaBilling.ensureCanRunAgent()
+			if (!billingGate.ok) {
+				this._notificationService.notify({
+					severity: Severity.Warning,
+					message: billingGate.message || 'credits',
+				})
+				this._setStreamState(threadId, undefined)
+				return
+			}
 		}
 
 		// before enter loop, call tool
@@ -956,6 +998,8 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 						toolName: toolCall.name,
 						autoApproveByKind: this._settingsService.state.globalSettings.autoApprove,
 						policyOverrides: this._kuundaAgent.getPolicyOverrides(),
+						productionAdjacent: this._kuundaAgent.isProductionAdjacent(),
+						strictOffline: this._kuundaLegal.isStrictOffline(),
 					})
 					const plan = planAgentTurn({
 						step: nMessagesSent,
@@ -998,7 +1042,9 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 			const changedPaths = collectCheckpointPaths(thread?.messages ?? [])
 			this._kuundaAgent.settleThread(threadId, { changedPaths })
 			this._notifyKuundaBackground(threadId, 'review', changedPaths.length)
-			void this._kuundaBilling.recordUsage(1)
+			if (!this._kuundaLegal.isStrictOffline()) {
+				void this._kuundaBilling.recordUsage(1)
+			}
 		}
 
 		// capture number of messages sent

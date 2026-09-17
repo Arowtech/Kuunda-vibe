@@ -16,6 +16,8 @@ import { IOpenerService } from '../../../../platform/opener/common/opener.js';
 import { IStatusbarService, StatusbarAlignment } from '../../../services/statusbar/browser/statusbar.js';
 import { kuundaBillingLocalize, kuundaBillingLocalize2 } from '../common/kuundaBillingNls.js';
 import { IKuundaBillingService } from '../common/kuundaBillingService.js';
+import { IKuundaLegalService } from '../../kuundaLegal/common/kuundaLegalService.js';
+import { kuundaLegalLocalize } from '../../kuundaLegal/common/kuundaLegalNls.js';
 
 class KuundaBillingContribution extends Disposable implements IWorkbenchContribution {
 	static readonly ID = 'workbench.contrib.kuundaBilling';
@@ -121,6 +123,10 @@ registerAction2(class extends Action2 {
 		const notify = accessor.get(INotificationService);
 		const quick = accessor.get(IQuickInputService);
 		const opener = accessor.get(IOpenerService);
+		if (accessor.get(IKuundaLegalService).isStrictOffline()) {
+			notify.info(kuundaLegalLocalize('kuunda.legal.offline.blocked'));
+			return;
+		}
 		if (!billing.getUserId()) {
 			notify.info(kuundaBillingLocalize('kuunda.billing.checkout.needUser'));
 			return;

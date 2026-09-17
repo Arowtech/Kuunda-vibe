@@ -92,7 +92,30 @@ import {
 	PUBLISH_LOCAL_PATH,
 	PUBLISH_PLAY_JSON_PATH,
 	PUBLISH_WORKFLOW_PATH,
+	PRODUCTION_ADJACENT_DEFAULT,
+	rewritePersistentShell,
+	extractLeadingCd,
+	REQUIRED_GITIGNORE_ENTRIES,
+	auditCredentialStorage,
+	persistableIsSafe,
+	looksLikeSecret,
+	classifyCredentialPath,
+	DEFAULT_REQUEST_TIMEOUT_MS,
+	classifyNetworkError,
+	fetchWithTimeout,
+	STRICT_OFFLINE_DEFAULT,
+	decideExternalSend,
+	formatDataDisclosure,
+	formatRefundPolicy,
+	formatDataSubjectRights,
+	isKnownPaymentAggregator,
+	resolvePaymentAggregator,
+	DATA_DISCLOSURE,
+	TRANSACTION_LOG_RETENTION_DAYS,
+	CREDIT_REFUND_POLICY,
+	describeLicenseSplit,
 } from '../src/index.js';
+import { creditAlertLevel, classifyPaymentFailure } from '../../cloud-client/src/contracts.js';
 
 describe('Phase 2.1 — autocomplete Tab policy', () => {
 	it('demande du multi-ligne sur ligne vide (parité Tab)', () => {
@@ -288,6 +311,13 @@ describe('Phase 3.3 — permissions à quatre niveaux', () => {
 		const d = decideToolPermission({ toolName: 'browser_navigate' });
 		assert.equal(d.kind, 'MCP tools');
 		assert.equal(d.action, 'wait');
+	});
+
+	it('refuse les outils MCP en hors-ligne strict', () => {
+		const d = decideToolPermission({ toolName: 'browser_navigate', strictOffline: true });
+		assert.equal(d.kind, 'MCP tools');
+		assert.equal(d.action, 'refuse');
+		assert.equal(d.level, 'refuse');
 	});
 });
 
@@ -589,10 +619,17 @@ function sanitizeCloudUrlSafe() {
 	return publicCloudRecord({ url: 'http://proj_ab.kuunda-cloud.com' }).url;
 }
 
-const SAMPLE_P8 = `-----BEGIN PRIVATE KEY-----
-MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgAAAAAAAAAAAAAAAA
------END PRIVATE KEY-----
-`;
+function pemFixture(kind) {
+	return `-----${kind} PRIVATE KEY-----`;
+}
+
+/** Dummy PEM-shaped fixture for inspectors/redaction. Not a cryptographic key. */
+const SAMPLE_P8 = [
+	pemFixture('BEGIN'),
+	'TEST_FIXTURE_NOT_A_SECRET_' + 'A'.repeat(40),
+	pemFixture('END'),
+	'',
+].join('\n');
 
 describe('Phase 7 — publication mobile', () => {
 	it('n’affiche le panneau que pour mobile et refuse les cibles incomplètes', () => {
@@ -694,8 +731,173 @@ describe('Phase 7 — publication mobile', () => {
 		assert.match(panel, /pending_ci/);
 		assert.match(panel, /build_not_dispatched/);
 		assert.doesNotMatch(panel, /BEGIN PRIVATE KEY/);
+		assert.match(panel, /STORE-REQUIREMENTS/);
 		assert.match(formatPublishContext({ manifest: { type: 'mobile', publishTargets: ['app_store'] } }), /app_store/);
 		assert.equal(formatPublishContext({ manifest: { type: 'website' } }), '');
+	});
+});
+
+describe('Phase 8.1 — audit stockage credentials', () => {
+	it('classe les secrets et refuse un persistable dangereux', () => {
+		assert.equal(classifyCredentialPath('.kuunda/play-service-account.json'), 'store_developer');
+		assert.equal(classifyCredentialPath('.env.local'), 'kuunda_cloud');
+		assert.equal(classifyCredentialPath('apps/api/src/lib/genius-pay-webhook.js'), 'genius_pay');
+		assert.equal(looksLikeSecret('<SET VIA SECRET STORE>'), false);
+		assert.equal(looksLikeSecret('sk_live_notarealtoken'), true);
+		assert.equal(persistableIsSafe({ version: '1.0.0', packageId: 'com.example.app' }).ok, true);
+		assert.equal(persistableIsSafe({ private_key: '-----BEGIN PRIVATE KEY-----\nabc' }).ok, false);
+		const local = persistablePublishLocal({
+			version: '1.0.0',
+			packageId: 'com.example.app',
+			googlePlay: { configured: true, clientEmail: 'ci@x.iam.gserviceaccount.com', private_key: '-----BEGIN PRIVATE KEY-----' },
+		});
+		assert.doesNotMatch(local, /BEGIN PRIVATE KEY/);
+		assert.equal(persistableIsSafe(JSON.parse(local)).ok, true);
+		const stripped = persistablePublishLocal({
+			version: '1.0.0',
+			packageId: 'com.example.app',
+			googlePlay: { configured: true, clientEmail: 'sk_live_abc@x.com' },
+		});
+		assert.doesNotMatch(stripped, /sk_live/);
+		assert.equal(persistableIsSafe(JSON.parse(stripped)).ok, true);
+		assert.equal(persistableAnonKey('sk_live_operator'), SECRET_PLACEHOLDER);
+	});
+
+	it('exige les gitignore de secrets et refuse un chemin commité', () => {
+		const gitignore = REQUIRED_GITIGNORE_ENTRIES.join('\n');
+		assert.equal(auditCredentialStorage({ gitignoreText: gitignore, persistablePayloads: [{ userId: 'u1' }] }).ok, true);
+		const missing = auditCredentialStorage({ gitignoreText: 'node_modules\n' });
+		assert.equal(missing.ok, false);
+		assert.ok(missing.findings.some((row) => row.code === 'missing_gitignore'));
+		const committed = auditCredentialStorage({
+			gitignoreText: gitignore,
+			committedRelPaths: ['.kuunda/authkey.p8'],
+		});
+		assert.equal(committed.ok, false);
+		assert.ok(committed.findings.some((row) => row.code === 'committed_secret_path'));
+	});
+});
+
+describe('Phase 8.2 — non-régression modules critiques', () => {
+	it('garde agent, diffs, publishing et billing', () => {
+		assert.equal(MAX_AGENT_STEPS, 48);
+		assert.equal(planAgentTurn({ step: 0, hasToolCall: true, permissionAction: 'wait' }).type, 'wait_permission');
+		const original = 'one()\ntwo()\nthree()\n';
+		assert.equal(applyAcceptedHunks(original, [
+			{ id: 'h1', search: 'three()', replace: 'THREE()', state: 'complete' },
+		], ['h1']).includes('THREE()'), true);
+		assert.equal(decidePublish({ type: 'webapp' }).error, 'not_mobile');
+		assert.equal(creditAlertLevel(10, 50), 'low');
+		assert.equal(classifyPaymentFailure('timeout'), 'timeout');
+		assert.equal(DEFAULT_TOOL_PERMISSIONS.run_command, 'confirm');
+	});
+});
+
+describe('Phase 8.3 — timeouts réseau', () => {
+	it('classe timeout / offline / http', () => {
+		assert.equal(DEFAULT_REQUEST_TIMEOUT_MS, 15_000);
+		assert.equal(classifyNetworkError({ name: 'AbortError' }), 'timeout');
+		assert.equal(classifyNetworkError(new Error('platform_timeout')), 'timeout');
+		assert.equal(classifyNetworkError(new Error('fetch failed')), 'offline');
+		assert.equal(classifyNetworkError(new Error('platform_http_401')), 'http');
+		assert.equal(classifyNetworkError(undefined, { status: 504 }), 'timeout');
+	});
+
+	it('interrompt un fetch trop lent', async () => {
+		await assert.rejects(
+			() => fetchWithTimeout('https://api.ide.kuunda-cloud.com/v1/billing/plans', {}, {
+				timeoutMs: 20,
+				fetchImpl: () => new Promise(() => {}),
+			}),
+			/platform_timeout/,
+		);
+	});
+});
+
+describe('Phase 8.4 — production-adjacent + cd terminal persisté', () => {
+	it('ignore autoApprove terminal tant que production-adjacent est actif', () => {
+		assert.equal(PRODUCTION_ADJACENT_DEFAULT, true);
+		const blocked = decideToolPermission({
+			toolName: 'run_command',
+			autoApproveByKind: { terminal: true },
+			policyOverrides: { run_command: 'allow' },
+		});
+		assert.equal(blocked.kind, 'terminal');
+		assert.equal(blocked.action, 'wait');
+		assert.equal(blocked.level, 'confirm');
+		const sandbox = decideToolPermission({
+			toolName: 'run_command',
+			autoApproveByKind: { terminal: true },
+			productionAdjacent: false,
+		});
+		assert.equal(sandbox.action, 'run');
+		const edits = decideToolPermission({
+			toolName: 'edit_file',
+			autoApproveByKind: { edits: true },
+		});
+		assert.equal(edits.action, 'run');
+		assert.equal(decideToolPermission({
+			toolName: 'run_command',
+			policyOverrides: { run_command: 'refuse' },
+		}).action, 'refuse');
+	});
+
+	it('réécrit un cd dans le workspace et refuse une sortie', () => {
+		const folders = ['C:/ws/app'];
+		assert.equal(extractLeadingCd('npm test'), undefined);
+		const same = rewritePersistentShell({ command: 'npm test', workspaceFolders: folders });
+		assert.equal(same.ok, true);
+		assert.equal(same.rewritten, false);
+		const inside = rewritePersistentShell({ command: 'cd src && npm test', workspaceFolders: folders });
+		assert.equal(inside.ok, true);
+		assert.match(inside.command, /cd \/d "C:\/ws\/app\/src" && npm test/);
+		const outside = rewritePersistentShell({ command: 'cd ../secret && rm -rf .', workspaceFolders: folders });
+		assert.equal(outside.ok, false);
+		assert.equal(outside.error, 'outside_workspace');
+		assert.equal(rewritePersistentShell({ command: 'cd ~ && ls', workspaceFolders: folders }).ok, false);
+		assert.equal(rewritePersistentShell({ command: 'CD ../secret && echo x', workspaceFolders: folders }).ok, false);
+		assert.equal(rewritePersistentShell({ command: 'cd ../secret & echo x', workspaceFolders: folders }).ok, false);
+		assert.equal(rewritePersistentShell({ command: 'cd ../secret || echo x', workspaceFolders: folders }).ok, false);
+		assert.equal(rewritePersistentShell({ command: 'pushd ../secret', workspaceFolders: folders }).ok, false);
+		assert.equal(rewritePersistentShell({ command: 'cd', workspaceFolders: folders }).ok, false);
+	});
+});
+
+describe('Phase 8bis — conformité et hors ligne strict', () => {
+	it('bloque le réseau sauf Ollama local', () => {
+		assert.equal(STRICT_OFFLINE_DEFAULT, false);
+		assert.equal(decideExternalSend({ feature: 'billing' }).ok, true);
+		assert.equal(decideExternalSend({ strictOffline: true, feature: 'billing' }).error, 'strict_offline');
+		assert.equal(decideExternalSend({ strictOffline: true, feature: 'credits' }).ok, false);
+		assert.equal(decideExternalSend({ strictOffline: true, feature: 'kuunda_cloud' }).ok, false);
+		assert.equal(decideExternalSend({ strictOffline: true, feature: 'publish' }).ok, false);
+		assert.equal(decideExternalSend({ strictOffline: true, feature: 'llm_cloud', provider: 'anthropic' }).ok, false);
+		assert.equal(decideExternalSend({ strictOffline: true, feature: 'llm_cloud', provider: 'ollama' }).ok, true);
+		assert.equal(decideExternalSend({ strictOffline: true, feature: 'llm_cloud', provider: 'ollama' }).localOnly, true);
+	});
+
+	it('divulgue local vs tiers et garde l’agrégateur remplaçable', () => {
+		assert.ok(DATA_DISCLOSURE.some((row) => row.id === 'workspace_files' && row.location === 'local'));
+		assert.ok(DATA_DISCLOSURE.some((row) => row.id === 'prompts_byok' && row.thirdParty === 'ai_provider'));
+		assert.ok(DATA_DISCLOSURE.some((row) => row.id === 'payment_instrument' && row.thirdParty === 'payment_aggregator'));
+		assert.ok(DATA_DISCLOSURE.some((row) => row.id === 'payment_credentials_ide' && row.location === 'never'));
+		assert.equal(TRANSACTION_LOG_RETENTION_DAYS, 1825);
+		assert.equal(CREDIT_REFUND_POLICY.consumed, 'non_refundable');
+		assert.equal(isKnownPaymentAggregator('genius-pay'), true);
+		assert.equal(resolvePaymentAggregator('future-psp'), 'genius-pay');
+		assert.match(formatDataDisclosure({ locale: 'en' }), /payment aggregator/);
+		assert.match(formatDataDisclosure({ locale: 'en' }), /Tab completion/);
+		assert.match(formatDataDisclosure({ locale: 'en' }), /MCP/);
+		assert.match(formatDataDisclosure({ locale: 'fr', strictOffline: true }), /hors ligne strict : ACTIVÉ/);
+		assert.match(formatDataDisclosure({ locale: 'fr', strictOffline: true }), /Tab \/ Ctrl\+K/);
+		assert.match(formatRefundPolicy('en'), /not refundable/);
+		assert.match(formatDataSubjectRights('en'), /ide\.kuunda-cloud\.com\/legal/);
+		assert.match(formatDataSubjectRights('fr'), /effacement/);
+		assert.ok(DATA_DISCLOSURE.some((row) => row.id === 'completions_byok'));
+		assert.ok(DATA_DISCLOSURE.some((row) => row.id === 'mcp_tools'));
+		assert.equal(describeLicenseSplit().publicLicense, 'Apache-2.0');
+		assert.equal(describeLicenseSplit().paymentAggregatorsPluggable, true);
+		assert.ok(describeLicenseSplit().proprietaryModules.includes('genius-pay'));
 	});
 });
 

@@ -4,7 +4,7 @@ Merci. Lisez d'abord `GOVERNANCE.md`, `NOTICE`, `LICENSE` et `docs/legal/COMPOSA
 
 ## Avant d'écrire du code
 
-1. Vérifiez que le sujet n'appartient pas à un module **privé** (facturation, Genius Pay, provisioning opérateur Kuunda Cloud, custody des clés de mise à jour). Ces sujets ne sont pas acceptés dans ce dépôt.
+1. Vérifiez que le sujet n'appartient pas à un module **privé** (facturation, agrégateur de paiement, provisioning opérateur Kuunda Cloud, custody des clés de mise à jour). Ces sujets ne sont pas acceptés dans ce dépôt. L'adaptateur Genius Pay actuel n'est pas le seul PSP possible ; le code public doit rester agnostique.
 2. Signez le CLA :
    - personne physique : `docs/legal/CLA-INDIVIDUAL.md`
    - entité : `docs/legal/CLA-CORPORATE.md`

@@ -1,7 +1,7 @@
 # 07 — Pipeline de publication mobile
 
 **Phase :** 7
-**Validation steward :** en cours
+**Validation steward :** validée le 17 sept. 2026
 **Prérequis :** Phase 6 validée (17 sept. 2026)
 
 Les projets **mobile** publient vers Google Play et/ou App Store depuis un panneau dédié. L'UI et l'orchestration vivent dans le dépôt public. Les JSON Play, clés `.p8`, keystores et jetons GitHub restent gitignorés ou dans les secrets CI du dépôt privé.
@@ -62,4 +62,4 @@ Sans jeton dispatch, l'API crée un job `pending_ci` avec le log `build_not_disp
 - Auth session réelle (toujours 501 ; userId-in-body comme 3bis/6)
 - Application SQL 0004 / `wrangler deploy` / dispatch GitHub réel
 - Upload réel vers Google Play Console ou App Store Connect
-- Phase 8 (auth session)
+- Phase 9 (packaging / signature / auto-update)

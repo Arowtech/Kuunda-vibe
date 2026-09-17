@@ -2,7 +2,7 @@
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
-// Modified 2026-09-17 by Arowtech: register isolated Kuunda branding, AI, billing, extensions, project picker, cloud and publishing.
+// Modified 2026-09-17 by Arowtech: register isolated Kuunda branding, AI, billing, extensions, project picker, cloud, publishing and legal.
 
 //#region --- editor/workbench core
 
@@ -25,6 +25,7 @@ import './contrib/kuundaExt/browser/kuundaExt.contribution.js';
 import './contrib/kuundaProject/browser/kuundaProject.contribution.js';
 import './contrib/kuundaCloud/browser/kuundaCloud.contribution.js';
 import './contrib/kuundaPublish/browser/kuundaPublish.contribution.js';
+import './contrib/kuundaLegal/browser/kuundaLegal.contribution.js';
 //#endregion
 
 //#region --- workbench actions

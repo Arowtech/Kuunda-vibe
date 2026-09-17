@@ -8,8 +8,8 @@ import { classifyPaymentFailure } from './creditPolicy.js';
 
 export const KUUNDA_BILLING_STRINGS = {
 	'kuunda.billing.tagline': {
-		en: 'Credits, plans, and Genius Pay checkout — no payment credentials in the IDE.',
-		fr: 'Crédits, plans et paiement Genius Pay — aucun identifiant de paiement dans l’IDE.',
+		en: 'Credits, plans, and checkout via a payment aggregator — no payment credentials in the IDE.',
+		fr: 'Crédits, plans et paiement via un agrégateur — aucun identifiant de paiement dans l’IDE.',
 	},
 	'kuunda.billing.setUser': {
 		en: 'Kuunda Vibe: Set Credits Account Id',
@@ -74,6 +74,14 @@ export const KUUNDA_BILLING_STRINGS = {
 	'kuunda.billing.checkout.unavailable': {
 		en: 'Checkout is unavailable. Open plans from the account page, or try again later.',
 		fr: 'Paiement indisponible. Ouvrez les plans depuis la page compte, ou réessayez plus tard.',
+	},
+	'kuunda.billing.network.timeout': {
+		en: 'Kuunda platform timed out. Credits will refresh when the network is back.',
+		fr: 'La plateforme Kuunda a expiré. Les crédits se mettront à jour quand le réseau reviendra.',
+	},
+	'kuunda.billing.network.offline': {
+		en: 'Kuunda platform is unreachable. Credits will refresh when you are back online.',
+		fr: 'La plateforme Kuunda est injoignable. Les crédits se mettront à jour quand vous serez de nouveau en ligne.',
 	},
 } as const;
 

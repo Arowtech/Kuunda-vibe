@@ -4,7 +4,7 @@
 **Validation steward :** validée le 17 sept. 2026 (ouverture Phase 4).
 **Prérequis :** Phase 3 commencée puis ouverte explicitement vers 3bis (17 sept. 2026)
 
-Frontière figée (Phase 0.2) : **UI + contrats** dans ce dépôt public ; **ledger, tarifs, Genius Pay** dans `Arowtech/kuunda-vibe-cloud`.
+Frontière figée (Phase 0.2) : **UI + contrats** dans ce dépôt public ; **ledger, tarifs, agrégateur de paiement** dans `Arowtech/kuunda-vibe-cloud`. Genius Pay est l’adaptateur actuel, pas un verrou.
 
 ## Livrables
 
@@ -12,7 +12,7 @@ Frontière figée (Phase 0.2) : **UI + contrats** dans ce dépôt public ; **led
 | --- | --- | --- | --- |
 | 3bis.1 Freemium | Quota à l'inscription, sans carte | `signup` / `getBalance` | grant `free` |
 | 3bis.2 Plans | Free / Plus / Pro / top-up | `listPlans()` affiche le JSON API | `packages/billing/src/plans.js` |
-| 3bis.3 Genius Pay | Mobile Money, isolé du module agent | `startCheckout` URL uniquement | HMAC webhook puis crédit |
+| 3bis.3 Checkout | Mobile Money via agrégateur (adaptateur actuel Genius Pay), isolé du module agent | `startCheckout` URL uniquement | HMAC webhook puis crédit |
 | 3bis.4 Solde temps réel | Status bar + F1 refresh | `kuundaBilling` | `GET /v1/credits/:id` |
 | 3bis.5 Alerte quota | `low` (20 %) / `empty` | nls + notification | `alert` dans le JSON |
 | 3bis.6 Transactions | Pas d'identifiant de paiement dans l'IDE | client HTTP bearer runtime | journal `platform_payment_events` |

@@ -20,6 +20,8 @@ describe('Phase 4 — branchement terminal / git / rules', () => {
 		assert.match(chat, /open_persistent_terminal/);
 		assert.match(chat, /command/);
 		assert.match(chat, /bindAgentTerminalCwd/);
+		assert.match(chat, /run_persistent_command/);
+		assert.match(chat, /rewritePersistentShell/);
 		assert.ok(
 			chat.indexOf('bindAgentTerminalCwd') < chat.indexOf('awaitingUserApproval: true'),
 			'cwd hors workspace doit être refusé avant la confirmation',

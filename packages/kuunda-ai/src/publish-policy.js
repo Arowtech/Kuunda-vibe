@@ -4,6 +4,7 @@
  */
 
 import { SECRET_PLACEHOLDER, mergeGitignore } from './cloud-provision.js';
+import { persistableIsSafe } from './credential-policy.js';
 
 export const PUBLISH_TARGETS = ['google_play', 'app_store'];
 export const PUBLISH_JOB_STATUSES = ['queued', 'running', 'succeeded', 'failed', 'pending_ci'];
@@ -240,7 +241,7 @@ export function buildPublishRequest({ userId, decision, credentials = {}, signat
 
 export function persistablePublishLocal(local) {
 	const parsed = parsePublishLocal(local);
-	return `${JSON.stringify({
+	const payload = {
 		version: parsed.version,
 		packageId: parsed.packageId,
 		googlePlay: { configured: parsed.googlePlay.configured === true, clientEmail: parsed.googlePlay.clientEmail },
@@ -251,7 +252,13 @@ export function persistablePublishLocal(local) {
 		},
 		signatureReady: parsed.signatureReady === true,
 		lastJobId: parsed.lastJobId,
-	}, null, '\t')}\n`;
+	};
+	if (!persistableIsSafe(payload).ok) {
+		payload.googlePlay = { configured: payload.googlePlay.configured === true };
+		payload.appStore = { configured: payload.appStore.configured === true };
+		delete payload.lastJobId;
+	}
+	return `${JSON.stringify(payload, null, '\t')}\n`;
 }
 
 export function validatePublishMetadata({ version, packageId } = {}) {
@@ -395,6 +402,7 @@ export function formatPublishPanel({ manifest, local, job, logs } = {}) {
 			lines.push(`- ${line}`);
 		}
 	}
+	lines.push('Store listings for AI-generated apps must disclose AI use and the Kuunda Cloud SDK; IAP credits, if ever used, follow Play / App Store refund rules (docs/legal/STORE-REQUIREMENTS.md).');
 	return lines.join('\n');
 }
 

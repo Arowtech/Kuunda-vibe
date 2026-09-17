@@ -68,8 +68,28 @@
 		"fr": "Kuunda Vibe : définir l’accès terminal de l’agent"
 	},
 	"kuunda.terminal.setAccess.level": {
-		"en": "Terminal access for the agent (default: confirm)",
-		"fr": "Accès terminal de l’agent (défaut : confirm)"
+		"en": "Terminal access for the agent (default: confirm; production-adjacent ignores auto-run)",
+		"fr": "Accès terminal de l’agent (défaut : confirm ; le mode production-adjacent ignore l’exécution automatique)"
+	},
+	"kuunda.agent.setProductionAdjacent": {
+		"en": "Kuunda Vibe: Set Production-Adjacent Agent Mode",
+		"fr": "Kuunda Vibe : définir le mode agent production-adjacent"
+	},
+	"kuunda.agent.setProductionAdjacent.level": {
+		"en": "Production-adjacent mode (default: on — shell always asks first)",
+		"fr": "Mode production-adjacent (défaut : activé — le shell demande toujours confirmation)"
+	},
+	"kuunda.agent.setProductionAdjacent.on": {
+		"en": "On (confirm every shell command)",
+		"fr": "Activé (confirmer chaque commande shell)"
+	},
+	"kuunda.agent.setProductionAdjacent.off": {
+		"en": "Off (local sandbox — auto-approve terminal is allowed)",
+		"fr": "Désactivé (bac à sable local — l’auto-approbation du terminal est autorisée)"
+	},
+	"kuunda.terminal.allowBlocked": {
+		"en": "Production-adjacent mode is on, so the agent still asks before every shell command.",
+		"fr": "Le mode production-adjacent est activé : l’agent demande encore confirmation avant chaque commande shell."
 	},
 	"kuunda.dev.reloadRules": {
 		"en": "Kuunda Vibe: Reload Project Rules",

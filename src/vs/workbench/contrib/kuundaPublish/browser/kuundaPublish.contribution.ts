@@ -172,6 +172,14 @@ function notifyWrite(notify: INotificationService, result: PublishWriteResult, s
 }
 
 function notifyPublishError(notify: INotificationService, error: string): void {
+	if (error === 'timeout') {
+		notify.error(kuundaPublishLocalize('kuunda.publish.network.timeout'));
+		return;
+	}
+	if (error === 'offline' || error === 'unreachable') {
+		notify.error(kuundaPublishLocalize('kuunda.publish.network.offline'));
+		return;
+	}
 	const key = `kuunda.publish.error.${error}` as KuundaPublishStringKey;
 	if (key in KUUNDA_PUBLISH_STRINGS) {
 		notify.error(kuundaPublishLocalize(key));

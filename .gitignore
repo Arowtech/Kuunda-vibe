@@ -9,6 +9,13 @@ Thumbs.db
 *.p12
 *.key
 credentials.json
+*.p8
+*.keystore
+.kuunda/cloud.local.json
+.kuunda/publish.local.json
+.kuunda/play-service-account.json
+.kuunda/authkey.p8
+.kuunda/upload.keystore
 node_modules/
 .build/
 .vscode/extensions/**/out/

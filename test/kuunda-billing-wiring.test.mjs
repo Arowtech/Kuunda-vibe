@@ -29,6 +29,7 @@ describe('Phase 3bis — branchement crédits IDE', () => {
 		assert.match(http, /\/v1\/credits\/consume/);
 		assert.match(http, /\/v1\/billing\/checkout/);
 		assert.match(http, /\/v1\/billing\/transactions/);
+		assert.match(http, /fetchWithTimeout/);
 		assert.doesNotMatch(http, /sk_|whsec_|BEGIN /);
 		const contracts = read('packages/cloud-client/src/contracts.js');
 		assert.match(contracts, /classifyPaymentFailure/);

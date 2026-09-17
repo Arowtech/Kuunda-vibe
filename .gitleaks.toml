@@ -23,3 +23,11 @@ condition = "AND"
 regexTarget = "line"
 regexes = ['''firebasestorage\.googleapis\.com/.+[?&]token=''']
 paths = ['''(^|/)src/vs/base/test/common/uri\.test\.ts$''']
+
+# Dummy PKCS8 used by publish/redaction tests. Historical commits contained a
+# truncated zeroed EC blob (MIGHAgEA…); current tests use TEST_FIXTURE padding.
+# Path allowlist is required because `gitleaks detect` scans git history.
+[[allowlists]]
+description = "Dummy PKCS8 fixture in kuunda-ai.test.mjs publish tests"
+targetRules = ["private-key"]
+paths = ['''(^|/)packages/kuunda-ai/test/kuunda-ai\.test\.mjs$''']

@@ -41,6 +41,8 @@ Mécanisme VS Code `nls.localize` pour le cœur éditeur. Chaînes Kuunda nouvel
 
 Les `aiKey` Application Insights des `extensions/*/package.json` et le `token=` de la fixture `src/vs/base/test/common/uri.test.ts` sont des faux positifs Code - OSS. Allowlist dans `.gitleaks.toml` (`[extend] useDefault = true`). Ne pas supprimer ces clés : la télémétrie vscode les lit.
 
+La fixture PKCS8 de `packages/kuunda-ai/test/kuunda-ai.test.mjs` (inspecteurs Play / App Store et rédaction des logs) est un faux positif `private-key` : matériel de test, pas une clé réelle. Allowlist ciblée sur ce fichier, car `gitleaks detect` scanne l’historique.
+
 ## Hors de portée
 
 - Chat / inline / agent (Phases 2–3)

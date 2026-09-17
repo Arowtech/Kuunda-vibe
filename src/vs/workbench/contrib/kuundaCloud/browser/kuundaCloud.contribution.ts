@@ -185,6 +185,14 @@ function notifyCloudResult(notify: INotificationService, result: CloudProvisionR
 		return;
 	}
 	if (result.action === 'pending_api') {
+		if (result.network === 'timeout') {
+			notify.info(kuundaCloudLocalize('kuunda.cloud.network.timeout'));
+			return;
+		}
+		if (result.network === 'offline') {
+			notify.info(kuundaCloudLocalize('kuunda.cloud.network.offline'));
+			return;
+		}
 		notify.info(kuundaCloudLocalize('kuunda.cloud.provision.pendingApi'));
 		return;
 	}

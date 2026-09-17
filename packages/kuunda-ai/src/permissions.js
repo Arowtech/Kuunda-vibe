@@ -48,13 +48,25 @@ export function approvalKindOfTool(toolName) {
 	return 'MCP tools';
 }
 
+/** Production-adjacent default: shell never auto-runs (Phase 8.4). */
+export const PRODUCTION_ADJACENT_DEFAULT = true;
+
 /**
- * @param {{ toolName: string, autoApproveByKind?: Record<string, boolean | undefined>, policyOverrides?: Record<string, PermissionLevel> }} input
+ * @param {{ toolName: string, autoApproveByKind?: Record<string, boolean | undefined>, policyOverrides?: Record<string, PermissionLevel>, productionAdjacent?: boolean, strictOffline?: boolean }} input
  */
 export function decideToolPermission(input) {
 	const toolName = input.toolName || '';
-	const level = input.policyOverrides?.[toolName] ?? DEFAULT_TOOL_PERMISSIONS[toolName] ?? 'confirm';
 	const kind = approvalKindOfTool(toolName);
+	const productionAdjacent = input.productionAdjacent !== false;
+	let level = input.policyOverrides?.[toolName] ?? DEFAULT_TOOL_PERMISSIONS[toolName] ?? 'confirm';
+
+	if (productionAdjacent && kind === 'terminal' && level !== 'refuse') {
+		level = level === 'review' ? 'review' : 'confirm';
+	}
+
+	if (input.strictOffline && kind === 'MCP tools' && level !== 'refuse') {
+		return { level: 'refuse', kind, action: 'refuse' };
+	}
 
 	if (level === 'refuse') {
 		return { level, kind, action: 'refuse' };
@@ -63,6 +75,9 @@ export function decideToolPermission(input) {
 		return { level, kind, action: 'run' };
 	}
 	if (level === 'review') {
+		return { level, kind, action: 'wait' };
+	}
+	if (productionAdjacent && kind === 'terminal') {
 		return { level, kind, action: 'wait' };
 	}
 	if (input.autoApproveByKind?.[kind]) {
