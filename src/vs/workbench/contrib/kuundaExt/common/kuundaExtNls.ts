@@ -1,0 +1,82 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright 2026 Arowtech
+ *  SPDX-License-Identifier: Apache-2.0
+ *--------------------------------------------------------------------------------------------*/
+
+import { getNLSLanguage, type ILocalizedString } from '../../../../nls.js';
+import { formatKuundaMessage } from '../../kuundaBrand/common/kuundaNls.js';
+
+export const KUUNDA_EXT_STRINGS = {
+	'kuunda.ext.tagline': {
+		en: 'Versioned Kuunda API for VS Code/Open VSX extensions. VSIX only.',
+		fr: 'API Kuunda versionnée pour les extensions VS Code/Open VSX. VSIX uniquement.',
+	},
+	'kuunda.ext.grantAccess': {
+		en: 'Kuunda Vibe: Grant Extension Kuunda API Access',
+		fr: 'Kuunda Vibe : accorder l’API Kuunda à une extension',
+	},
+	'kuunda.ext.grantAccess.extension': {
+		en: 'Which installed extension may use the Kuunda API?',
+		fr: 'Quelle extension installée peut utiliser l’API Kuunda ?',
+	},
+	'kuunda.ext.grantAccess.permission': {
+		en: 'Which Kuunda capability?',
+		fr: 'Quelle capacité Kuunda ?',
+	},
+	'kuunda.ext.grantAccess.confirm': {
+		en: 'Grant {0} access to {1}? The extension will not receive credentials.',
+		fr: 'Accorder à {0} l’accès {1} ? L’extension ne recevra aucun identifiant.',
+	},
+	'kuunda.ext.grantAccess.none': {
+		en: 'No installed extension declares contributes.kuunda.',
+		fr: 'Aucune extension installée ne déclare contributes.kuunda.',
+	},
+	'kuunda.ext.grantAccess.undeclared': {
+		en: '{0} did not declare permission {1} in contributes.kuunda.',
+		fr: '{0} n’a pas déclaré la permission {1} dans contributes.kuunda.',
+	},
+	'kuunda.ext.grantAccess.sideload': {
+		en: '{0} was sideloaded (not from Open VSX). Grant {1} anyway? No credentials will be returned.',
+		fr: '{0} a été installée hors Open VSX. Accorder {1} quand même ? Aucun identifiant ne sera renvoyé.',
+	},
+	'kuunda.ext.grantAccess.ok': {
+		en: 'Granted {0} → {1}.',
+		fr: 'Accès accordé {0} → {1}.',
+	},
+	'kuunda.ext.revokeAccess': {
+		en: 'Kuunda Vibe: Revoke Extension Kuunda API Access',
+		fr: 'Kuunda Vibe : révoquer l’API Kuunda d’une extension',
+	},
+	'kuunda.ext.revokeAccess.none': {
+		en: 'No Kuunda API grants to revoke.',
+		fr: 'Aucun accès API Kuunda à révoquer.',
+	},
+	'kuunda.ext.revokeAccess.ok': {
+		en: 'Revoked Kuunda API access for {0}.',
+		fr: 'Accès API Kuunda révoqué pour {0}.',
+	},
+	'kuunda.ext.showApi': {
+		en: 'Kuunda Vibe: Show Kuunda Extension API',
+		fr: 'Kuunda Vibe : afficher l’API d’extension Kuunda',
+	},
+	'kuunda.api.denied': {
+		en: 'Kuunda API denied: {0}',
+		fr: 'API Kuunda refusée : {0}',
+	},
+} as const;
+
+export type KuundaExtStringKey = keyof typeof KUUNDA_EXT_STRINGS;
+
+function isFrench(language: string | undefined): boolean {
+	return typeof language === 'string' && (language === 'fr' || language.startsWith('fr-') || language.startsWith('fr_'));
+}
+
+export function kuundaExtLocalize(key: KuundaExtStringKey, ...args: Array<string | number>): string {
+	const entry = KUUNDA_EXT_STRINGS[key];
+	const message = isFrench(getNLSLanguage()) ? entry.fr : entry.en;
+	return formatKuundaMessage(message, args);
+}
+
+export function kuundaExtLocalize2(key: KuundaExtStringKey): ILocalizedString {
+	return { original: KUUNDA_EXT_STRINGS[key].en, value: kuundaExtLocalize(key) };
+}

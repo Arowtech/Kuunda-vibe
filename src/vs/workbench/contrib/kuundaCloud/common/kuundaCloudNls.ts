@@ -1,0 +1,122 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright 2026 Arowtech
+ *  SPDX-License-Identifier: Apache-2.0
+ *--------------------------------------------------------------------------------------------*/
+
+import { getNLSLanguage, type ILocalizedString } from '../../../../nls.js';
+import { formatKuundaMessage } from '../../kuundaBrand/common/kuundaNls.js';
+
+export const KUUNDA_CLOUD_STRINGS = {
+	'kuunda.cloud.tagline': {
+		en: 'Kuunda Cloud is on by default for new projects and can be disabled or replaced.',
+		fr: 'Kuunda Cloud est activé par défaut pour les nouveaux projets et peut être désactivé ou remplacé.',
+	},
+	'kuunda.cloud.panel': {
+		en: 'Kuunda Cloud data',
+		fr: 'Données Kuunda Cloud',
+	},
+	'kuunda.cloud.showPanel': {
+		en: 'Kuunda Vibe: Show Cloud Data',
+		fr: 'Kuunda Vibe : afficher les données Cloud',
+	},
+	'kuunda.cloud.provision': {
+		en: 'Kuunda Vibe: Provision Kuunda Cloud',
+		fr: 'Kuunda Vibe : provisionner Kuunda Cloud',
+	},
+	'kuunda.cloud.provision.ok': {
+		en: 'Kuunda Cloud ready ({0}).',
+		fr: 'Kuunda Cloud prêt ({0}).',
+	},
+	'kuunda.cloud.provision.pendingUser': {
+		en: 'Create a Kuunda account to attach a Cloud sandbox to this IDE. The agent can then manage the sandbox; you promote migrations to production in Kuunda Cloud.',
+		fr: 'Créez un compte Kuunda pour rattacher un sandbox Cloud à cet IDE. L’agent gère ensuite le sandbox ; vous poussez les migrations en production depuis Kuunda Cloud.',
+	},
+	'kuunda.cloud.provision.pendingApi': {
+		en: 'The project was created. Kuunda Cloud provisioning will retry when the platform is reachable. Placeholder credentials stay gitignored.',
+		fr: 'Le projet a été créé. Le provisioning Kuunda Cloud sera retenté quand la plateforme sera joignable. Les identifiants placeholder restent ignorés par git.',
+	},
+	'kuunda.cloud.provision.skipped': {
+		en: 'Kuunda Cloud is disabled for this project.',
+		fr: 'Kuunda Cloud est désactivé pour ce projet.',
+	},
+	'kuunda.cloud.provision.reused': {
+		en: 'Reusing Kuunda Cloud project {0}.',
+		fr: 'Réutilisation du projet Kuunda Cloud {0}.',
+	},
+	'kuunda.cloud.provision.error': {
+		en: 'Could not update Kuunda Cloud files: {0}',
+		fr: 'Impossible de mettre à jour les fichiers Kuunda Cloud : {0}',
+	},
+	'kuunda.cloud.enable': {
+		en: 'Kuunda Vibe: Enable Kuunda Cloud',
+		fr: 'Kuunda Vibe : activer Kuunda Cloud',
+	},
+	'kuunda.cloud.enable.ok': {
+		en: 'Kuunda Cloud enabled.',
+		fr: 'Kuunda Cloud activé.',
+	},
+	'kuunda.cloud.disable': {
+		en: 'Kuunda Vibe: Disable Kuunda Cloud',
+		fr: 'Kuunda Vibe : désactiver Kuunda Cloud',
+	},
+	'kuunda.cloud.disable.ok': {
+		en: 'Kuunda Cloud disabled. Existing project mapping is kept until you replace it.',
+		fr: 'Kuunda Cloud désactivé. Le mapping projet est conservé jusqu’à un remplacement.',
+	},
+	'kuunda.cloud.replace': {
+		en: 'Kuunda Vibe: Replace Kuunda Cloud Project',
+		fr: 'Kuunda Vibe : remplacer le projet Kuunda Cloud',
+	},
+	'kuunda.cloud.replace.ok': {
+		en: 'Allocated a new Kuunda Cloud project ({0}).',
+		fr: 'Nouveau projet Kuunda Cloud alloué ({0}).',
+	},
+	'kuunda.cloud.replace.confirm': {
+		en: 'Replace the Kuunda Cloud instance for this project? The previous mapping is dropped.',
+		fr: 'Remplacer l’instance Kuunda Cloud de ce projet ? L’ancien mapping sera abandonné.',
+	},
+	'kuunda.cloud.replace.confirm.ok': {
+		en: 'Replace',
+		fr: 'Remplacer',
+	},
+	'kuunda.cloud.none': {
+		en: 'Open a Kuunda project folder first.',
+		fr: 'Ouvrez d’abord un dossier de projet Kuunda.',
+	},
+	'kuunda.cloud.pickFolder': {
+		en: 'Which Kuunda project should be updated?',
+		fr: 'Quel projet Kuunda faut-il mettre à jour ?',
+	},
+	'kuunda.cloud.error.write_failed': {
+		en: 'Could not write Kuunda Cloud files. Check folder permissions.',
+		fr: 'Impossible d’écrire les fichiers Kuunda Cloud. Vérifiez les permissions du dossier.',
+	},
+	'kuunda.cloud.error.strict_offline': {
+		en: 'Strict offline mode is on, so Kuunda Cloud is not contacted.',
+		fr: 'Le mode hors ligne strict est activé : Kuunda Cloud n’est pas contacté.',
+	},
+	'kuunda.cloud.network.timeout': {
+		en: 'Kuunda Cloud timed out. Provisioning will retry when the platform responds.',
+		fr: 'Kuunda Cloud a expiré. Le provisioning réessaiera quand la plateforme répondra.',
+	},
+	'kuunda.cloud.network.offline': {
+		en: 'Kuunda Cloud is unreachable. Placeholder credentials stay gitignored until the platform is back.',
+		fr: 'Kuunda Cloud est injoignable. Les identifiants placeholder restent ignorés par git jusqu’au retour de la plateforme.',
+	},
+} as const;
+
+export type KuundaCloudStringKey = keyof typeof KUUNDA_CLOUD_STRINGS;
+
+function isFrench(language: string | undefined): boolean {
+	return typeof language === 'string' && (language === 'fr' || language.startsWith('fr-') || language.startsWith('fr_'));
+}
+
+export function kuundaCloudLocalize(key: KuundaCloudStringKey, ...args: Array<string | number>): string {
+	const entry = KUUNDA_CLOUD_STRINGS[key];
+	const message = isFrench(getNLSLanguage()) ? entry.fr : entry.en;
+	return formatKuundaMessage(message, args);
+}
+
+export function kuundaCloudLocalize2(key: KuundaCloudStringKey): ILocalizedString {
+	return { original: KUUNDA_CLOUD_STRINGS[key].en, value: kuundaCloudLocalize(key) };
+}

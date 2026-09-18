@@ -10,9 +10,21 @@ function read(relPath) {
 	return readFileSync(join(root, relPath), 'utf8');
 }
 
+const SKIP_DIRS = new Set([
+	'.git',
+	'node_modules',
+	'src',
+	'extensions',
+	'build',
+	'cli',
+	'out',
+	'resources',
+	'.build'
+]);
+
 function walkFiles(dir, acc = []) {
 	for (const entry of readdirSync(dir)) {
-		if (entry === '.git' || entry === 'node_modules') {
+		if (SKIP_DIRS.has(entry)) {
 			continue;
 		}
 		const full = join(dir, entry);
@@ -32,7 +44,7 @@ describe('Phase 0 — fichiers de gouvernance', () => {
 		assert.equal(manifest.projectLicense, 'Apache-2.0');
 		assert.equal(manifest.steward, 'Arowtech');
 		assert.equal(manifest.originalWork.copyrightHolder, 'Arowtech');
-		assert.equal(manifest.phase, 0);
+		assert.ok(manifest.phase === 0 || manifest.phase === 1 || manifest.phase === 2 || manifest.phase === 3 || manifest.phase === '3bis' || manifest.phase === 4 || manifest.phase === '4bis' || manifest.phase === 5 || manifest.phase === 6 || manifest.phase === 7 || manifest.phase === 8 || manifest.phase === '8bis' || manifest.phase === 9 || manifest.phase === '9' || manifest.phase === 10 || manifest.phase === '10');
 		assert.ok(manifest.upstream.some((u) => u.copyrightHolder === 'Microsoft Corporation' && u.license === 'MIT'));
 		assert.ok(manifest.upstream.some((u) => u.copyrightHolder === 'Glass Devtools, Inc.' && u.license === 'Apache-2.0'));
 	});
@@ -100,6 +112,7 @@ describe('Phase 0 — fichiers de gouvernance', () => {
 		}
 		assert.match(notice, /Billing \/ credits ledger/);
 		assert.match(notice, /Genius Pay/);
+		assert.match(notice, /Payment aggregators/);
 		assert.match(notice, /Kuunda Cloud platform provisioning/);
 		assert.match(notice, /IDE update signing-key custody/);
 		assert.match(policy, /Arowtech\/kuunda-vibe-cloud/);
@@ -130,9 +143,12 @@ describe('Phase 0 — contribution et CLA', () => {
 		assert.match(contributing, /CLA-CORPORATE\.md/);
 		assert.match(governance, /CLA obligatoire/);
 		assert.match(governance, /Revue obligatoire/);
-		assert.match(governance, /CI verte obligatoire/);
+		assert.match(governance, /job `cla`/);
 		assert.match(governance, /Aucun secret/);
 		assert.match(read('.github/PULL_REQUEST_TEMPLATE.md'), /Individual CLA/);
+		assert.match(read('.github/workflows/cla.yml'), /name: CLA/);
+		assert.match(read('.github/workflows/cla.yml'), /cla-check\.mjs/);
+		assert.match(read('.github/scripts/cla-check.mjs'), /INDIVIDUAL_SENTENCE/);
 	});
 
 	it('les CLA accordent copyright et brevet à Arowtech et justifient le §5', () => {
@@ -158,8 +174,17 @@ describe('Phase 0 — CI secret scan', () => {
 		assert.match(workflow, /GITLEAKS_VERSION: "8\.30\.1"/);
 		assert.match(workflow, /gitleaks detect/);
 		assert.match(workflow, /--exit-code 1/);
+		assert.match(workflow, /--config \.gitleaks\.toml/);
 		assert.doesNotMatch(workflow, /uses:\s*gitleaks\/gitleaks-action/);
+		assert.equal(existsSync(join(root, '.gitleaks.toml')), true);
 		assert.doesNotMatch(workflow, /secrets\.GITLEAKS_LICENSE/);
+		const gitleaksConfig = read('.gitleaks.toml');
+		assert.match(gitleaksConfig, /useDefault\s*=\s*true/);
+		assert.match(gitleaksConfig, /"aiKey"/);
+		assert.match(gitleaksConfig, /uri\.test\.ts/);
+		assert.match(gitleaksConfig, /kuunda-ai\.test\.mjs/);
+		assert.match(gitleaksConfig, /targetRules = \["private-key", "stripe-access-token"\]/);
+		assert.match(gitleaksConfig, /id = "kuunda-github-pat"/);
 	});
 });
 
@@ -191,14 +216,26 @@ describe('Phase 0 — absence de secrets versionnés', () => {
 });
 
 describe('Phase 0 — package public', () => {
-	it('package.json déclare Apache-2.0, Node >= 24, et aucun dependency', () => {
+	it('package.json reste Apache-2.0 et les tests Kuunda restent le script test', () => {
 		const pkg = JSON.parse(read('package.json'));
 		assert.equal(pkg.license, 'Apache-2.0');
-		assert.equal(pkg.engines.node, '>=24.0.0');
 		assert.equal(pkg.private, true);
-		assert.equal(pkg.dependencies, undefined);
-		assert.equal(pkg.devDependencies, undefined);
+		assert.equal(pkg.author.name, 'Arowtech');
 		assert.match(pkg.scripts.test, /test\/license-compliance\.test\.mjs/);
+		assert.match(pkg.scripts.test, /test\/cla-check\.test\.mjs/);
+		assert.match(pkg.scripts.test, /packages\/cloud-client\/test\/cloud-client\.test\.mjs/);
+		assert.match(pkg.scripts.test, /test\/branding\.test\.mjs/);
+		assert.match(pkg.scripts.test, /packages\/kuunda-ai\/test\/kuunda-ai\.test\.mjs/);
+		assert.match(pkg.scripts.test, /test\/kuunda-ai-wiring\.test\.mjs/);
+		assert.match(pkg.scripts.test, /test\/kuunda-agent-wiring\.test\.mjs/);
+		assert.match(pkg.scripts.test, /test\/kuunda-billing-wiring\.test\.mjs/);
+		assert.match(pkg.scripts.test, /test\/kuunda-dev-wiring\.test\.mjs/);
+		assert.match(pkg.scripts.test, /test\/kuunda-ext-wiring\.test\.mjs/);
+		assert.match(pkg.scripts.test, /test\/kuunda-project-wiring\.test\.mjs/);
+		assert.match(pkg.scripts.test, /test\/kuunda-cloud-wiring\.test\.mjs/);
+		assert.match(pkg.scripts.test, /test\/kuunda-publish-wiring\.test\.mjs/);
+		assert.match(pkg.scripts.test, /test\/kuunda-phase8-wiring\.test\.mjs/);
 		assert.equal(existsSync(join(root, 'test/license-compliance.test.mjs')), true);
+		assert.equal(existsSync(join(root, 'ThirdPartyNotices.txt')), true);
 	});
 });

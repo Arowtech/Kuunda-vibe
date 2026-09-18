@@ -7,42 +7,75 @@ Ce guide est mis à jour **à chaque phase**. Il n'est pas un README marketing.
 | Document | Rôle |
 | --- | --- |
 | [00-licence-et-gouvernance.md](00-licence-et-gouvernance.md) | Phase 0 : licence, NOTICE, CLA, frontière public/privé |
+| [00bis-infrastructure.md](00bis-infrastructure.md) | Phase 0bis : Workers, DNS, Kuunda Cloud, secrets |
+| [01-rename.md](01-rename.md) | Phase 1 : import Void, branding Kuunda Vibe, nls EN/FR |
+| [02-autocomplete-chat.md](02-autocomplete-chat.md) | Phase 2 : Tab, Ctrl+K, @Codebase, diffs streaming |
+| [03-agent.md](03-agent.md) | Phase 3 : boucle agent, permissions, contexte, arrière-plan, MCP |
+| [03bis-credits.md](03bis-credits.md) | Phase 3bis : crédits UI + contrats (ledger privé) |
+| [04-devtools.md](04-devtools.md) | Phase 4 : terminal agent, git multi-repo, multi-root, `.projectrules` |
+| [04bis-extension-api.md](04bis-extension-api.md) | Phase 4bis : API VSIX/Open VSX + permissions Kuunda |
+| [05-project-type.md](05-project-type.md) | Phase 5 : sélecteur de type de projet + templates |
+| [06-kuunda-cloud.md](06-kuunda-cloud.md) | Phase 6 : Kuunda Cloud par défaut |
+| [07-publishing.md](07-publishing.md) | Phase 7 : publication mobile Google Play / App Store |
+| [08-reliability.md](08-reliability.md) | Phase 8 : audit credentials, timeouts, confirmation shell |
+| [08bis-legal.md](08bis-legal.md) | 8bis : RGPD, privacy/ToS, hors-ligne strict, agrégateurs de paiement |
+| [09-packaging.md](09-packaging.md) | Phase 9 : kuunda-builder, signature, auto-update interne |
+| [10-post-launch.md](10-post-launch.md) | Phase 10 : feedback opt-in, backlog, plan upstream |
+| [11-account.md](11-account.md) | Phase 11 : compte Studio web ↔ IDE, OAuth, crédits |
 | `LICENSE` | Apache-2.0 (texte officiel non modifié) |
 | `LICENSE-VS-Code.txt` | MIT Code - OSS (Microsoft) |
 | `NOTICE` | Chaîne d'attribution Microsoft → Void → Arowtech |
+| `ThirdPartyNotices.txt` | Notices tierces héritées de Void / Code - OSS |
 | `GOVERNANCE.md` | Steward, PR, branches |
 | `CONTRIBUTING.md` | Comment contribuer |
-| `docs/legal/` | Obligations Apache, CLA, isolation propriétaire |
+| [i18n-en-fr.md](i18n-en-fr.md) | UI bilingue EN/FR, anglais par défaut |
 
 ## Phases
 
 | Phase | Statut |
 | --- | --- |
-| 0 Licence et gouvernance | **Implémentée — en attente de validation steward** |
-| 0bis Infrastructure et sécurité plateforme | Non commencée |
-| 1 Renommage éditeur | Non commencée |
-| 2–10 | Non commencées |
+| 0 Licence et gouvernance | **Validée** (steward, 16 sept. 2026) |
+| 0bis Infrastructure et sécurité plateforme | **Validée** (steward, 17 sept. 2026) — SLA/restore/promotion SQL hors P1 |
+| 1 Renommage éditeur | **En cours** — identité livrée ; build de validation unsigned (1.5) |
+| 2 Complétion et édition assistée | **Validée** (steward, 17 sept. 2026) |
+| 3 Agent autonome | **Validée** (steward, 17 sept. 2026 — ouverture 3bis) |
+| 3bis Crédits et facturation | **Validée** (steward, 17 sept. 2026 — ouverture Phase 4) |
+| 4 Outils de développement | **Validée** (steward, 17 sept. 2026) |
+| 4bis API d'extensions | **Validée** (steward, 17 sept. 2026) |
+| 5 Type de projet | **Validée** (steward, 17 sept. 2026) |
+| 6 Kuunda Cloud par défaut | **Validée** (steward, 17 sept. 2026) |
+| 7 Pipeline de publication mobile | **Validée** (steward, 17 sept. 2026) |
+| 8 Sécurité et fiabilité | **Validée** (steward, 17 sept. 2026) |
+| 8bis Conformité et légal | **Validée** (steward, 17 sept. 2026) |
+| 9 Packaging et distribution | **En cours** (implémentée, validation steward) |
+| 10 Itération post-lancement | **En cours** |
+| 11 Compte Studio (web ↔ IDE) | **En cours** |
 
 Ne pas fusionner les phases. Ne pas démarrer N+1 sans validation explicite de N.
 
-## Arbre actuel (Phase 0 uniquement)
-
-Le fork Void / `src/vs/` n'est **pas** encore importé. C'est volontaire (Phase 1).
+## Arbre (Phase 10)
 
 ```
-LICENSE
-LICENSE-VS-Code.txt
-NOTICE
-CONTRIBUTING.md
-GOVERNANCE.md
-CODE_OF_CONDUCT.md
-package.json
-test/license-compliance.test.mjs
-docs/legal/
-docs/codebase/
-.github/PULL_REQUEST_TEMPLATE.md
+src/vs/                          fork Void / Code - OSS
+src/vs/workbench/contrib/void/   UI Void (à rebaser, pas reformatter)
+src/vs/workbench/contrib/kuundaBrand/  identité Kuunda, nls EN/FR
+resources/branding/              logos steward
+src/vs/workbench/contrib/kuundaAi/      Tab / @Codebase / diffs (P2) + agent (P3)
+src/vs/workbench/contrib/kuundaBilling/  solde / plans / alertes (3bis)
+src/vs/workbench/contrib/kuundaExt/     API extensions VSIX (P4bis)
+src/vs/workbench/contrib/kuundaProject/ type de projet + scaffold (P5)
+src/vs/workbench/contrib/kuundaCloud/    provision Cloud + panel (P6)
+src/vs/workbench/contrib/kuundaPublish/  publication mobile + panneau (P7)
+src/vs/workbench/contrib/kuundaLegal/     privacy / hors-ligne strict (8bis)
+src/vs/workbench/contrib/kuundaFeedback/  canal de retours opt-in (P10)
+src/vs/workbench/contrib/kuundaAccount/   Studio compte web ↔ IDE (P11)
+packages/cloud-client/           contrats HTTP publics (auth, crédits, billing, provisioning, publishing, feedback)
+src/vs/platform/update/            auto-update Ed25519 (P9)
+packages/kuunda-ai/              algorithmes testables (… packaging, post-launch)
+product.json                     nom Kuunda Vibe, quality=internal, updateUrl
 ```
 
-## Stack figée pour la Phase 0
+## Stack figée
 
-Voir `00-licence-et-gouvernance.md` § Choix techniques.
+Voir `00-licence-et-gouvernance.md`, `00bis-infrastructure.md`, `01-rename.md`, `02-autocomplete-chat.md`, `03-agent.md`, `03bis-credits.md`, `04-devtools.md`, `04bis-extension-api.md`, `05-project-type.md`, `06-kuunda-cloud.md`, `07-publishing.md`, `08-reliability.md`, `08bis-legal.md`, `09-packaging.md`, `10-post-launch.md`, `11-account.md`.
+`engines` de compilation : ceux de Void/VS Code. Tests Kuunda : `npm test` (Node 24).

@@ -1,0 +1,54 @@
+{
+	"kuunda.legal.panel": {
+		"en": "Kuunda privacy & terms",
+		"fr": "Confidentialité et conditions Kuunda"
+	},
+	"kuunda.legal.showPanel": {
+		"en": "Kuunda Vibe: Show Data Disclosure",
+		"fr": "Kuunda Vibe : afficher les données envoyées"
+	},
+	"kuunda.legal.setOfflineMode": {
+		"en": "Kuunda Vibe: Strict Offline Mode",
+		"fr": "Kuunda Vibe : mode hors ligne strict"
+	},
+	"kuunda.legal.setOfflineMode.level": {
+		"en": "Strict offline mode (blocks credits, cloud, publishing, feedback, MCP, Tab/Ctrl+K and cloud LLMs)",
+		"fr": "Mode hors ligne strict (bloque crédits, cloud, publication, retours, MCP, Tab/Ctrl+K et LLM cloud)"
+	},
+	"kuunda.legal.setOfflineMode.on": {
+		"en": "On — no external sends; online billing is disabled",
+		"fr": "Activé — aucun envoi externe ; la facturation en ligne est désactivée"
+	},
+	"kuunda.legal.setOfflineMode.off": {
+		"en": "Off — cloud features and online credits are allowed",
+		"fr": "Désactivé — le cloud et les crédits en ligne sont autorisés"
+	},
+	"kuunda.legal.showPrivacy": {
+		"en": "Kuunda Vibe: Privacy Policy",
+		"fr": "Kuunda Vibe : politique de confidentialité"
+	},
+	"kuunda.legal.showTerms": {
+		"en": "Kuunda Vibe: Terms of Use",
+		"fr": "Kuunda Vibe : conditions d’utilisation"
+	},
+	"kuunda.legal.showRefunds": {
+		"en": "Kuunda Vibe: Credit Refund Policy",
+		"fr": "Kuunda Vibe : politique de remboursement des crédits"
+	},
+	"kuunda.legal.offline.blocked": {
+		"en": "Strict offline mode is on. Online credits, Kuunda Cloud, publishing, feedback, MCP and cloud AI (including Tab and Ctrl+K) are disabled. Use local Ollama, or turn the mode off.",
+		"fr": "Le mode hors ligne strict est activé. Crédits en ligne, Kuunda Cloud, publication, retours, MCP et IA cloud (y compris Tab et Ctrl+K) sont désactivés. Utilisez Ollama local, ou désactivez le mode."
+	},
+	"kuunda.legal.firstRun": {
+		"en": "Kuunda Vibe sends prompts and code to your AI provider, and project metadata to Kuunda Cloud, unless Strict Offline Mode is on. Open the privacy panel (F1) for the full disclosure.",
+		"fr": "Kuunda Vibe envoie prompts et code à votre fournisseur IA, et des métadonnées projet à Kuunda Cloud, sauf si le mode hors ligne strict est activé. Ouvrez le panneau confidentialité (F1) pour le détail."
+	},
+	"kuunda.legal.docs.privacy": {
+		"en": "Full privacy policy: docs/legal/PRIVACY-POLICY.md",
+		"fr": "Politique de confidentialité complète : docs/legal/PRIVACY-POLICY.md"
+	},
+	"kuunda.legal.docs.terms": {
+		"en": "Full terms of use: docs/legal/TERMS-OF-USE.md",
+		"fr": "Conditions d’utilisation complètes : docs/legal/TERMS-OF-USE.md"
+	}
+}
