@@ -41,7 +41,7 @@ export const KUUNDA_LEGAL_VIEW_CONTAINER_ID = 'workbench.view.kuundaLegal';
 export const KUUNDA_LEGAL_VIEW_ID = 'kuunda.legal.panel';
 
 class KuundaLegalViewPane extends ViewPane {
-	private body: HTMLElement | undefined;
+	private panelBody: HTMLElement | undefined;
 
 	constructor(
 		options: IViewPaneOptions,
@@ -64,9 +64,9 @@ class KuundaLegalViewPane extends ViewPane {
 		super.renderBody(parent);
 		parent.style.userSelect = 'text';
 		parent.style.overflow = 'auto';
-		this.body = append(parent, $('pre.kuunda-legal-panel'));
-		this.body.style.whiteSpace = 'pre-wrap';
-		this.body.style.padding = '8px';
+		this.panelBody = append(parent, $('pre.kuunda-legal-panel'));
+		this.panelBody.style.whiteSpace = 'pre-wrap';
+		this.panelBody.style.padding = '8px';
 		this.refresh();
 	}
 
@@ -77,8 +77,8 @@ class KuundaLegalViewPane extends ViewPane {
 	}
 
 	private refresh(): void {
-		if (this.body) {
-			this.body.textContent = this.legalService.formatPanel();
+		if (this.panelBody) {
+			this.panelBody.textContent = this.legalService.formatPanel();
 		}
 	}
 }
@@ -159,7 +159,7 @@ registerAction2(class extends Action2 {
 				{ id: 'on', label: kuundaLegalLocalize('kuunda.legal.setOfflineMode.on') },
 				{ id: 'off', label: kuundaLegalLocalize('kuunda.legal.setOfflineMode.off') },
 			],
-			{ placeHolder: kuundaLegalLocalize('kuunda.legal.setOfflineMode.level') },
+			{ placeHolder: kuundaLegalLocalize('kuunda.legal.setOfflineMode.level'), canPickMany: false },
 		);
 		if (!picked?.id) {
 			return;

@@ -21,7 +21,7 @@ describe('Phase 5 — branchement sélecteur de projet', () => {
 	it('le wizard exige un type, un sous-écran mobile, et écrit le manifeste', () => {
 		const contrib = read('src/vs/workbench/contrib/kuundaProject/browser/kuundaProject.contribution.ts');
 		assert.match(contrib, /kuunda\.project\.create/);
-		assert.match(contrib, /ignoreFocusOut: true/);
+		assert.match(contrib, /ignoreFocusLost: true/);
 		assert.match(contrib, /type === 'mobile'/);
 		assert.match(contrib, /MOBILE_PUBLISH_OPTIONS/);
 		assert.match(contrib, /MenuId\.MenubarFileMenu/);

@@ -141,7 +141,7 @@ registerAction2(class extends Action2 {
 			id: plan.id,
 			label: plan.name,
 			description: plan.id,
-		})));
+		})), { canPickMany: false });
 		if (!picked?.id) {
 			return;
 		}

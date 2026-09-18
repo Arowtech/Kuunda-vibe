@@ -41,7 +41,7 @@ export const KUUNDA_FEEDBACK_VIEW_CONTAINER_ID = 'workbench.view.kuundaFeedback'
 export const KUUNDA_FEEDBACK_VIEW_ID = 'kuunda.feedback.panel';
 
 class KuundaFeedbackViewPane extends ViewPane {
-	private body: HTMLElement | undefined;
+	private panelBody: HTMLElement | undefined;
 
 	constructor(
 		options: IViewPaneOptions,
@@ -64,9 +64,9 @@ class KuundaFeedbackViewPane extends ViewPane {
 		super.renderBody(parent);
 		parent.style.userSelect = 'text';
 		parent.style.overflow = 'auto';
-		this.body = append(parent, $('pre.kuunda-feedback-panel'));
-		this.body.style.whiteSpace = 'pre-wrap';
-		this.body.style.padding = '8px';
+		this.panelBody = append(parent, $('pre.kuunda-feedback-panel'));
+		this.panelBody.style.whiteSpace = 'pre-wrap';
+		this.panelBody.style.padding = '8px';
 		this.refresh();
 	}
 
@@ -77,8 +77,8 @@ class KuundaFeedbackViewPane extends ViewPane {
 	}
 
 	private refresh(): void {
-		if (this.body) {
-			this.body.textContent = this.feedbackService.formatPanel();
+		if (this.panelBody) {
+			this.panelBody.textContent = this.feedbackService.formatPanel();
 		}
 	}
 }
@@ -153,7 +153,7 @@ registerAction2(class extends Action2 {
 				id,
 				label: kuundaFeedbackLocalize(`kuunda.feedback.category.${id}`),
 			})),
-			{ placeHolder: kuundaFeedbackLocalize('kuunda.feedback.category') },
+			{ placeHolder: kuundaFeedbackLocalize('kuunda.feedback.category'), canPickMany: false },
 		);
 		if (!category?.id) {
 			return;
@@ -164,7 +164,7 @@ registerAction2(class extends Action2 {
 				{ id: '2', label: kuundaFeedbackLocalize('kuunda.feedback.severity.2') },
 				{ id: '3', label: kuundaFeedbackLocalize('kuunda.feedback.severity.3') },
 			],
-			{ placeHolder: kuundaFeedbackLocalize('kuunda.feedback.severity') },
+			{ placeHolder: kuundaFeedbackLocalize('kuunda.feedback.severity'), canPickMany: false },
 		);
 		if (!severity?.id) {
 			return;
@@ -179,7 +179,7 @@ registerAction2(class extends Action2 {
 				{ id: 'yes', label: kuundaFeedbackLocalize('kuunda.feedback.consent.yes') },
 				{ id: 'no', label: kuundaFeedbackLocalize('kuunda.feedback.consent.no') },
 			],
-			{ placeHolder: kuundaFeedbackLocalize('kuunda.feedback.consent') },
+			{ placeHolder: kuundaFeedbackLocalize('kuunda.feedback.consent'), canPickMany: false },
 		);
 		if (consent?.id !== 'yes') {
 			return;

@@ -13,6 +13,7 @@ import { IQuickInputService } from '../../../../platform/quickinput/common/quick
 import { kuundaAiLocalize, kuundaAiLocalize2 } from '../common/kuundaAiNls.js';
 import { IKuundaCodebaseService } from '../common/kuundaCodebaseService.js';
 import { IKuundaAgentService } from '../common/kuundaAgentService.js';
+import { BackgroundJob } from '../common/backgroundJob.js';
 import { IKuundaWorkspaceService } from '../common/kuundaWorkspaceService.js';
 import { IChatThreadService } from '../../void/browser/chatThreadService.js';
 import { PERMISSION_LEVELS, type PermissionLevel } from '../common/permissionPolicy.js';
@@ -93,14 +94,14 @@ registerAction2(class extends Action2 {
 		const agent = accessor.get(IKuundaAgentService);
 		const tool = await quick.pick(
 			agent.listPermissionTools().map((id) => ({ label: id, id })),
-			{ placeHolder: kuundaAiLocalize('kuunda.agent.setPermission.tool') },
+			{ placeHolder: kuundaAiLocalize('kuunda.agent.setPermission.tool'), canPickMany: false },
 		);
 		if (!tool?.id) {
 			return;
 		}
 		const levelPick = await quick.pick(
 			PERMISSION_LEVELS.map((id) => ({ label: id, id })),
-			{ placeHolder: kuundaAiLocalize('kuunda.agent.setPermission.level') },
+			{ placeHolder: kuundaAiLocalize('kuunda.agent.setPermission.level'), canPickMany: false },
 		);
 		if (!levelPick?.id) {
 			return;
@@ -129,7 +130,7 @@ registerAction2(class extends Action2 {
 			notify.info(kuundaAiLocalize('kuunda.agent.reviewJobs.empty'));
 			return;
 		}
-		let job = jobs[0];
+		let job: BackgroundJob | undefined = jobs[0];
 		if (jobs.length > 1) {
 			const picked = await quick.pick(
 				jobs.map((item) => ({
@@ -137,7 +138,7 @@ registerAction2(class extends Action2 {
 					label: item.prompt.slice(0, 80),
 					description: `${item.changedPaths.length} file(s)`,
 				})),
-				{ placeHolder: kuundaAiLocalize('kuunda.agent.reviewJobs') },
+				{ placeHolder: kuundaAiLocalize('kuunda.agent.reviewJobs'), canPickMany: false },
 			);
 			job = picked?.id ? agent.getJob(picked.id) : undefined;
 		}
@@ -164,7 +165,7 @@ registerAction2(class extends Action2 {
 		const agent = accessor.get(IKuundaAgentService);
 		const picked = await quick.pick(
 			PERMISSION_LEVELS.map((id) => ({ label: id, id })),
-			{ placeHolder: kuundaAiLocalize('kuunda.terminal.setAccess.level') },
+			{ placeHolder: kuundaAiLocalize('kuunda.terminal.setAccess.level'), canPickMany: false },
 		);
 		if (!picked?.id) {
 			return;
@@ -196,7 +197,7 @@ registerAction2(class extends Action2 {
 				{ id: 'on', label: kuundaAiLocalize('kuunda.agent.setProductionAdjacent.on') },
 				{ id: 'off', label: kuundaAiLocalize('kuunda.agent.setProductionAdjacent.off') },
 			],
-			{ placeHolder: kuundaAiLocalize('kuunda.agent.setProductionAdjacent.level') },
+			{ placeHolder: kuundaAiLocalize('kuunda.agent.setProductionAdjacent.level'), canPickMany: false },
 		);
 		if (!picked?.id) {
 			return;

@@ -9,7 +9,7 @@ import { LifecyclePhase } from '../../../services/lifecycle/common/lifecycle.js'
 import { Action2, registerAction2 } from '../../../../platform/actions/common/actions.js';
 import { ServicesAccessor } from '../../../../platform/instantiation/common/instantiation.js';
 import { INotificationService } from '../../../../platform/notification/common/notification.js';
-import { IQuickInputService } from '../../../../platform/quickinput/common/quickinput.js';
+import { IQuickInputService } from '../../../../platform/quickinput/common/quickInput.js';
 import { IDialogService } from '../../../../platform/dialogs/common/dialogs.js';
 import { kuundaExtLocalize, kuundaExtLocalize2 } from '../common/kuundaExtNls.js';
 import { IKuundaExtService, KuundaApiInvokeInput } from '../common/kuundaExtService.js';
@@ -82,7 +82,7 @@ registerAction2(class extends Action2 {
 				description: item.identifier.value,
 				id: item.identifier.value,
 			})),
-			{ placeHolder: kuundaExtLocalize('kuunda.ext.grantAccess.extension') },
+			{ placeHolder: kuundaExtLocalize('kuunda.ext.grantAccess.extension'), canPickMany: false },
 		);
 		if (!pickedExt?.id) {
 			return;
@@ -94,7 +94,7 @@ registerAction2(class extends Action2 {
 		}
 		const pickedPerm = await quick.pick(
 			declared.map((id) => ({ label: id, id })),
-			{ placeHolder: kuundaExtLocalize('kuunda.ext.grantAccess.permission') },
+			{ placeHolder: kuundaExtLocalize('kuunda.ext.grantAccess.permission'), canPickMany: false },
 		);
 		if (!pickedPerm?.id) {
 			return;
@@ -135,7 +135,7 @@ registerAction2(class extends Action2 {
 		}
 		const picked = await quick.pick(
 			grants.map((id) => ({ label: id, id })),
-			{ placeHolder: kuundaExtLocalize('kuunda.ext.revokeAccess') },
+			{ placeHolder: kuundaExtLocalize('kuunda.ext.revokeAccess'), canPickMany: false },
 		);
 		if (!picked?.id) {
 			return;

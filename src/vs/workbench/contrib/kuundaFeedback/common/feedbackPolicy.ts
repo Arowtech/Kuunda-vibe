@@ -68,7 +68,7 @@ export function decideFeedbackSend(input: {
 	if (input.consent !== true) {
 		return { ok: false as const, error: 'consent_required' };
 	}
-	if (USAGE_TELEMETRY_DEFAULT === true || isTruthyFlag(input.telemetry)) {
+	if (USAGE_TELEMETRY_DEFAULT || isTruthyFlag(input.telemetry)) {
 		return { ok: false as const, error: 'telemetry_forbidden' };
 	}
 	const ext = decideExternalSend({ strictOffline: input.strictOffline, feature: 'feedback' });

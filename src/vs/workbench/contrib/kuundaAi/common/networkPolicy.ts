@@ -64,8 +64,9 @@ export async function fetchWithTimeout(url: string | URL, init: RequestInit = {}
 	if (typeof fetchImpl !== 'function') {
 		throw Object.assign(new Error('platform_offline'), { code: 'offline' });
 	}
-	const timeoutMs = Number.isFinite(options.timeoutMs) && options.timeoutMs > 0
-		? options.timeoutMs
+	const requestedTimeout = options.timeoutMs;
+	const timeoutMs = typeof requestedTimeout === 'number' && Number.isFinite(requestedTimeout) && requestedTimeout > 0
+		? requestedTimeout
 		: DEFAULT_REQUEST_TIMEOUT_MS;
 	const timeout = createTimeoutSignal(timeoutMs, init.signal ?? undefined);
 	let timer: ReturnType<typeof setTimeout> | undefined;

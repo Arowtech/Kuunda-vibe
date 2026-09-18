@@ -30,7 +30,6 @@ import { IThemeService } from '../../../../platform/theme/common/themeService.js
 import { IContextMenuService } from '../../../../platform/contextview/browser/contextView.js';
 import { IKeybindingService } from '../../../../platform/keybinding/common/keybinding.js';
 import { IOpenerService } from '../../../../platform/opener/common/opener.js';
-import { ITelemetryService } from '../../../../platform/telemetry/common/telemetry.js';
 import { IHoverService } from '../../../../platform/hover/browser/hover.js';
 import { Codicon } from '../../../../base/common/codicons.js';
 import { Orientation } from '../../../../base/browser/ui/sash/sash.js';
@@ -43,7 +42,7 @@ export const KUUNDA_CLOUD_VIEW_CONTAINER_ID = 'workbench.view.kuundaCloud';
 export const KUUNDA_CLOUD_VIEW_ID = 'kuunda.cloud.panel';
 
 class KuundaCloudViewPane extends ViewPane {
-	private body: HTMLElement | undefined;
+	private panelBody: HTMLElement | undefined;
 
 	constructor(
 		options: IViewPaneOptions,
@@ -68,9 +67,9 @@ class KuundaCloudViewPane extends ViewPane {
 		super.renderBody(parent);
 		parent.style.userSelect = 'text';
 		parent.style.overflow = 'auto';
-		this.body = append(parent, $('pre.kuunda-cloud-panel'));
-		this.body.style.whiteSpace = 'pre-wrap';
-		this.body.style.padding = '8px';
+		this.panelBody = append(parent, $('pre.kuunda-cloud-panel'));
+		this.panelBody.style.whiteSpace = 'pre-wrap';
+		this.panelBody.style.padding = '8px';
 		void this.refresh();
 	}
 
@@ -81,10 +80,10 @@ class KuundaCloudViewPane extends ViewPane {
 	}
 
 	private async refresh(): Promise<void> {
-		if (!this.body) {
+		if (!this.panelBody) {
 			return;
 		}
-		this.body.textContent = await this.cloudService.formatPanel();
+		this.panelBody.textContent = await this.cloudService.formatPanel();
 	}
 }
 
@@ -160,7 +159,7 @@ async function pickWorkspaceFolder(
 		})),
 		{
 			placeHolder: kuundaCloudLocalize('kuunda.cloud.pickFolder'),
-			ignoreFocusOut: true,
+			ignoreFocusLost: true,
 			canPickMany: false,
 		},
 	);

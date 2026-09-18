@@ -77,7 +77,7 @@ async function runCreateWizard(accessor: ServicesAccessor): Promise<void> {
 	}
 	const name = await quick.input({
 		prompt: kuundaProjectLocalize('kuunda.project.create.name'),
-		ignoreFocusOut: true,
+		ignoreFocusLost: true,
 	});
 	if (!name?.trim()) {
 		notify.info(kuundaProjectLocalize('kuunda.project.create.cancelled'));
@@ -142,7 +142,7 @@ async function pickRequired<T extends string>(
 		})),
 		{
 			placeHolder: kuundaProjectLocalize(promptKey),
-			ignoreFocusOut: true,
+			ignoreFocusLost: true,
 			canPickMany: false,
 		},
 	);

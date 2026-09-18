@@ -45,7 +45,7 @@ export const KUUNDA_PUBLISH_VIEW_ID = 'kuunda.publish.panel';
 export const KuundaPublishVisibleContext = new RawContextKey<boolean>('kuunda.publish.visible', false);
 
 class KuundaPublishViewPane extends ViewPane {
-	private body: HTMLElement | undefined;
+	private panelBody: HTMLElement | undefined;
 
 	constructor(
 		options: IViewPaneOptions,
@@ -70,9 +70,9 @@ class KuundaPublishViewPane extends ViewPane {
 		super.renderBody(parent);
 		parent.style.userSelect = 'text';
 		parent.style.overflow = 'auto';
-		this.body = append(parent, $('pre.kuunda-publish-panel'));
-		this.body.style.whiteSpace = 'pre-wrap';
-		this.body.style.padding = '8px';
+		this.panelBody = append(parent, $('pre.kuunda-publish-panel'));
+		this.panelBody.style.whiteSpace = 'pre-wrap';
+		this.panelBody.style.padding = '8px';
 		void this.refresh();
 	}
 
@@ -83,10 +83,10 @@ class KuundaPublishViewPane extends ViewPane {
 	}
 
 	private async refresh(): Promise<void> {
-		if (!this.body) {
+		if (!this.panelBody) {
 			return;
 		}
-		this.body.textContent = await this.publishService.formatPanel();
+		this.panelBody.textContent = await this.publishService.formatPanel();
 	}
 }
 
@@ -153,7 +153,7 @@ async function pickMobileFolder(
 		})),
 		{
 			placeHolder: kuundaPublishLocalize('kuunda.publish.pickFolder'),
-			ignoreFocusOut: true,
+			ignoreFocusLost: true,
 			canPickMany: false,
 		},
 	);
@@ -268,11 +268,11 @@ registerAction2(class extends Action2 {
 		if (!source) {
 			return;
 		}
-		const keyId = await quick.input({ prompt: kuundaPublishLocalize('kuunda.publish.appStore.keyId'), ignoreFocusOut: true });
+		const keyId = await quick.input({ prompt: kuundaPublishLocalize('kuunda.publish.appStore.keyId'), ignoreFocusLost: true });
 		if (!keyId) {
 			return;
 		}
-		const issuerId = await quick.input({ prompt: kuundaPublishLocalize('kuunda.publish.appStore.issuerId'), ignoreFocusOut: true });
+		const issuerId = await quick.input({ prompt: kuundaPublishLocalize('kuunda.publish.appStore.issuerId'), ignoreFocusLost: true });
 		if (!issuerId) {
 			return;
 		}
@@ -320,11 +320,11 @@ registerAction2(class extends Action2 {
 		if (!folder) {
 			return;
 		}
-		const packageId = await quick.input({ prompt: kuundaPublishLocalize('kuunda.publish.metadata.packageId'), ignoreFocusOut: true });
+		const packageId = await quick.input({ prompt: kuundaPublishLocalize('kuunda.publish.metadata.packageId'), ignoreFocusLost: true });
 		if (!packageId) {
 			return;
 		}
-		const version = await quick.input({ prompt: kuundaPublishLocalize('kuunda.publish.metadata.version'), value: '1.0.0', ignoreFocusOut: true });
+		const version = await quick.input({ prompt: kuundaPublishLocalize('kuunda.publish.metadata.version'), value: '1.0.0', ignoreFocusLost: true });
 		if (!version) {
 			return;
 		}
