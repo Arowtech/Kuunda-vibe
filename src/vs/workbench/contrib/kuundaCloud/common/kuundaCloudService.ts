@@ -11,7 +11,7 @@ import { dirname, joinPath } from '../../../../base/common/resources.js';
 import { InstantiationType, registerSingleton } from '../../../../platform/instantiation/common/extensions.js';
 import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
 import { IFileService } from '../../../../platform/files/common/files.js';
-import { IKuundaBillingService } from '../../kuundaBilling/common/kuundaBillingService.js';
+import { IKuundaAccountService } from '../../kuundaAccount/common/kuundaAccountService.js';
 import { IKuundaProjectService } from '../../kuundaProject/common/kuundaProjectService.js';
 import { PROJECT_MANIFEST_PATH, type ProjectManifest } from '../../kuundaProject/common/projectType.js';
 import {
@@ -27,6 +27,7 @@ import {
 	persistableAnonKey,
 	publicCloudRecord,
 	redactCloudPayload,
+	resolveCloudRecordAfterDecision,
 	sanitizeProjectRef,
 	scaffoldCloudFiles,
 	serializeManifestWithCloud,
@@ -66,6 +67,8 @@ export interface IKuundaCloudService {
 	provisionFolder(folder: URI, input?: CloudProvisionInput): Promise<CloudProvisionResult>;
 	setEnabled(folder: URI, enabled: boolean): Promise<CloudProvisionResult>;
 	replace(folder: URI): Promise<CloudProvisionResult>;
+	needsStudioLink(): Promise<boolean>;
+	retryUnlinkedFolders(): Promise<CloudProvisionResult[]>;
 	formatPanel(): Promise<string>;
 	formatContext(): Promise<string>;
 	lastPublicStatus(): CloudPublicStatus;
@@ -87,17 +90,22 @@ export class KuundaCloudService extends Disposable implements IKuundaCloudServic
 
 	private snapshot: CloudPublicStatus = { available: true, enabled: true };
 	private tables: CloudTable[] = [];
+	private readonly inflight = new Map<string, Promise<CloudProvisionResult>>();
+	private retryChain: Promise<CloudProvisionResult[]> = Promise.resolve([]);
 	private readonly _onDidChange = this._register(new Emitter<void>());
 	readonly onDidChange = this._onDidChange.event;
 
 	constructor(
 		@IFileService private readonly fileService: IFileService,
 		@IKuundaProjectService private readonly projectService: IKuundaProjectService,
-		@IKuundaBillingService private readonly billingService: IKuundaBillingService,
+		@IKuundaAccountService private readonly accountService: IKuundaAccountService,
 		@IKuundaLegalService private readonly legalService: IKuundaLegalService,
 	) {
 		super();
 		void this.refreshSnapshot();
+		this._register(this.accountService.onDidChangeSession(() => {
+			void this.refreshSnapshot();
+		}));
 	}
 
 	lastPublicStatus(): CloudPublicStatus {
@@ -120,8 +128,48 @@ export class KuundaCloudService extends Disposable implements IKuundaCloudServic
 			tables = this.safeTables(await this.fetchTables(state.cloud.projectRef)) ?? tables;
 			this.tables = tables;
 		}
-		this.remember(state.cloud, state.cloud.projectRef ? 'reuse' : 'pending_api', tables);
+		this.remember(state.cloud, this.actionFor(state.cloud), tables);
 		return formatCloudPanel({ cloud: state.cloud, tables });
+	}
+
+	async needsStudioLink(): Promise<boolean> {
+		if (!this.legalService.decideSend('kuunda_cloud').ok) {
+			return false;
+		}
+		if (await this.hasLiveSession()) {
+			return false;
+		}
+		const rows = await this.projectService.listWorkspaceManifests();
+		return rows.some((row) => {
+			const cloud = parseCloudSettings(row.manifest);
+			return cloud.enabled !== false && !cloud.projectRef;
+		});
+	}
+
+	async retryUnlinkedFolders(): Promise<CloudProvisionResult[]> {
+		const run = this.retryChain.then(() => this.retryUnlinkedFoldersNow(), () => this.retryUnlinkedFoldersNow());
+		this.retryChain = run.then(() => [], () => []);
+		return run;
+	}
+
+	private async retryUnlinkedFoldersNow(): Promise<CloudProvisionResult[]> {
+		if (!(await this.hasLiveSession())) {
+			return [];
+		}
+		const rows = await this.projectService.listWorkspaceManifests();
+		const results: CloudProvisionResult[] = [];
+		for (const row of rows) {
+			const cloud = parseCloudSettings(row.manifest);
+			if (cloud.enabled === false || cloud.projectRef) {
+				continue;
+			}
+			results.push(await this.provisionFolder(row.folder, {
+				enabled: true,
+				type: row.manifest.type,
+				name: row.manifest.name,
+			}));
+		}
+		return results;
 	}
 
 	async setEnabled(folder: URI, enabled: boolean): Promise<CloudProvisionResult> {
@@ -147,19 +195,41 @@ export class KuundaCloudService extends Disposable implements IKuundaCloudServic
 	}
 
 	async provisionFolder(folder: URI, input: CloudProvisionInput = {}): Promise<CloudProvisionResult> {
+		const key = folder.toString();
+		const previous = this.inflight.get(key);
+		if (previous && !input.replace) {
+			return previous;
+		}
+		const task = (async () => {
+			if (previous) {
+				await previous.catch(() => undefined);
+			}
+			return this.provisionFolderNow(folder, input);
+		})().finally(() => {
+			if (this.inflight.get(key) === task) {
+				this.inflight.delete(key);
+			}
+		});
+		this.inflight.set(key, task);
+		return task;
+	}
+
+	private async provisionFolderNow(folder: URI, input: CloudProvisionInput = {}): Promise<CloudProvisionResult> {
 		if (!this.legalService.decideSend('kuunda_cloud').ok) {
 			return { ok: false, error: 'strict_offline' };
 		}
 		try {
 			const state = await this.readState(folder);
 			const enabled = input.enabled ?? state.cloud.enabled ?? true;
-			const userId = this.billingService.getUserId();
+			const userId = this.sessionUserId();
+			const hasSession = await this.hasLiveSession();
 			const alreadyProvisioned = Boolean(state.cloud.projectRef) && !input.replace;
 			const name = input.name || state.manifest?.name || folder.path.replace(/\\/g, '/').split('/').filter(Boolean).pop() || 'project';
 			const type = input.type || state.manifest?.type || 'other';
 			let decision = decideCloudProvisioning({
 				enabled,
 				userId,
+				hasSession,
 				alreadyProvisioned,
 			});
 			let api: ProvisionApiResult | undefined;
@@ -185,19 +255,23 @@ export class KuundaCloudService extends Disposable implements IKuundaCloudServic
 					}
 				} catch (error) {
 					const code = classifyNetworkError(error);
-					if (code === 'timeout') {
-						network = 'timeout';
-					} else if (code === 'offline') {
-						network = 'offline';
+					const msg = String((error as { message?: unknown })?.message || error || '');
+					if (/platform_http_401|platform_http_403/.test(msg)) {
+						decision = { ok: true, action: 'pending_user', enabled: true };
+					} else {
+						if (code === 'timeout') {
+							network = 'timeout';
+						} else if (code === 'offline') {
+							network = 'offline';
+						}
+						decision = { ok: true, action: 'pending_api', enabled: true };
 					}
-					decision = { ok: true, action: 'pending_api', enabled: true };
 				}
 			}
-			const cloud = publicCloudRecord({
-				enabled: decision.enabled,
-				projectRef: api?.kuundaProjectRef || api?.projectId || (decision.action === 'reuse' ? state.cloud.projectRef : undefined),
-				env: (api?.env === 'production' || api?.env === 'sandbox') ? api.env : (decision.action === 'reuse' ? state.cloud.env : 'sandbox'),
-				url: api?.url || (decision.action === 'reuse' ? state.cloud.url : undefined),
+			const cloud = resolveCloudRecordAfterDecision({
+				decision,
+				api,
+				previous: state.cloud,
 			});
 			const existingGitignore = await this.readText(folder, '.gitignore');
 			const scaffold = scaffoldCloudFiles({
@@ -209,7 +283,7 @@ export class KuundaCloudService extends Disposable implements IKuundaCloudServic
 				anonKey: persistableAnonKey(api?.anonKey),
 				existingGitignore,
 			});
-			const overwriteSecrets = decision.action === 'provision' || Boolean(input.replace);
+			const overwriteSecrets = decision.action === 'provision';
 			await this.writeScaffold(folder, scaffold.files, overwriteSecrets);
 			if (state.manifest) {
 				await this.writeManifest(folder, state.manifest, cloud);
@@ -240,7 +314,26 @@ export class KuundaCloudService extends Disposable implements IKuundaCloudServic
 			return;
 		}
 		const state = await this.readState(target.folder);
-		this.remember(state.cloud, state.cloud.projectRef ? 'reuse' : 'pending_api', this.tables);
+		this.remember(state.cloud, this.actionFor(state.cloud), this.tables);
+	}
+
+	private actionFor(cloud: CloudRecord): string {
+		if (cloud.projectRef) {
+			return 'reuse';
+		}
+		return this.sessionUserId() ? 'pending_api' : 'pending_user';
+	}
+
+	private sessionUserId(): string | undefined {
+		return this.accountService.getSession()?.userId?.trim() || undefined;
+	}
+
+	private async hasLiveSession(): Promise<boolean> {
+		const userId = this.sessionUserId();
+		if (!userId) {
+			return false;
+		}
+		return Boolean((await this.accountService.getAccessToken())?.trim());
 	}
 
 	private async primaryFolder(): Promise<{ folder: URI; manifest: ProjectManifest } | undefined> {
@@ -287,8 +380,8 @@ export class KuundaCloudService extends Disposable implements IKuundaCloudServic
 	private async callProvision(body: { userId: string; displayName: string; projectType: string; replace?: boolean }): Promise<ProvisionApiResult> {
 		const response = await fetchWithTimeout(`${DEFAULT_API_BASE_URL}/v1/provisioning/projects`, {
 			method: 'POST',
-			headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-			body: JSON.stringify(body),
+			headers: await this.platformHeaders(true),
+			body: JSON.stringify({ ...body, env: 'sandbox' }),
 		});
 		if (!response.ok) {
 			throw new Error(`platform_http_${response.status}`);
@@ -302,7 +395,7 @@ export class KuundaCloudService extends Disposable implements IKuundaCloudServic
 		}
 		try {
 			const response = await fetchWithTimeout(`${DEFAULT_API_BASE_URL}/v1/provisioning/projects/${encodeURIComponent(projectRef)}/tables`, {
-				headers: { Accept: 'application/json' },
+				headers: await this.platformHeaders(false),
 			});
 			if (!response.ok) {
 				return undefined;
@@ -326,6 +419,18 @@ export class KuundaCloudService extends Disposable implements IKuundaCloudServic
 			.filter((table) => /^[A-Za-z_][A-Za-z0-9_]{0,63}$/.test(table.name))
 			.slice(0, 50);
 		return rows.length ? rows : [{ name: 'items', rowCount: 0 }];
+	}
+
+	private async platformHeaders(json: boolean): Promise<Record<string, string>> {
+		const headers: Record<string, string> = { Accept: 'application/json' };
+		if (json) {
+			headers['Content-Type'] = 'application/json';
+		}
+		const token = await this.accountService.getAccessToken();
+		if (token) {
+			headers.Authorization = `Bearer ${token}`;
+		}
+		return headers;
 	}
 
 	private async readText(folder: URI, rel: string): Promise<string> {

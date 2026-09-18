@@ -13,6 +13,7 @@ import { BillingPlan, CheckoutResult, CreditAlertLevel, CreditsBalance, DEFAULT_
 import { kuundaBillingLocalize, paymentFailureMessage } from './kuundaBillingNls.js';
 import { classifyNetworkError, fetchWithTimeout } from '../../kuundaAi/common/networkPolicy.js';
 import { IKuundaLegalService } from '../../kuundaLegal/common/kuundaLegalService.js';
+import { IKuundaAccountService } from '../../kuundaAccount/common/kuundaAccountService.js';
 
 const USER_KEY = 'kuunda.billing.userId';
 
@@ -22,6 +23,7 @@ export interface IKuundaBillingService {
 	readonly accountUrl: string;
 	getUserId(): string | undefined;
 	setUserId(userId: string): Promise<void>;
+	clearUserId(): Promise<void>;
 	getBalance(): Promise<CreditsBalance | undefined>;
 	listPlans(): Promise<BillingPlan[]>;
 	listTransactions(): Promise<TransactionSummary[]>;
@@ -48,13 +50,13 @@ export class KuundaBillingService extends Disposable implements IKuundaBillingSe
 		@IStorageService private readonly storageService: IStorageService,
 		@INotificationService private readonly notificationService: INotificationService,
 		@IKuundaLegalService private readonly legalService: IKuundaLegalService,
+		@IKuundaAccountService private readonly accountService: IKuundaAccountService,
 	) {
 		super();
 	}
 
 	getUserId(): string | undefined {
-		const value = this.storageService.get(USER_KEY, StorageScope.APPLICATION);
-		return value?.trim() || undefined;
+		return this.accountService.getSession()?.userId || this.storageService.get(USER_KEY, StorageScope.APPLICATION)?.trim() || undefined;
 	}
 
 	async setUserId(userId: string): Promise<void> {
@@ -62,6 +64,14 @@ export class KuundaBillingService extends Disposable implements IKuundaBillingSe
 		this.lastAlert = undefined;
 		this.lastFailureId = undefined;
 		await this.getBalance();
+	}
+
+	async clearUserId(): Promise<void> {
+		this.storageService.remove(USER_KEY, StorageScope.APPLICATION);
+		this.balance = undefined;
+		this.lastAlert = undefined;
+		this.lastFailureId = undefined;
+		this._onDidChangeBalance.fire(undefined);
 	}
 
 	lastBalance(): CreditsBalance | undefined {
@@ -81,7 +91,7 @@ export class KuundaBillingService extends Disposable implements IKuundaBillingSe
 		}
 		try {
 			const response = await fetchWithTimeout(`${DEFAULT_API_BASE_URL}/v1/credits/${encodeURIComponent(userId)}`, {
-				headers: { Accept: 'application/json' },
+				headers: await this.platformHeaders(),
 			});
 			if (!response.ok) {
 				throw new Error(`platform_http_${response.status}`);
@@ -106,7 +116,7 @@ export class KuundaBillingService extends Disposable implements IKuundaBillingSe
 		}
 		try {
 			const response = await fetchWithTimeout(`${DEFAULT_API_BASE_URL}/v1/billing/plans`, {
-				headers: { Accept: 'application/json' },
+				headers: await this.platformHeaders(),
 			});
 			if (!response.ok) {
 				return [];
@@ -130,7 +140,7 @@ export class KuundaBillingService extends Disposable implements IKuundaBillingSe
 		}
 		try {
 			const response = await fetchWithTimeout(`${DEFAULT_API_BASE_URL}/v1/billing/transactions?userId=${encodeURIComponent(userId)}`, {
-				headers: { Accept: 'application/json' },
+				headers: await this.platformHeaders(),
 			});
 			if (!response.ok) {
 				return [];
@@ -155,7 +165,7 @@ export class KuundaBillingService extends Disposable implements IKuundaBillingSe
 		try {
 			const response = await fetchWithTimeout(`${DEFAULT_API_BASE_URL}/v1/billing/checkout`, {
 				method: 'POST',
-				headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+				headers: await this.platformHeaders(true),
 				body: JSON.stringify({ userId, planId }),
 			});
 			if (!response.ok) {
@@ -192,7 +202,7 @@ export class KuundaBillingService extends Disposable implements IKuundaBillingSe
 		try {
 			const response = await fetchWithTimeout(`${DEFAULT_API_BASE_URL}/v1/credits/consume`, {
 				method: 'POST',
-				headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+				headers: await this.platformHeaders(true),
 				body: JSON.stringify({ userId, amount, reason: 'agent_usage' }),
 			});
 			if (response.status === 402) {
@@ -214,6 +224,18 @@ export class KuundaBillingService extends Disposable implements IKuundaBillingSe
 		} catch (error) {
 			this.notifyNetwork(error);
 		}
+	}
+
+	private async platformHeaders(json = false): Promise<Record<string, string>> {
+		const headers: Record<string, string> = { Accept: 'application/json' };
+		if (json) {
+			headers['Content-Type'] = 'application/json';
+		}
+		const token = await this.accountService.getAccessToken();
+		if (token) {
+			headers.Authorization = `Bearer ${token}`;
+		}
+		return headers;
 	}
 
 	private notifyNetwork(error: unknown): void {

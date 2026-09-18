@@ -20,8 +20,8 @@
 		"fr": "Kuunda Cloud prêt ({0})."
 	},
 	"kuunda.cloud.provision.pendingUser": {
-		"en": "Kuunda Cloud is on, but no account id is set. Run Set Billing User, then Provision Kuunda Cloud. Placeholder credentials were written to gitignored files.",
-		"fr": "Kuunda Cloud est activé, mais aucun identifiant de compte n’est défini. Lancez Définir l’utilisateur de facturation, puis Provisionner Kuunda Cloud. Des identifiants placeholder ont été écrits dans des fichiers ignorés par git."
+		"en": "Create a Kuunda account to attach a Cloud sandbox to this IDE. The agent can then manage the sandbox; you promote migrations to production in Kuunda Cloud.",
+		"fr": "Créez un compte Kuunda pour rattacher un sandbox Cloud à cet IDE. L’agent gère ensuite le sandbox ; vous poussez les migrations en production depuis Kuunda Cloud."
 	},
 	"kuunda.cloud.provision.pendingApi": {
 		"en": "The project was created. Kuunda Cloud provisioning will retry when the platform is reachable. Placeholder credentials stay gitignored.",

@@ -69,8 +69,8 @@ export const KUUNDA_BILLING_STRINGS = {
 		fr: 'Kuunda Vibe : recharger ou changer de plan',
 	},
 	'kuunda.billing.checkout.needUser': {
-		en: 'Set a credits account id before checkout. No payment credentials are stored in the IDE.',
-		fr: 'Définissez un identifiant de compte crédits avant le paiement. Aucun identifiant de paiement n’est stocké dans l’IDE.',
+		en: 'Open Kuunda Studio and sign in before checkout. No payment credentials are stored in the IDE.',
+		fr: 'Ouvrez le Studio Kuunda et connectez-vous avant le paiement. Aucun identifiant de paiement n’est stocké dans l’IDE.',
 	},
 	'kuunda.billing.checkout.unavailable': {
 		en: 'Checkout is unavailable. Open plans from the account page, or try again later.',

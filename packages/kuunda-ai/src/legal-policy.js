@@ -13,6 +13,7 @@ export const EXTERNAL_FEATURES = Object.freeze([
 	'publish',
 	'billing',
 	'credits',
+	'auth',
 	'feedback',
 	'usage_telemetry',
 ]);
@@ -35,6 +36,8 @@ export const DATA_DISCLOSURE = Object.freeze([
 	{ id: 'prompts_byok', location: 'sent', thirdParty: 'ai_provider' },
 	{ id: 'completions_byok', location: 'sent', thirdParty: 'ai_provider' },
 	{ id: 'mcp_tools', location: 'sent', thirdParty: 'mcp_server' },
+	{ id: 'account_session', location: 'local', thirdParty: null },
+	{ id: 'account_identity', location: 'sent', thirdParty: 'kuunda_cloud' },
 	{ id: 'kuunda_cloud', location: 'sent', thirdParty: 'kuunda_cloud' },
 	{ id: 'store_credentials', location: 'local', thirdParty: null },
 	{ id: 'publish_metadata', location: 'sent', thirdParty: 'kuunda_cloud' },
@@ -96,18 +99,20 @@ export function formatDataDisclosure({ locale = 'en', strictOffline = false, agg
 			'- Fichiers du workspace, index @Codebase, règles de projet, diffs.',
 			'- Identifiants développeur stores (.p8, JSON Play, keystore) — gitignorés.',
 			'- Prompts envoyés à Ollama local (chat, Tab, Ctrl+K).',
+			'- Jeton de session Kuunda (coffre OS). Le mot de passe n’est jamais stocké.',
 			'- L’IDE ne stocke jamais de PAN / MSISDN / secret de paiement.',
 			'',
 			'Données envoyées à des tiers (si le mode hors ligne strict est désactivé) :',
 			'- Prompts, extraits de code, complétion Tab, Ctrl+K, messages de commit → fournisseur IA BYOK (Anthropic, OpenAI ou Gemini).',
 			'- Outils MCP → les serveurs MCP que vous avez configurés (refusés en hors-ligne strict).',
+			'- E-mail / identité de connexion → Kuunda Cloud (api.ide.kuunda-cloud.com), jamais le mot de passe en clair après l’appel.',
 			'- Métadonnées projet / tables seed → Kuunda Cloud (api.ide.kuunda-cloud.com).',
 			'- Identifiant de compte crédits, plan, montant → agrégateur de paiement (adaptateur actuel : ' + aggregator + ').',
 			'- Journaux de transaction (montant, statut, identifiant de livraison) conservés ' + TRANSACTION_LOG_RETENTION_DAYS + ' jours côté plateforme.',
 			'- Rapport de feedback opt-in (titre, catégorie, version IDE) → Kuunda Cloud. Aucune télémétrie d’usage silencieuse, aucun fichier workspace.',
 			'',
 			strictOffline
-				? 'Mode hors ligne strict : ACTIVÉ. Crédits, facturation en ligne, Kuunda Cloud, publication, feedback, MCP et LLM cloud (dont Tab / Ctrl+K) sont désactivés. Ollama local reste possible.'
+				? 'Mode hors ligne strict : ACTIVÉ. Connexion compte, crédits, facturation en ligne, Kuunda Cloud, publication, feedback, MCP et LLM cloud (dont Tab / Ctrl+K) sont désactivés. Ollama local reste possible.'
 				: 'Mode hors ligne strict : désactivé. Vous pouvez l’activer (F1) pour refuser tout envoi externe. La télémétrie VS Code/Void se désactive à part dans les paramètres.',
 		]
 		: [
@@ -115,18 +120,20 @@ export function formatDataDisclosure({ locale = 'en', strictOffline = false, agg
 			'- Workspace files, @Codebase index, project rules, diffs.',
 			'- Store developer credentials (.p8, Play JSON, keystore) — gitignored.',
 			'- Prompts sent to local Ollama (chat, Tab, Ctrl+K).',
+			'- Kuunda session token (OS secret store). The password is never stored.',
 			'- The IDE never stores PAN / Mobile Money MSISDN / payment secrets.',
 			'',
 			'Sent to third parties (when strict offline mode is off):',
 			'- Prompts, code excerpts, Tab completion, Ctrl+K, commit messages → your BYOK AI provider (Anthropic, OpenAI or Gemini).',
 			'- MCP tools → MCP servers you configured (refused in strict offline mode).',
+			'- Sign-in email / identity → Kuunda Cloud (api.ide.kuunda-cloud.com); the password is not kept after the call.',
 			'- Project metadata / seed tables → Kuunda Cloud (api.ide.kuunda-cloud.com).',
 			'- Credits account id, plan, amount → payment aggregator (current adapter: ' + aggregator + ').',
 			'- Transaction journals (amount, status, delivery id) kept ' + TRANSACTION_LOG_RETENTION_DAYS + ' days on the platform.',
 			'- Opt-in feedback report (title, category, IDE version) → Kuunda Cloud. No silent usage telemetry, no workspace files.',
 			'',
 			strictOffline
-				? 'Strict offline mode: ON. Online credits/billing, Kuunda Cloud, publishing, feedback, MCP and cloud LLMs (including Tab / Ctrl+K) are disabled. Local Ollama still works.'
+				? 'Strict offline mode: ON. Account sign-in, online credits/billing, Kuunda Cloud, publishing, feedback, MCP and cloud LLMs (including Tab / Ctrl+K) are disabled. Local Ollama still works.'
 				: 'Strict offline mode: off. Turn it on (F1) to refuse all external sends. VS Code/Void telemetry is separate — disable it in settings.',
 		];
 	return `${lines.join('\n')}\n`;
@@ -162,6 +169,7 @@ export function describeLicenseSplit() {
 			'genius-pay',
 			'kuunda-cloud-operator',
 			'credits-ledger',
+			'account-auth',
 			'update-control-plane',
 			'mobile-ci',
 			'feedback-plane',

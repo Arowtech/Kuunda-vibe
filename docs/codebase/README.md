@@ -21,6 +21,7 @@ Ce guide est mis à jour **à chaque phase**. Il n'est pas un README marketing.
 | [08bis-legal.md](08bis-legal.md) | 8bis : RGPD, privacy/ToS, hors-ligne strict, agrégateurs de paiement |
 | [09-packaging.md](09-packaging.md) | Phase 9 : kuunda-builder, signature, auto-update interne |
 | [10-post-launch.md](10-post-launch.md) | Phase 10 : feedback opt-in, backlog, plan upstream |
+| [11-account.md](11-account.md) | Phase 11 : compte Studio web ↔ IDE, OAuth, crédits |
 | `LICENSE` | Apache-2.0 (texte officiel non modifié) |
 | `LICENSE-VS-Code.txt` | MIT Code - OSS (Microsoft) |
 | `NOTICE` | Chaîne d'attribution Microsoft → Void → Arowtech |
@@ -48,6 +49,7 @@ Ce guide est mis à jour **à chaque phase**. Il n'est pas un README marketing.
 | 8bis Conformité et légal | **Validée** (steward, 17 sept. 2026) |
 | 9 Packaging et distribution | **En cours** (implémentée, validation steward) |
 | 10 Itération post-lancement | **En cours** |
+| 11 Compte Studio (web ↔ IDE) | **En cours** |
 
 Ne pas fusionner les phases. Ne pas démarrer N+1 sans validation explicite de N.
 
@@ -66,7 +68,8 @@ src/vs/workbench/contrib/kuundaCloud/    provision Cloud + panel (P6)
 src/vs/workbench/contrib/kuundaPublish/  publication mobile + panneau (P7)
 src/vs/workbench/contrib/kuundaLegal/     privacy / hors-ligne strict (8bis)
 src/vs/workbench/contrib/kuundaFeedback/  canal de retours opt-in (P10)
-packages/cloud-client/           contrats HTTP publics (crédits, billing, provisioning, publishing, feedback)
+src/vs/workbench/contrib/kuundaAccount/   Studio compte web ↔ IDE (P11)
+packages/cloud-client/           contrats HTTP publics (auth, crédits, billing, provisioning, publishing, feedback)
 src/vs/platform/update/            auto-update Ed25519 (P9)
 packages/kuunda-ai/              algorithmes testables (… packaging, post-launch)
 product.json                     nom Kuunda Vibe, quality=internal, updateUrl
@@ -74,5 +77,5 @@ product.json                     nom Kuunda Vibe, quality=internal, updateUrl
 
 ## Stack figée
 
-Voir `00-licence-et-gouvernance.md`, `00bis-infrastructure.md`, `01-rename.md`, `02-autocomplete-chat.md`, `03-agent.md`, `03bis-credits.md`, `04-devtools.md`, `04bis-extension-api.md`, `05-project-type.md`, `06-kuunda-cloud.md`, `07-publishing.md`, `08-reliability.md`, `08bis-legal.md`, `09-packaging.md`, `10-post-launch.md`.
+Voir `00-licence-et-gouvernance.md`, `00bis-infrastructure.md`, `01-rename.md`, `02-autocomplete-chat.md`, `03-agent.md`, `03bis-credits.md`, `04-devtools.md`, `04bis-extension-api.md`, `05-project-type.md`, `06-kuunda-cloud.md`, `07-publishing.md`, `08-reliability.md`, `08bis-legal.md`, `09-packaging.md`, `10-post-launch.md`, `11-account.md`.
 `engines` de compilation : ceux de Void/VS Code. Tests Kuunda : `npm test` (Node 24).

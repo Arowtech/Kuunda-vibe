@@ -67,6 +67,7 @@ import {
 	redactCloudPayload,
 	decideCloudProvisioning,
 	publicCloudRecord,
+	resolveCloudRecordAfterDecision,
 	mergeGitignore,
 	persistableAnonKey,
 	scaffoldCloudFiles,
@@ -114,6 +115,16 @@ import {
 	TRANSACTION_LOG_RETENTION_DAYS,
 	CREDIT_REFUND_POLICY,
 	describeLicenseSplit,
+	isValidEmail,
+	isStrongPassword,
+	classifyAuthError,
+	parseAuthTokens,
+	parseAccountProfile,
+	redirectUriForProtocol,
+	isAuthCallbackUri,
+	decideAccountGate,
+	parseStudioOpenIntent,
+	AUTH_PROVIDERS,
 	BUILDER_NAME,
 	UPDATE_BASE_URL,
 	DEFAULT_CHANNEL,
@@ -596,7 +607,18 @@ describe('Phase 6 — Kuunda Cloud par défaut', () => {
 		assert.equal(decideCloudProvisioning({ enabled: false }).action, 'skip');
 		assert.equal(decideCloudProvisioning({ enabled: true }).action, 'pending_user');
 		assert.equal(decideCloudProvisioning({ enabled: true, userId: 'u1', apiOk: false }).action, 'pending_api');
-		assert.equal(decideCloudProvisioning({ enabled: true, userId: 'u1', alreadyProvisioned: true }).action, 'reuse');
+		assert.equal(decideCloudProvisioning({ enabled: true, userId: 'u1', hasSession: false }).action, 'pending_user');
+		assert.equal(decideCloudProvisioning({ enabled: true, hasSession: true }).action, 'pending_user');
+		assert.equal(decideCloudProvisioning({ enabled: true, userId: 'u1', hasSession: true }).action, 'provision');
+		assert.equal(decideCloudProvisioning({ enabled: true, userId: 'u1', alreadyProvisioned: true, hasSession: false }).action, 'reuse');
+		assert.equal(resolveCloudRecordAfterDecision({
+			decision: { ok: true, action: 'pending_user', enabled: true },
+			previous: { enabled: true, projectRef: 'proj_ab', env: 'sandbox', url: 'https://proj-ab.kuunda-cloud.com' },
+		}).projectRef, 'proj_ab');
+		assert.equal(resolveCloudRecordAfterDecision({
+			decision: { ok: true, action: 'provision', enabled: true },
+			api: { kuundaProjectRef: 'proj_new', env: 'production', url: 'https://proj-new.kuunda-cloud.com' },
+		}).env, 'sandbox');
 		assert.equal(decideCloudProvisioning({ enabled: true, userId: 'u1', apiOk: true }).action, 'provision');
 		assert.equal(decideCloudProvisioning({ enabled: true, userId: 'u1' }).action, 'provision');
 		assert.equal(sanitizeCloudUrlSafe(), undefined);
@@ -633,6 +655,10 @@ describe('Phase 6 — Kuunda Cloud par défaut', () => {
 		assert.match(manifest, /"enabled": true/);
 		assert.doesNotMatch(manifest, /anonKey|service_role|sk_/);
 		assert.match(formatCloudContext(scaffold.cloud), /proj_ab/);
+		assert.match(formatCloudContext(scaffold.cloud), /sandbox/);
+		assert.match(formatCloudContext({ enabled: true }), /Studio/);
+		assert.match(formatCloudContext({ enabled: true, projectRef: 'proj_ab', env: 'sandbox' }), /promote/);
+		assert.match(formatCloudContext({ enabled: true, projectRef: 'proj_ab', env: 'production' }), /user-owned/);
 		assert.match(formatCloudPanel({ cloud: scaffold.cloud, tables: [{ name: 'items', rowCount: 0 }] }), /items \(0\)/);
 		assert.match(formatCloudPanel({ cloud: scaffold.cloud, tables: [{ name: 'items\n- evil', rowCount: 0 }] }), /unknown \(0\)/);
 		const website = scaffoldProjectFiles({ type: 'website', name: 'landing' });
@@ -903,6 +929,7 @@ describe('Phase 8bis — conformité et hors ligne strict', () => {
 		assert.equal(decideExternalSend({ strictOffline: true, feature: 'llm_cloud', provider: 'ollama' }).ok, true);
 		assert.equal(decideExternalSend({ strictOffline: true, feature: 'llm_cloud', provider: 'ollama' }).localOnly, true);
 		assert.equal(decideExternalSend({ strictOffline: true, feature: 'feedback' }).error, 'strict_offline');
+		assert.equal(decideExternalSend({ strictOffline: true, feature: 'auth' }).error, 'strict_offline');
 		assert.equal(decideExternalSend({ feature: 'usage_telemetry' }).error, 'silent_telemetry_forbidden');
 		assert.equal(decideExternalSend({ strictOffline: true, feature: 'usage_telemetry' }).error, 'silent_telemetry_forbidden');
 	});
@@ -912,6 +939,8 @@ describe('Phase 8bis — conformité et hors ligne strict', () => {
 		assert.ok(DATA_DISCLOSURE.some((row) => row.id === 'prompts_byok' && row.thirdParty === 'ai_provider'));
 		assert.ok(DATA_DISCLOSURE.some((row) => row.id === 'payment_instrument' && row.thirdParty === 'payment_aggregator'));
 		assert.ok(DATA_DISCLOSURE.some((row) => row.id === 'payment_credentials_ide' && row.location === 'never'));
+		assert.ok(DATA_DISCLOSURE.some((row) => row.id === 'account_session' && row.location === 'local'));
+		assert.ok(DATA_DISCLOSURE.some((row) => row.id === 'account_identity' && row.thirdParty === 'kuunda_cloud'));
 		assert.equal(TRANSACTION_LOG_RETENTION_DAYS, 1825);
 		assert.equal(CREDIT_REFUND_POLICY.consumed, 'non_refundable');
 		assert.equal(isKnownPaymentAggregator('genius-pay'), true);
@@ -1070,6 +1099,38 @@ describe('Phase 10 — itération post-lancement', () => {
 		assert.equal(due.wranglerDeploy, false);
 		assert.equal(planUpstreamSync({ daysSinceSync: 2 }).due, false);
 		assert.equal(planUpstreamSync({ daysSinceSync: 99999 }).due, false);
+	});
+});
+
+describe('Phase 11 — politique de compte Studio', () => {
+	it('valide e-mail / mot de passe et classe les erreurs sans secret', () => {
+		assert.deepEqual([...AUTH_PROVIDERS], ['email', 'google', 'github', 'apple']);
+		assert.equal(isValidEmail('dev@kuunda.cloud'), true);
+		assert.equal(isValidEmail('nope'), false);
+		assert.equal(isStrongPassword('short'), false);
+		assert.equal(isStrongPassword('long-enough-pass'), true);
+		assert.equal(classifyAuthError(new Error('platform_http_401')), 'invalid_credentials');
+		assert.equal(classifyAuthError(new Error('platform_http_501')), 'unavailable');
+		assert.equal(classifyAuthError(new Error('access_denied')), 'oauth_denied');
+		assert.equal(redirectUriForProtocol('kuunda-vibe'), 'kuunda-vibe://auth/callback');
+		assert.equal(isAuthCallbackUri({ scheme: 'kuunda-vibe', authority: 'auth' }), true);
+		assert.equal(decideAccountGate({ hasSession: false, feature: 'kuunda_cloud' }).error, 'need_session');
+		assert.deepEqual(parseStudioOpenIntent({ reason: 'cloud' }), { intent: 'signUp', reason: 'cloud' });
+		assert.deepEqual(parseStudioOpenIntent({ intent: 'signIn' }), { intent: 'signIn', reason: 'account' });
+		assert.deepEqual(parseStudioOpenIntent(['cloud']), { intent: 'signIn', reason: 'account' });
+		assert.equal(decideAccountGate({ hasSession: false, feature: 'llm_cloud' }).ok, true);
+		const session = parseAuthTokens({
+			accessToken: 'runtime-session',
+			refreshToken: 'runtime-refresh',
+			userId: 'u1',
+			email: 'dev@kuunda.cloud',
+			displayName: 'Dev',
+			providers: ['email', 'google'],
+		});
+		assert.equal(session?.profile.userId, 'u1');
+		assert.equal(session?.accessToken, 'runtime-session');
+		assert.equal(parseAccountProfile({ password: 'secret', userId: 'u1', email: 'dev@kuunda.cloud' }).userId, 'u1');
+		assert.equal(JSON.stringify(parseAccountProfile({ password: 'secret', userId: 'u1' })).includes('secret'), false);
 	});
 });
 

@@ -112,6 +112,7 @@ export {
 	formatCloudPanel,
 	serializeManifestWithCloud,
 	sanitizeProjectRef,
+	resolveCloudRecordAfterDecision,
 } from './cloud-provision.js';
 export {
 	PROJECT_TYPES,
@@ -217,6 +218,28 @@ export {
 	planKuundaBuild,
 	formatUpdateIntegrityError,
 } from './packaging-policy.js';
+export {
+	AUTH_PROVIDERS,
+	OAUTH_PROVIDERS,
+	AUTH_ERROR_CODES,
+	USAGE_FEATURES,
+	MIN_PASSWORD_LENGTH,
+	AUTH_CALLBACK_AUTHORITY,
+	isValidEmail,
+	isStrongPassword,
+	normalizeAuthProvider,
+	classifyAuthError,
+	parseAccountProfile,
+	parseAuthTokens,
+	parseDeviceStart,
+	parseUsageSnapshot,
+	parseAccountSessions,
+	redirectUriForProtocol,
+	isAuthCallbackUri,
+	parseAuthCallbackQuery,
+	decideAccountGate,
+	parseStudioOpenIntent,
+} from './account-policy.js';
 export {
 	FEEDBACK_CHANNEL,
 	FEEDBACK_PATH,

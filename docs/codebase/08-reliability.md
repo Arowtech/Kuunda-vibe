@@ -4,7 +4,7 @@
 **Validation steward :** validée (steward, 17 sept. 2026)
 **Prérequis :** Phase 7 validée (17 sept. 2026)
 
-Phase de durcissement. Pas de nouveau produit (pas d'auth session, pas de packaging). Les appels externes ont un timeout, les secrets restent hors git, le shell agent demande confirmation par défaut.
+Phase de durcissement. Pas de packaging. Les appels externes ont un timeout, les secrets restent hors git, le shell agent demande confirmation par défaut.
 
 ## Choix techniques
 
@@ -14,7 +14,7 @@ Phase de durcissement. Pas de nouveau produit (pas d'auth session, pas de packag
 | `fetchWithTimeout` 15 s | 8.3 : AbortController, codes opaques `timeout` / `offline` / `http` |
 | Audit `auditCredentialStorage` | 8.1 : gitignore obligatoire + persistables sans `private_key` / Genius Pay |
 | `rewritePersistentShell` fail-closed | `cd` / `CD` / `pushd` / `&` / `||` hors workspace refusés ; un `cd` illisible est refusé |
-| Auth `/v1/auth/session` reste 501 | Hors 8.1–8.4 (roadmap original). userId-in-body inchangé |
+| Auth session | Voir Phase 11 (`kuundaAccount`) |
 
 ## Livrables
 
@@ -42,7 +42,6 @@ Phase de durcissement. Pas de nouveau produit (pas d'auth session, pas de packag
 
 ## Hors de portée
 
-- Auth session réelle (`POST /v1/auth/session` reste 501)
-- Phase 10 post-lancement
+- Phase 10 post-lancement (livrée à part)
 - `wrangler deploy`
 - Application SQL 0004

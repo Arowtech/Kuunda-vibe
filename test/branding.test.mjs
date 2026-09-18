@@ -92,6 +92,7 @@ describe('Phase 1 — branding Kuunda Vibe', () => {
 			'src/vs/workbench/contrib/kuundaPublish/common/kuundaPublishNls.ts',
 			'src/vs/workbench/contrib/kuundaLegal/common/kuundaLegalNls.ts',
 			'src/vs/workbench/contrib/kuundaFeedback/common/kuundaFeedbackNls.ts',
+			'src/vs/workbench/contrib/kuundaAccount/common/kuundaAccountNls.ts',
 		];
 		for (const file of files) {
 			const src = read(file);

@@ -3,6 +3,7 @@
  *  SPDX-License-Identifier: Apache-2.0
  *--------------------------------------------------------------------------------------------*/
 
+import { Disposable } from '../../../../base/common/lifecycle.js';
 import { Registry } from '../../../../platform/registry/common/platform.js';
 import { SyncDescriptor } from '../../../../platform/instantiation/common/descriptors.js';
 import { IWorkbenchContribution, IWorkbenchContributionsRegistry, Extensions as WorkbenchExtensions } from '../../../common/contributions.js';
@@ -10,6 +11,7 @@ import { LifecyclePhase } from '../../../services/lifecycle/common/lifecycle.js'
 import { Action2, registerAction2 } from '../../../../platform/actions/common/actions.js';
 import { ServicesAccessor } from '../../../../platform/instantiation/common/instantiation.js';
 import { INotificationService } from '../../../../platform/notification/common/notification.js';
+import { ICommandService } from '../../../../platform/commands/common/commands.js';
 import { IQuickInputService } from '../../../../platform/quickinput/common/quickInput.js';
 import { IDialogService } from '../../../../platform/dialogs/common/dialogs.js';
 import { IViewsService } from '../../../services/views/common/viewsService.js';
@@ -37,6 +39,8 @@ import { $, append } from '../../../../base/browser/dom.js';
 import { IKuundaProjectService } from '../../kuundaProject/common/kuundaProjectService.js';
 import { kuundaCloudLocalize, kuundaCloudLocalize2, KUUNDA_CLOUD_STRINGS, type KuundaCloudStringKey } from '../common/kuundaCloudNls.js';
 import { IKuundaCloudService, type CloudProvisionResult } from '../common/kuundaCloudService.js';
+import { IKuundaAccountService } from '../../kuundaAccount/common/kuundaAccountService.js';
+import { IWorkspaceContextService } from '../../../../platform/workspace/common/workspace.js';
 
 export const KUUNDA_CLOUD_VIEW_CONTAINER_ID = 'workbench.view.kuundaCloud';
 export const KUUNDA_CLOUD_VIEW_ID = 'kuunda.cloud.panel';
@@ -110,14 +114,67 @@ Registry.as<IViewsRegistry>(ViewExtensions.ViewsRegistry).registerViews([{
 	order: 1,
 }], container);
 
-class KuundaCloudContribution implements IWorkbenchContribution {
+class KuundaCloudContribution extends Disposable implements IWorkbenchContribution {
 	static readonly ID = 'workbench.contrib.kuundaCloud';
 
 	constructor(
 		@IKuundaCloudService cloud: IKuundaCloudService,
+		@IKuundaAccountService account: IKuundaAccountService,
+		@INotificationService notify: INotificationService,
+		@ICommandService commands: ICommandService,
+		@IWorkspaceContextService workspace: IWorkspaceContextService,
 	) {
+		super();
 		kuundaCloudLocalize('kuunda.cloud.tagline');
 		void cloud.formatPanel();
+		void this.boot(cloud, commands, notify);
+		this._register(account.onDidChangeSession((session) => {
+			if (session?.userId) {
+				this.studioPrompted = false;
+				void this.afterSignIn(cloud, notify, commands);
+			}
+		}));
+		this._register(workspace.onDidChangeWorkspaceFolders(() => {
+			void this.boot(cloud, commands, notify);
+		}));
+	}
+
+	private studioPrompted = false;
+
+	private async boot(
+		cloud: IKuundaCloudService,
+		commands: ICommandService,
+		notify: INotificationService,
+	): Promise<void> {
+		if (await cloud.needsStudioLink()) {
+			await this.openStudioForCloud(commands, notify);
+			return;
+		}
+		await this.afterSignIn(cloud, notify, commands);
+	}
+
+	private async afterSignIn(
+		cloud: IKuundaCloudService,
+		notify: INotificationService,
+		commands: ICommandService,
+	): Promise<void> {
+		const results = await cloud.retryUnlinkedFolders();
+		for (const result of results) {
+			if (result.ok && (result.action === 'provision' || result.action === 'reuse')) {
+				notify.info(kuundaCloudLocalize('kuunda.cloud.provision.ok', result.cloud.projectRef || 'proj'));
+			} else if (result.ok && result.action === 'pending_user') {
+				await this.openStudioForCloud(commands, notify);
+			}
+		}
+	}
+
+	private async openStudioForCloud(commands: ICommandService, notify: INotificationService): Promise<void> {
+		if (this.studioPrompted) {
+			return;
+		}
+		this.studioPrompted = true;
+		notify.info(kuundaCloudLocalize('kuunda.cloud.provision.pendingUser'));
+		await commands.executeCommand('kuunda.account.openStudio', { intent: 'signUp', reason: 'cloud' });
 	}
 }
 
@@ -135,7 +192,7 @@ async function runOnPrimaryFolder(
 		return;
 	}
 	const result = await fn(cloud, folder);
-	notifyCloudResult(notify, result, successKey);
+	notifyCloudResult(notify, result, successKey, accessor.get(ICommandService));
 }
 
 async function pickWorkspaceFolder(
@@ -169,7 +226,7 @@ async function pickWorkspaceFolder(
 	return rows.find((row) => row.folder.toString() === picked.id)?.folder;
 }
 
-function notifyCloudResult(notify: INotificationService, result: CloudProvisionResult, successKey: KuundaCloudStringKey): void {
+function notifyCloudResult(notify: INotificationService, result: CloudProvisionResult, successKey: KuundaCloudStringKey, commandService?: ICommandService): void {
 	if (!result.ok) {
 		const key = `kuunda.cloud.error.${result.error}` as KuundaCloudStringKey;
 		if (key in KUUNDA_CLOUD_STRINGS) {
@@ -181,6 +238,7 @@ function notifyCloudResult(notify: INotificationService, result: CloudProvisionR
 	}
 	if (result.action === 'pending_user') {
 		notify.info(kuundaCloudLocalize('kuunda.cloud.provision.pendingUser'));
+		void commandService?.executeCommand('kuunda.account.openStudio', { intent: 'signUp', reason: 'cloud' });
 		return;
 	}
 	if (result.action === 'pending_api') {

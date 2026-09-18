@@ -3,6 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 // Modified 2026-09-17 by Arowtech: register isolated Kuunda branding, AI, billing, extensions, project picker, cloud, publishing, legal and feedback.
+// Modified 2026-09-18 by Arowtech: register isolated Kuunda account Studio before billing.
 
 //#region --- editor/workbench core
 
@@ -20,6 +21,7 @@ import './contrib/void/browser/void.contribution.js'; // Void added this
 //#region --- Kuunda Vibe (Arowtech, Apache-2.0)
 import './contrib/kuundaBrand/browser/kuundaBrand.contribution.js';
 import './contrib/kuundaAi/browser/kuundaAi.contribution.js';
+import './contrib/kuundaAccount/browser/kuundaAccount.contribution.js';
 import './contrib/kuundaBilling/browser/kuundaBilling.contribution.js';
 import './contrib/kuundaExt/browser/kuundaExt.contribution.js';
 import './contrib/kuundaProject/browser/kuundaProject.contribution.js';

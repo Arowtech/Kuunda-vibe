@@ -10,6 +10,7 @@ import { IWorkbenchContribution, IWorkbenchContributionsRegistry, Extensions as 
 import { LifecyclePhase } from '../../../services/lifecycle/common/lifecycle.js';
 import { Action2, registerAction2 } from '../../../../platform/actions/common/actions.js';
 import { ServicesAccessor } from '../../../../platform/instantiation/common/instantiation.js';
+import { ICommandService } from '../../../../platform/commands/common/commands.js';
 import { INotificationService } from '../../../../platform/notification/common/notification.js';
 import { IQuickInputService } from '../../../../platform/quickinput/common/quickInput.js';
 import { IOpenerService } from '../../../../platform/opener/common/opener.js';
@@ -18,12 +19,14 @@ import { kuundaBillingLocalize, kuundaBillingLocalize2 } from '../common/kuundaB
 import { IKuundaBillingService } from '../common/kuundaBillingService.js';
 import { IKuundaLegalService } from '../../kuundaLegal/common/kuundaLegalService.js';
 import { kuundaLegalLocalize } from '../../kuundaLegal/common/kuundaLegalNls.js';
+import { IKuundaAccountService } from '../../kuundaAccount/common/kuundaAccountService.js';
 
 class KuundaBillingContribution extends Disposable implements IWorkbenchContribution {
 	static readonly ID = 'workbench.contrib.kuundaBilling';
 
 	constructor(
 		@IKuundaBillingService billing: IKuundaBillingService,
+		@IKuundaAccountService account: IKuundaAccountService,
 		@IStatusbarService statusbar: IStatusbarService,
 	) {
 		super();
@@ -32,21 +35,34 @@ class KuundaBillingContribution extends Disposable implements IWorkbenchContribu
 			name: kuundaBillingLocalize('kuunda.billing.statusbar.unset'),
 			text: kuundaBillingLocalize('kuunda.billing.statusbar.unset'),
 			ariaLabel: kuundaBillingLocalize('kuunda.billing.statusbar.unset'),
-			command: 'kuunda.billing.refresh',
+			command: 'kuunda.account.openStudio',
 		}, 'kuunda.billing.credits', StatusbarAlignment.RIGHT, 50);
 		this._register(entry);
-		this._register(billing.onDidChangeBalance((balance) => {
+		const paint = () => {
+			const session = account.getSession();
+			const balance = billing.lastBalance();
 			const text = balance
 				? kuundaBillingLocalize('kuunda.billing.statusbar', balance.remaining)
-				: kuundaBillingLocalize('kuunda.billing.statusbar.unset');
+				: session
+					? `${session.displayName || session.email}`
+					: kuundaBillingLocalize('kuunda.billing.statusbar.unset');
 			entry.update({
 				name: text,
 				text,
 				ariaLabel: text,
-				command: 'kuunda.billing.refresh',
+				command: 'kuunda.account.openStudio',
 			});
+		};
+		this._register(billing.onDidChangeBalance(() => paint()));
+		this._register(account.onDidChangeSession((session) => {
+			if (session?.userId) {
+				void billing.setUserId(session.userId);
+			} else {
+				void billing.clearUserId();
+			}
+			paint();
 		}));
-		void billing.getBalance();
+		void billing.getBalance().then(() => paint());
 	}
 }
 
@@ -129,6 +145,7 @@ registerAction2(class extends Action2 {
 		}
 		if (!billing.getUserId()) {
 			notify.info(kuundaBillingLocalize('kuunda.billing.checkout.needUser'));
+			await accessor.get(ICommandService).executeCommand('kuunda.account.openStudio');
 			return;
 		}
 		const plans = await billing.listPlans();

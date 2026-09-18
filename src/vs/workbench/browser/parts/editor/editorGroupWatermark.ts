@@ -28,6 +28,7 @@ import { IViewsService } from '../../../services/views/common/viewsService.js';
 import { VOID_CTRL_K_ACTION_ID, VOID_CTRL_L_ACTION_ID } from '../../../contrib/void/browser/actionIDs.js';
 import { VIEWLET_ID as REMOTE_EXPLORER_VIEWLET_ID } from '../../../contrib/remote/browser/remoteExplorer.js';
 import { appendKuundaHomeProjectCards } from '../../../contrib/kuundaProject/browser/kuundaProjectCards.js';
+import { appendKuundaHomeAccountCta } from '../../../contrib/kuundaAccount/browser/kuundaAccountStudio.js';
 /* eslint-enable */
 
 // interface WatermarkEntry {
@@ -190,6 +191,7 @@ export class EditorGroupWatermark extends Disposable {
 				buttonContainer.style.alignItems = 'center'; // Center the buttons horizontally
 				buttonContainer.style.gap = '8px'; // Reduce gap between buttons from 16px to 8px
 				buttonContainer.style.marginBottom = '16px';
+				appendKuundaHomeAccountCta(voidIconBox, this.commandService);
 				appendKuundaHomeProjectCards(voidIconBox, this.commandService);
 				voidIconBox.appendChild(buttonContainer);
 

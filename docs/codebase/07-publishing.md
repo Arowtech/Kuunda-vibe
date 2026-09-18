@@ -11,7 +11,7 @@ Les projets **mobile** publient vers Google Play et/ou App Store depuis un panne
 | Choix | Pourquoi |
 | --- | --- |
 | Credentials copiés sous `.kuunda/` gitignoré | L'API ne reçoit que des drapeaux + métadonnées, jamais le secret store |
-| `POST /v1/publishing/jobs` (userId dans le body) | Même motif que 3bis/6 tant que `/v1/auth/session` est 501 |
+| `POST /v1/publishing/jobs` (userId + Bearer de session) | Identité Studio (Phase 11) |
 | `resolveGitHubRunner` (0bis.4) | Android = `ubuntu-latest`, iOS = `macos-latest` ; self-hosted plus tard sans changer la facturation |
 | Dry-run `pending_ci` si `GITHUB_DISPATCH_TOKEN` absent | Pas d'invention de dispatch GitHub, pas de binaire AAB/IPA fictif |
 | Contrib isolé `kuundaPublish/` | Pas de mélange avec le cœur VS Code / Void |

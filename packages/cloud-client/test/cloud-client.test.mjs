@@ -70,6 +70,10 @@ describe('platform HTTP client', () => {
 		await client.getPublishJob('job_ab', 'u1');
 		await client.getPublishLogs('job_ab', 'u1');
 		await client.submitFeedback({ category: 'docs', severity: 1, title: 'typo', consent: true });
+		await client.loginAccount({ email: 'dev@kuunda.cloud', password: 'long-enough-pass' });
+		await client.startOAuth({ provider: 'google', redirectUri: 'kuunda-vibe://auth/callback', codeChallenge: 'abc', state: 's1' });
+		await client.getAccountMe();
+		await client.getAccountUsage();
 		assert.deepEqual(paths, [
 			'POST /v1/credits/signup',
 			'POST /v1/credits/consume',
@@ -80,6 +84,10 @@ describe('platform HTTP client', () => {
 			'GET /v1/publishing/jobs/job_ab',
 			'GET /v1/publishing/jobs/job_ab/logs',
 			'POST /v1/feedback',
+			'POST /v1/auth/login',
+			'POST /v1/auth/oauth/start',
+			'GET /v1/account/me',
+			'GET /v1/account/usage',
 		]);
 	});
 });

@@ -116,5 +116,85 @@ export function createPlatformClient(options = {}) {
 				body: JSON.stringify(body),
 			});
 		},
+		/** @type {import('./contracts.js').IAuthClient['signupAccount']} */
+		signupAccount(body) {
+			return request('/v1/auth/signup', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify(body),
+			});
+		},
+		/** @type {import('./contracts.js').IAuthClient['loginAccount']} */
+		loginAccount(body) {
+			return request('/v1/auth/login', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify(body),
+			});
+		},
+		/** @type {import('./contracts.js').IAuthClient['startOAuth']} */
+		startOAuth(body) {
+			return request('/v1/auth/oauth/start', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify(body),
+			});
+		},
+		/** @type {import('./contracts.js').IAuthClient['finishOAuth']} */
+		finishOAuth(body) {
+			return request('/v1/auth/oauth/finish', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify(body),
+			});
+		},
+		/** @type {import('./contracts.js').IAuthClient['startDevice']} */
+		startDevice() {
+			return request('/v1/auth/device/start', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ client: 'ide' }),
+			});
+		},
+		/** @type {import('./contracts.js').IAuthClient['pollDevice']} */
+		pollDevice(body) {
+			return request('/v1/auth/device/poll', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify(body),
+			});
+		},
+		/** @type {import('./contracts.js').IAuthClient['refreshSession']} */
+		refreshSession(body) {
+			return request('/v1/auth/refresh', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify(body),
+			});
+		},
+		/** @type {import('./contracts.js').IAuthClient['logoutSession']} */
+		logoutSession() {
+			return request('/v1/auth/logout', { method: 'POST' });
+		},
+		/** @type {import('./contracts.js').IAuthClient['getAccountMe']} */
+		getAccountMe() {
+			return request('/v1/account/me');
+		},
+		/** @type {import('./contracts.js').IAuthClient['getAccountUsage']} */
+		getAccountUsage() {
+			return request('/v1/account/usage');
+		},
+		/** @type {import('./contracts.js').IAuthClient['listAccountSessions']} */
+		listAccountSessions() {
+			return request('/v1/account/sessions');
+		},
+		/** @type {import('./contracts.js').IAuthClient['revokeAccountSession']} */
+		revokeAccountSession(sessionId) {
+			return request(`/v1/account/sessions/${encodeURIComponent(sessionId)}`, { method: 'DELETE' });
+		},
+		/** @type {import('./contracts.js').IAuthClient['createWebHandoff']} */
+		createWebHandoff() {
+			return request('/v1/auth/web-handoff', { method: 'POST' });
+		},
 	};
 }

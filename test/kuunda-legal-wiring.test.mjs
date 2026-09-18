@@ -32,6 +32,8 @@ describe('Phase 8bis — branchement conformité / légal', () => {
 		const billing = read('src/vs/workbench/contrib/kuundaBilling/common/kuundaBillingService.ts');
 		assert.match(billing, /decideSend\('credits'\)/);
 		assert.match(billing, /decideSend\('billing'\)/);
+		const account = read('src/vs/workbench/contrib/kuundaAccount/common/kuundaAccountService.ts');
+		assert.match(account, /decideSend\('auth'\)/);
 		const cloud = read('src/vs/workbench/contrib/kuundaCloud/common/kuundaCloudService.ts');
 		assert.match(cloud, /strict_offline/);
 		assert.match(cloud, /decideSend\('kuunda_cloud'\)/);

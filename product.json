@@ -46,6 +46,8 @@
 	"linkProtectionTrustedDomains": [
 		"https://ide.kuunda-cloud.com",
 		"https://api.ide.kuunda-cloud.com",
+		"https://app.ide.kuunda-cloud.com",
+		"https://app.kuunda.cloud",
 		"https://updates.ide.kuunda-cloud.com",
 		"https://open-vsx.org",
 		"https://github.com/Arowtech/Kuunda-vibe",

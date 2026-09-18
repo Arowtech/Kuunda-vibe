@@ -51,6 +51,7 @@
  * @property {string} [projectId]
  * @property {string} [projectType]
  * @property {boolean} [replace]
+ * @property {'sandbox' | 'production'} [env]
  *
  * @typedef {object} ProvisioningResult
  * @property {string} projectId
@@ -93,6 +94,52 @@
  * @typedef {object} IFeedbackClient
  * @property {(body: object) => Promise<{ ok: boolean, id: string }>} submitFeedback
  *
+ * @typedef {'email' | 'google' | 'github' | 'apple'} AuthProvider
+ *
+ * @typedef {object} AccountProfile
+ * @property {string} userId
+ * @property {string} email
+ * @property {string} [displayName]
+ * @property {boolean} [emailVerified]
+ * @property {string} [planId]
+ * @property {string} [orgName]
+ * @property {string} [orgPlan]
+ * @property {AuthProvider[]} [providers]
+ *
+ * @typedef {object} AuthSession
+ * @property {string} accessToken
+ * @property {string} [refreshToken]
+ * @property {number} [expiresAt]
+ * @property {AccountProfile} profile
+ *
+ * @typedef {object} DeviceAuthStart
+ * @property {string} deviceCode
+ * @property {string} userCode
+ * @property {string} verificationUrl
+ * @property {number} [expiresIn]
+ * @property {number} [interval]
+ *
+ * @typedef {object} AccountUsageSnapshot
+ * @property {string} period
+ * @property {{ remaining: number, includedQuota: number, used: number }} credits
+ * @property {Array<{ feature: string, amount: number }>} breakdown
+ * @property {Array<{ date: string, amount: number }>} days
+ *
+ * @typedef {object} IAuthClient
+ * @property {(body: { email: string, password: string, displayName?: string }) => Promise<AuthSession>} signupAccount
+ * @property {(body: { email: string, password: string }) => Promise<AuthSession>} loginAccount
+ * @property {(body: { provider: string, redirectUri: string, codeChallenge: string, state: string }) => Promise<{ authorizationUrl: string, state: string }>} startOAuth
+ * @property {(body: { provider: string, code: string, codeVerifier: string, state: string }) => Promise<AuthSession>} finishOAuth
+ * @property {() => Promise<DeviceAuthStart>} startDevice
+ * @property {(body: { deviceCode: string }) => Promise<AuthSession | { pending: true }>} pollDevice
+ * @property {(body: { refreshToken: string }) => Promise<AuthSession>} refreshSession
+ * @property {() => Promise<null>} logoutSession
+ * @property {() => Promise<AccountProfile>} getAccountMe
+ * @property {() => Promise<AccountUsageSnapshot>} getAccountUsage
+ * @property {() => Promise<Array<{ id: string, label: string, current?: boolean, createdAt?: string, lastSeenAt?: string }>>} listAccountSessions
+ * @property {(sessionId: string) => Promise<null>} revokeAccountSession
+ * @property {() => Promise<{ url: string }>} createWebHandoff
+ *
  * @typedef {object} UpdateArtifact
  * @property {Uint8Array} bytes
  * @property {Uint8Array} signature
@@ -105,6 +152,7 @@
 export const DEFAULT_API_BASE_URL = 'https://api.ide.kuunda-cloud.com';
 export const DEFAULT_UPDATES_BASE_URL = 'https://updates.ide.kuunda-cloud.com';
 export const DEFAULT_ACCOUNT_URL = 'https://app.ide.kuunda-cloud.com/app/';
+export const DEFAULT_CLOUD_APP_URL = 'https://app.kuunda.cloud';
 
 export const PAYMENT_FAILURE_CODES = Object.freeze([
 	'insufficient_funds',

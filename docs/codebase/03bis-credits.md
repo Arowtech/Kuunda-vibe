@@ -27,8 +27,9 @@ Frontière figée (Phase 0.2) : **UI + contrats** dans ce dépôt public ; **led
 
 ## Hors de portée
 
-- Auth session réelle (reste 501 côté API)
-- Persist ledger SQL (`sql/0002` privé, Worker isolate mémoire jusqu'au deploy + adaptateur)
+- Implémentation Worker / SQL du ledger (dépôt privé)
 - Session Genius Pay live (`wrangler secret` + API fournisseur — le checkout IDE ouvre l'URL hébergée)
 - SLA / restore SQL (ouverts depuis 0bis)
 - Terminal agent / `.projectrules` (Phase 4)
+
+L’identité n’est plus un `userId` saisi à la main : voir [11-account.md](11-account.md).

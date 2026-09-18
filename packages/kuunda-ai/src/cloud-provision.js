@@ -76,6 +76,7 @@ export function redactCloudPayload(payload) {
 export function decideCloudProvisioning({
 	enabled = CLOUD_ENABLED_DEFAULT,
 	userId,
+	hasSession,
 	alreadyProvisioned = false,
 	apiOk,
 } = {}) {
@@ -85,13 +86,38 @@ export function decideCloudProvisioning({
 	if (alreadyProvisioned) {
 		return { ok: true, action: 'reuse', enabled: true };
 	}
-	if (!String(userId || '').trim()) {
+	const signedIn = hasSession === true || (hasSession !== false && Boolean(String(userId || '').trim()));
+	if (!signedIn || !String(userId || '').trim()) {
 		return { ok: true, action: 'pending_user', enabled: true };
 	}
 	if (apiOk === false) {
 		return { ok: true, action: 'pending_api', enabled: true };
 	}
 	return { ok: true, action: 'provision', enabled: true };
+}
+
+export function resolveCloudRecordAfterDecision({
+	decision,
+	api,
+	previous,
+} = {}) {
+	if (decision?.action === 'skip') {
+		return publicCloudRecord({ ...previous, enabled: false });
+	}
+	if (decision?.action === 'provision') {
+		return publicCloudRecord({
+			enabled: true,
+			projectRef: api?.kuundaProjectRef || api?.projectId,
+			env: 'sandbox',
+			url: api?.url,
+		});
+	}
+	return publicCloudRecord({
+		enabled: true,
+		projectRef: previous?.projectRef || api?.kuundaProjectRef || api?.projectId,
+		env: previous?.env === 'production' || previous?.env === 'sandbox' ? previous.env : undefined,
+		url: previous?.url || api?.url,
+	});
 }
 
 export function serializeManifestWithCloud(manifest, cloud) {
@@ -180,7 +206,7 @@ export function crudClientSource(type) {
 export function cloudReadmeSection({ enabled, url } = {}) {
 	const state = enabled === false ? 'disabled' : 'enabled by default';
 	const endpoint = sanitizeCloudUrl(url) || SECRET_PLACEHOLDER;
-	return `\n## Kuunda Cloud\n\nProvisioning is **${state}**. REST URL: \`${endpoint}\`.\nCopy \`.env.local\` from the scaffold (gitignored) and replace \`${SECRET_PLACEHOLDER}\` with the project anon key issued at runtime. Never commit operator or service_role keys.\nCRUD helper: \`${CLOUD_CLIENT_PATH}\` (\`${SEED_TABLE}\` table).\n`;
+	return `\n## Kuunda Cloud\n\nProvisioning is **${state}**. REST URL: \`${endpoint}\`.\nSign in (or create a Kuunda account) in Studio to attach a **sandbox** to this IDE. The agent may manage that sandbox; you promote migrations to production from Kuunda Cloud.\nCopy \`.env.local\` from the scaffold (gitignored) and replace \`${SECRET_PLACEHOLDER}\` with the project anon key issued at runtime. Never commit operator or service_role keys.\nCRUD helper: \`${CLOUD_CLIENT_PATH}\` (\`${SEED_TABLE}\` table).\n`;
 }
 
 export function scaffoldCloudFiles({ type, enabled = true, projectRef, env, url, anonKey, existingGitignore = '' } = {}) {
@@ -217,9 +243,14 @@ export function formatCloudContext(cloud) {
 	if (publicCloud.enabled === false) {
 		return 'Kuunda Cloud: disabled (replaceable in project settings).';
 	}
-	const ref = publicCloud.projectRef || 'pending';
+	if (!publicCloud.projectRef) {
+		return 'Kuunda Cloud: enabled but not linked. Ask the user to create or sign in to their Kuunda account in Studio so this IDE can attach a sandbox database. Do not invent credentials or a production URL.';
+	}
 	const env = publicCloud.env || 'sandbox';
-	return `Kuunda Cloud: enabled ref=${ref} env=${env}`;
+	if (env === 'production') {
+		return `Kuunda Cloud: enabled ref=${publicCloud.projectRef} env=production. Treat production as user-owned. Do not apply schema or data migrations there. The user promotes sandbox work from the Kuunda Cloud dashboard.`;
+	}
+	return `Kuunda Cloud: enabled ref=${publicCloud.projectRef} env=sandbox. You may manage this sandbox autonomously (schema, migrations, seed data). Never push to production; tell the user to promote migrations in Kuunda Cloud (app.kuunda.cloud).`;
 }
 
 export function formatCloudPanel({ cloud, tables } = {}) {
@@ -234,6 +265,13 @@ export function formatCloudPanel({ cloud, tables } = {}) {
 	}
 	if (publicCloud.url) {
 		lines.push(`url: ${publicCloud.url}`);
+	}
+	if (!publicCloud.projectRef) {
+		lines.push('link: create a Kuunda account in Studio to attach this IDE');
+	} else if ((publicCloud.env || 'sandbox') === 'sandbox') {
+		lines.push('agent: sandbox (autonomous). production: you promote in Kuunda Cloud.');
+	} else {
+		lines.push('production is user-owned — promote from Kuunda Cloud, not the agent.');
 	}
 	const rows = Array.isArray(tables) ? tables : [];
 	if (!rows.length) {
