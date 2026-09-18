@@ -43,6 +43,8 @@ env:
   CHANNEL: ${{ inputs.channel }}
   PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
   NODE_OPTIONS: --max-old-space-size=8192
+  # @vscode/ripgrep postinstall hits api.github.com; unauthenticated GHA runners get 403.
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 jobs:
   plan:

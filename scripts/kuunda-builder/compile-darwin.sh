@@ -13,6 +13,7 @@ cd "$ROOT"
 export NODE_OPTIONS="--max-old-space-size=8192"
 export PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
 export VSCODE_ARCH="$ARCH"
+# npm ci downloads microsoft/ripgrep-prebuilt via the GitHub API (needs GITHUB_TOKEN in CI).
 
 run() {
 	echo "==> $*"
