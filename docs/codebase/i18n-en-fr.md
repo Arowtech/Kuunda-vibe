@@ -15,7 +15,7 @@
 
 Réutiliser le mécanisme VS Code / Void déjà présent, plus un helper isolé :
 
-- `src/vs/workbench/contrib/kuundaBrand/common/kuundaNls.ts` lit `getNLSLanguage()` : `en` par défaut, `fr` / `fr-*` pour le français ;
+- `src/vs/workbench/contrib/kuundaBrand/common/kuundaNls.ts` lit `getNLSLanguage()` : `en` par défaut, `fr` / `fr-*` pour le français. Ne pas appeler `nls.localize(key, …)` avec une variable : le gulp `compile-build` évalue la clé et lève `ReferenceError: key is not defined`. Les catalogues Kuunda + `formatKuundaMessage` suffisent.
 - catalogue bilingue dans `common/strings.json` (source de test) aligné sur `KUUNDA_STRINGS` ;
 - ne pas dupliquer un second framework i18n (i18next, etc.) par-dessus VS Code.
 

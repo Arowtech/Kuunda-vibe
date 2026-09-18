@@ -3,7 +3,8 @@
  *  SPDX-License-Identifier: Apache-2.0
  *--------------------------------------------------------------------------------------------*/
 
-import { getNLSLanguage, localize, type ILocalizedString } from '../../../../nls.js';
+import { getNLSLanguage, type ILocalizedString } from '../../../../nls.js';
+import { formatKuundaMessage } from '../../kuundaBrand/common/kuundaNls.js';
 
 export const KUUNDA_EXT_STRINGS = {
 	'kuunda.ext.tagline': {
@@ -73,7 +74,7 @@ function isFrench(language: string | undefined): boolean {
 export function kuundaExtLocalize(key: KuundaExtStringKey, ...args: Array<string | number>): string {
 	const entry = KUUNDA_EXT_STRINGS[key];
 	const message = isFrench(getNLSLanguage()) ? entry.fr : entry.en;
-	return localize(key, message, ...args);
+	return formatKuundaMessage(message, args);
 }
 
 export function kuundaExtLocalize2(key: KuundaExtStringKey): ILocalizedString {

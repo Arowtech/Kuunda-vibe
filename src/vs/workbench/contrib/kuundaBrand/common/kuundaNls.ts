@@ -3,7 +3,7 @@
  *  SPDX-License-Identifier: Apache-2.0
  *--------------------------------------------------------------------------------------------*/
 
-import { getNLSLanguage, localize, type ILocalizedString } from '../../../../nls.js';
+import { getNLSLanguage, type ILocalizedString } from '../../../../nls.js';
 
 /**
  * Keep in lockstep with strings.json (enforced by test/branding.test.mjs).
@@ -50,13 +50,23 @@ function isFrench(language: string | undefined): boolean {
 	return typeof language === 'string' && (language === 'fr' || language.startsWith('fr-') || language.startsWith('fr_'));
 }
 
+export function formatKuundaMessage(message: string, args: ReadonlyArray<string | number> = []): string {
+	if (args.length === 0) {
+		return message;
+	}
+	return message.replace(/\{(\d+)\}/g, (whole, index) => {
+		const value = args[Number(index)];
+		return value === undefined ? whole : String(value);
+	});
+}
+
 export function resolveKuundaString(key: KuundaStringKey, language: string | undefined = getNLSLanguage()): string {
 	const entry = KUUNDA_STRINGS[key];
 	return isFrench(language) ? entry.fr : entry.en;
 }
 
-export function kuundaLocalize(key: KuundaStringKey): string {
-	return localize(key, resolveKuundaString(key));
+export function kuundaLocalize(key: KuundaStringKey, ...args: Array<string | number>): string {
+	return formatKuundaMessage(resolveKuundaString(key), args);
 }
 
 export function kuundaLocalize2(key: KuundaStringKey): ILocalizedString {

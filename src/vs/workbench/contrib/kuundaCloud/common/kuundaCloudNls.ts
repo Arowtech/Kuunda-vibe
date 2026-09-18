@@ -3,7 +3,8 @@
  *  SPDX-License-Identifier: Apache-2.0
  *--------------------------------------------------------------------------------------------*/
 
-import { getNLSLanguage, localize, type ILocalizedString } from '../../../../nls.js';
+import { getNLSLanguage, type ILocalizedString } from '../../../../nls.js';
+import { formatKuundaMessage } from '../../kuundaBrand/common/kuundaNls.js';
 
 export const KUUNDA_CLOUD_STRINGS = {
 	'kuunda.cloud.tagline': {
@@ -113,7 +114,7 @@ function isFrench(language: string | undefined): boolean {
 export function kuundaCloudLocalize(key: KuundaCloudStringKey, ...args: Array<string | number>): string {
 	const entry = KUUNDA_CLOUD_STRINGS[key];
 	const message = isFrench(getNLSLanguage()) ? entry.fr : entry.en;
-	return localize(key, message, ...args);
+	return formatKuundaMessage(message, args);
 }
 
 export function kuundaCloudLocalize2(key: KuundaCloudStringKey): ILocalizedString {

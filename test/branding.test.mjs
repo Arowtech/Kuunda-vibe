@@ -79,6 +79,25 @@ describe('Phase 1 — branding Kuunda Vibe', () => {
 		assert.match(fileMenu, /kuundaLocalize\('kuunda\.settings\.openMenu'\)/);
 	});
 
+	it('les helpers nls Kuunda n’appellent pas nls.localize avec une variable', () => {
+		const files = [
+			'src/vs/workbench/contrib/kuundaBrand/common/kuundaNls.ts',
+			'src/vs/workbench/contrib/kuundaAi/common/kuundaAiNls.ts',
+			'src/vs/workbench/contrib/kuundaBilling/common/kuundaBillingNls.ts',
+			'src/vs/workbench/contrib/kuundaExt/common/kuundaExtNls.ts',
+			'src/vs/workbench/contrib/kuundaProject/common/kuundaProjectNls.ts',
+			'src/vs/workbench/contrib/kuundaCloud/common/kuundaCloudNls.ts',
+			'src/vs/workbench/contrib/kuundaPublish/common/kuundaPublishNls.ts',
+			'src/vs/workbench/contrib/kuundaLegal/common/kuundaLegalNls.ts',
+			'src/vs/workbench/contrib/kuundaFeedback/common/kuundaFeedbackNls.ts',
+		];
+		for (const file of files) {
+			const src = read(file);
+			assert.doesNotMatch(src, /localize\(\s*key\s*,/, `${file} casse compile-build (eval nls)`);
+			assert.match(src, /formatKuundaMessage/, `${file} doit formater {0} sans nls.localize dynamique`);
+		}
+	});
+
 	it('workbench charge la contribution kuundaBrand isolée', () => {
 		const main = read('src/vs/workbench/workbench.common.main.ts');
 		assert.match(main, /contrib\/kuundaBrand\/browser\/kuundaBrand\.contribution\.js/);

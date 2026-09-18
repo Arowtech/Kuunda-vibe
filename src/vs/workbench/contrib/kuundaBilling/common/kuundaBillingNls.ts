@@ -3,7 +3,8 @@
  *  SPDX-License-Identifier: Apache-2.0
  *--------------------------------------------------------------------------------------------*/
 
-import { getNLSLanguage, localize, type ILocalizedString } from '../../../../nls.js';
+import { getNLSLanguage, type ILocalizedString } from '../../../../nls.js';
+import { formatKuundaMessage } from '../../kuundaBrand/common/kuundaNls.js';
 import { classifyPaymentFailure } from './creditPolicy.js';
 
 export const KUUNDA_BILLING_STRINGS = {
@@ -94,7 +95,7 @@ function isFrench(language: string | undefined): boolean {
 export function kuundaBillingLocalize(key: KuundaBillingStringKey, ...args: Array<string | number>): string {
 	const entry = KUUNDA_BILLING_STRINGS[key];
 	const message = isFrench(getNLSLanguage()) ? entry.fr : entry.en;
-	return localize(key, message, ...args);
+	return formatKuundaMessage(message, args);
 }
 
 export function kuundaBillingLocalize2(key: KuundaBillingStringKey): ILocalizedString {
