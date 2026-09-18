@@ -1,0 +1,132 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright 2026 Arowtech
+ *  SPDX-License-Identifier: Apache-2.0
+ *--------------------------------------------------------------------------------------------*/
+
+.kuunda-project-home {
+	width: 100%;
+	max-width: 520px;
+	margin: 0 auto 12px;
+}
+
+.kuunda-project-home-title,
+.kuunda-project-dialog-title {
+	font-size: 16px;
+	font-weight: 600;
+	text-align: center;
+	color: var(--vscode-foreground);
+}
+
+.kuunda-project-home-subtitle,
+.kuunda-project-dialog-subtitle {
+	margin-top: 4px;
+	margin-bottom: 12px;
+	font-size: 12px;
+	line-height: 1.4;
+	text-align: center;
+	opacity: 0.78;
+}
+
+.kuunda-project-grid {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 10px;
+}
+
+.kuunda-project-card {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 6px;
+	min-height: 108px;
+	padding: 14px 14px 16px;
+	text-align: left;
+	cursor: pointer;
+	font-family: inherit;
+	appearance: none;
+	-webkit-appearance: none;
+	color: var(--vscode-foreground);
+	background: color-mix(in srgb, var(--vscode-editor-background) 88%, var(--vscode-foreground) 12%);
+	border: 1px solid var(--vscode-widget-border, var(--vscode-editorWidget-border));
+	border-radius: 10px;
+	outline: none !important;
+	box-shadow: none !important;
+	transition: border-color 0.15s ease, transform 0.15s ease, background-color 0.15s ease;
+}
+
+.kuunda-project-card:hover,
+.kuunda-project-card:focus-visible {
+	border-color: var(--vscode-focusBorder, #E4930A);
+	background: color-mix(in srgb, var(--vscode-button-background, #E4930A) 14%, var(--vscode-editor-background));
+	transform: translateY(-1px);
+}
+
+.kuunda-project-card-icon {
+	width: 28px;
+	height: 28px;
+	border-radius: 8px;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	color: var(--vscode-button-background, #E4930A);
+	background: color-mix(in srgb, var(--vscode-button-background, #E4930A) 18%, transparent);
+}
+
+.kuunda-project-card-title {
+	font-size: 13px;
+	font-weight: 600;
+}
+
+.kuunda-project-card-detail {
+	font-size: 12px;
+	line-height: 1.35;
+	opacity: 0.78;
+}
+
+.kuunda-project-overlay {
+	position: fixed;
+	inset: 0;
+	z-index: 5000;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: color-mix(in srgb, var(--vscode-editor-background) 45%, black 55%);
+}
+
+.kuunda-project-dialog {
+	width: min(640px, calc(100vw - 48px));
+	padding: 22px 22px 16px;
+	color: var(--vscode-editorWidget-foreground, var(--vscode-foreground));
+	background: var(--vscode-editorWidget-background, var(--vscode-editor-background));
+	border: 1px solid var(--vscode-editorWidget-border, var(--vscode-widget-border));
+	border-radius: 12px;
+	box-shadow: 0 18px 48px rgba(0, 0, 0, 0.35);
+}
+
+.kuunda-project-dialog .kuunda-project-grid {
+	margin: 16px 0 8px;
+}
+
+.kuunda-project-dialog-actions {
+	display: flex;
+	justify-content: flex-end;
+	margin-top: 8px;
+}
+
+.kuunda-project-cancel {
+	padding: 6px 12px;
+	cursor: pointer;
+	font-family: inherit;
+	appearance: none;
+	-webkit-appearance: none;
+	color: var(--vscode-button-secondaryForeground, var(--vscode-foreground));
+	background: var(--vscode-button-secondaryBackground, transparent);
+	border: 1px solid var(--vscode-widget-border, transparent);
+	border-radius: 6px;
+	outline: none !important;
+}
+
+.kuunda-project-cancel:hover,
+.kuunda-project-cancel:focus-visible {
+	border-color: var(--vscode-focusBorder, #E4930A);
+}

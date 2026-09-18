@@ -2,6 +2,7 @@
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
+/* Modified 2026-09-18 by Arowtech: window app icon uses the Kuunda Vibe mark. */
 
 /* Part Element */
 .monaco-workbench .part.titlebar {
@@ -257,7 +258,7 @@
 }
 
 .monaco-workbench .part.titlebar > .titlebar-container > .titlebar-left > .window-appicon:not(.codicon) {
-	background-image: url('../../../media/code-icon.svg');
+	background-image: url('../../../media/code-icon.png');
 	background-repeat: no-repeat;
 	background-position: center center;
 	background-size: 16px;

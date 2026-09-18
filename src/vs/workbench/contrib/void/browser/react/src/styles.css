@@ -2,6 +2,7 @@
  *  Copyright 2025 Glass Devtools, Inc. All rights reserved.
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
+// Modified 2026-09-18 by Arowtech: Void UI tokens follow Kuunda Cloud (orange focus/links).
 
 @tailwind base;
 @tailwind components;
@@ -29,8 +30,8 @@
 	--void-border-3: var(--vscode-commandCenter-inactiveBorder);
 	--void-border-4: var(--vscode-editorGroup-border);
 
-	--void-ring-color: #007FD4;
-	--void-link-color: #007FD4;
+	--void-ring-color: var(--vscode-focusBorder, #E4930A);
+	--void-link-color: var(--vscode-textLink-foreground, #E8A93A);
 }
 
 .select-child-restyle select {

@@ -2,6 +2,7 @@
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
+/* Modified 2026-09-18 by Arowtech: empty editor watermark uses the Kuunda Vibe mark. */
 
 /* Container */
 
@@ -32,7 +33,7 @@
 .monaco-workbench .part.editor > .content .editor-group-container > .editor-group-watermark  {
 	display: flex;
 	height: 100%;
-	max-width: 290px;
+	max-width: 560px;
 	margin: auto;
 	flex-direction: column;
 	align-items: center;
@@ -49,31 +50,34 @@
 	height: calc(100% - 70px);
 }
 
-/* light */
-.void-void-icon,
-.monaco-workbench .part.editor > .content .editor-group-container > .editor-group-watermark > .letterpress {
-	width: 100%;
-	max-height: 100%;
+/* Kuunda Vibe mark (onboarding + empty editor) */
+.void-void-icon {
+	width: 180px;
+	max-width: 180px;
+	height: 180px;
 	aspect-ratio: 1/1;
-	background-image: url('./void_cube_noshadow.png'); /* // Void */
+	background-image: url('./void_cube_noshadow.png'); /* Kuunda Vibe */
 	background-size: contain;
-	background-position-x: center;
+	background-position: center;
 	background-repeat: no-repeat;
 }
 
-.void-void-icon,
-.monaco-workbench.vs-dark .part.editor > .content .editor-group-container .editor-group-watermark > .letterpress {
-	background-image: url('./void_cube_noshadow.png'); /* // Void */
+.monaco-workbench .part.editor > .content .editor-group-container > .editor-group-watermark > .letterpress {
+	width: 120px;
+	max-width: 120px;
+	height: 120px;
+	max-height: 120px;
+	aspect-ratio: 1/1;
+	background-image: url('./void_cube_noshadow.png'); /* Kuunda Vibe */
+	background-size: contain;
+	background-position: center;
+	background-repeat: no-repeat;
 }
 
-.void-void-icon,
-.monaco-workbench.hc-light .part.editor > .content .editor-group-container .editor-group-watermark > .letterpress {
-	background-image: url('./void_cube_noshadow.png'); /* // Void */
-}
-
-.void-void-icon,
+.monaco-workbench.vs-dark .part.editor > .content .editor-group-container .editor-group-watermark > .letterpress,
+.monaco-workbench.hc-light .part.editor > .content .editor-group-container .editor-group-watermark > .letterpress,
 .monaco-workbench.hc-black .part.editor > .content .editor-group-container .editor-group-watermark > .letterpress {
-	background-image: url('./void_cube_noshadow.png'); /* // Void */
+	background-image: url('./void_cube_noshadow.png'); /* Kuunda Vibe */
 }
 
 .monaco-workbench .part.editor > .content:not(.empty) .editor-group-container > .editor-group-watermark > .shortcuts,

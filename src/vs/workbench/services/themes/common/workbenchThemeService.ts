@@ -2,6 +2,7 @@
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
+// Modified 2026-09-18 by Arowtech: default color theme is Kuunda Vibe Dark/Light.
 
 import { refineServiceDecorator } from '../../../../platform/instantiation/common/instantiation.js';
 import { Event } from '../../../../base/common/event.js';
@@ -39,70 +40,70 @@ export enum ThemeSettings {
 }
 
 export enum ThemeSettingDefaults {
-	COLOR_THEME_DARK = 'Default Dark+', // Void changed this from 'Default Dark Modern'
-	COLOR_THEME_LIGHT = 'Default Light Modern',
+	COLOR_THEME_DARK = 'Kuunda Vibe Dark', // Kuunda Cloud charter
+	COLOR_THEME_LIGHT = 'Kuunda Vibe Light',
 	COLOR_THEME_HC_DARK = 'Default High Contrast',
 	COLOR_THEME_HC_LIGHT = 'Default High Contrast Light',
 
-	COLOR_THEME_DARK_OLD = 'Default Dark Modern', // Void changed this from 'Default Dark+'
-	COLOR_THEME_LIGHT_OLD = 'Default Light+',
+	COLOR_THEME_DARK_OLD = 'Default Dark+',
+	COLOR_THEME_LIGHT_OLD = 'Default Light Modern',
 
 	FILE_ICON_THEME = 'vs-seti',
 	PRODUCT_ICON_THEME = 'Default',
 }
 
-export const COLOR_THEME_DARK_INITIAL_COLORS = { // Void changed this to match dark+
-	'activityBar.activeBorder': '#ffffff',
-	'activityBar.background': '#333333',
-	'activityBar.border': '#454545',
-	'activityBar.foreground': '#ffffff',
-	'activityBar.inactiveForeground': '#ffffff66',
-	'editorGroup.border': '#444444',
-	'editorGroupHeader.tabsBackground': '#252526',
-	'editorGroupHeader.tabsBorder': '#252526',
-	'statusBar.background': '#007ACC',
-	'statusBar.border': '#454545',
-	'statusBar.foreground': '#ffffff',
-	'statusBar.noFolderBackground': '#68217A',
-	'tab.activeBackground': '#2D2D2D',
-	'tab.activeBorder': '#ffffff',
-	'tab.activeBorderTop': '#007ACC',
-	'tab.activeForeground': '#ffffff',
-	'tab.border': '#252526',
-	'textLink.foreground': '#3794ff',
-	'titleBar.activeBackground': '#3C3C3C',
-	'titleBar.activeForeground': '#CCCCCC',
-	'titleBar.border': '#454545',
-	'titleBar.inactiveBackground': '#2C2C2C',
-	'titleBar.inactiveForeground': '#999999',
-	'welcomePage.tileBackground': '#252526'
+export const COLOR_THEME_DARK_INITIAL_COLORS = { // Kuunda Vibe Dark splash
+	'activityBar.activeBorder': '#E4930A',
+	'activityBar.background': '#0B0C14',
+	'activityBar.border': '#1C1D28',
+	'activityBar.foreground': '#F4F4F7',
+	'activityBar.inactiveForeground': '#8B8B9A',
+	'editorGroup.border': '#1C1D28',
+	'editorGroupHeader.tabsBackground': '#0B0C14',
+	'editorGroupHeader.tabsBorder': '#1C1D28',
+	'statusBar.background': '#0B0C14',
+	'statusBar.border': '#1C1D28',
+	'statusBar.foreground': '#C8C8D0',
+	'statusBar.noFolderBackground': '#111218',
+	'tab.activeBackground': '#111218',
+	'tab.activeBorder': '#111218',
+	'tab.activeBorderTop': '#E4930A',
+	'tab.activeForeground': '#F4F4F7',
+	'tab.border': '#1C1D28',
+	'textLink.foreground': '#E8A93A',
+	'titleBar.activeBackground': '#0B0C14',
+	'titleBar.activeForeground': '#F4F4F7',
+	'titleBar.border': '#1C1D28',
+	'titleBar.inactiveBackground': '#0B0C14',
+	'titleBar.inactiveForeground': '#8B8B9A',
+	'welcomePage.tileBackground': '#16171F'
 };
 
 export const COLOR_THEME_LIGHT_INITIAL_COLORS = {
-	'activityBar.activeBorder': '#005FB8',
-	'activityBar.background': '#f8f8f8',
-	'activityBar.border': '#e5e5e5',
-	'activityBar.foreground': '#1f1f1f',
-	'activityBar.inactiveForeground': '#616161',
-	'editorGroup.border': '#e5e5e5',
-	'editorGroupHeader.tabsBackground': '#f8f8f8',
-	'editorGroupHeader.tabsBorder': '#e5e5e5',
-	'statusBar.background': '#f8f8f8',
-	'statusBar.border': '#e5e5e5',
-	'statusBar.foreground': '#3b3b3b',
-	'statusBar.noFolderBackground': '#f8f8f8',
-	'tab.activeBackground': '#ffffff',
-	'tab.activeBorder': '#f8f8f8',
-	'tab.activeBorderTop': '#005fb8',
-	'tab.activeForeground': '#3b3b3b',
-	'tab.border': '#e5e5e5',
-	'textLink.foreground': '#005fb8',
-	'titleBar.activeBackground': '#f8f8f8',
-	'titleBar.activeForeground': '#1e1e1e',
-	'titleBar.border': '#E5E5E5',
-	'titleBar.inactiveBackground': '#f8f8f8',
-	'titleBar.inactiveForeground': '#8b949e',
-	'welcomePage.tileBackground': '#f3f3f3'
+	'activityBar.activeBorder': '#E4930A',
+	'activityBar.background': '#FFF9F0',
+	'activityBar.border': '#EDE4D4',
+	'activityBar.foreground': '#1A1208',
+	'activityBar.inactiveForeground': '#7A7064',
+	'editorGroup.border': '#EDE4D4',
+	'editorGroupHeader.tabsBackground': '#FFF9F0',
+	'editorGroupHeader.tabsBorder': '#EDE4D4',
+	'statusBar.background': '#FFF9F0',
+	'statusBar.border': '#EDE4D4',
+	'statusBar.foreground': '#2A241C',
+	'statusBar.noFolderBackground': '#FFF9F0',
+	'tab.activeBackground': '#FFFFFF',
+	'tab.activeBorder': '#FFF9F0',
+	'tab.activeBorderTop': '#E4930A',
+	'tab.activeForeground': '#1A1208',
+	'tab.border': '#EDE4D4',
+	'textLink.foreground': '#C27408',
+	'titleBar.activeBackground': '#FFF9F0',
+	'titleBar.activeForeground': '#1A1208',
+	'titleBar.border': '#EDE4D4',
+	'titleBar.inactiveBackground': '#FFF9F0',
+	'titleBar.inactiveForeground': '#7A7064',
+	'welcomePage.tileBackground': '#FFFFFF'
 };
 
 export interface IWorkbenchTheme {

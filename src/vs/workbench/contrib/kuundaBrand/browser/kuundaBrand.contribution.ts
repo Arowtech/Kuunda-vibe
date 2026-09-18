@@ -7,6 +7,7 @@ import { Registry } from '../../../../platform/registry/common/platform.js';
 import { IWorkbenchContribution, IWorkbenchContributionsRegistry, Extensions as WorkbenchExtensions } from '../../../common/contributions.js';
 import { LifecyclePhase } from '../../../services/lifecycle/common/lifecycle.js';
 import { kuundaLocalize } from '../common/kuundaNls.js';
+import './media/kuundaChrome.css';
 
 /**
  * Isolated branding contribution. Product names come from product.json.

@@ -2,6 +2,7 @@
  *  Copyright 2025 Glass Devtools, Inc. All rights reserved.
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
+// Modified 2026-09-18 by Arowtech: empty-home actions follow the Kuunda orange charter.
 
 .monaco-editor .void-sweepIdxBG {
 	background-color: var(--vscode-void-sweepIdxBG);
@@ -27,39 +28,39 @@
 /* Renamed from void-watermark-button to void-openfolder-button */
 .void-openfolder-button {
     padding: 8px 20px;
-    background-color: #306dce;
-    color: white;
+    background-color: var(--vscode-button-background, #E4930A);
+    color: var(--vscode-button-foreground, #0B0C14);
     border: none;
-    border-radius: 4px;
+    border-radius: 8px;
     outline: none !important;
 	box-shadow: none !important;
 	cursor: pointer;
-	transition: background-color 0.2s ease;
+	transition: background-color 0.2s ease, transform 0.15s ease;
 }
 .void-openfolder-button:hover {
-    background-color: #2563eb;
+    background-color: var(--vscode-button-hoverBackground, #F0A31A);
 }
 .void-openfolder-button:active {
-    background-color: #2563eb;
+    background-color: var(--vscode-button-hoverBackground, #F0A31A);
 }
 
 /* Added for Open SSH button with slightly darker color */
 .void-openssh-button {
     padding: 8px 20px;
-    background-color: #656565; /* Slightly darker than the #5a5a5a in the TS file */
-    color: white;
+    background-color: var(--vscode-button-secondaryBackground, #1C1D28);
+    color: var(--vscode-button-secondaryForeground, #F4F4F7);
     border: none;
-    border-radius: 4px;
+    border-radius: 8px;
     outline: none !important;
 	box-shadow: none !important;
     cursor: pointer;
     transition: background-color 0.2s ease;
 }
 .void-openssh-button:hover {
-    background-color: #474747; /* Darker on hover */
+    background-color: var(--vscode-button-secondaryHoverBackground, #252636);
 }
 .void-openssh-button:active {
-    background-color: #474747;
+    background-color: var(--vscode-button-secondaryHoverBackground, #252636);
 }
 
 
@@ -85,7 +86,7 @@
 }
 
 .void-link {
-	color: #3b82f6;
+	color: var(--vscode-textLink-foreground, #E8A93A);
 	cursor: pointer;
 	transition: all 0.2s ease;
 }

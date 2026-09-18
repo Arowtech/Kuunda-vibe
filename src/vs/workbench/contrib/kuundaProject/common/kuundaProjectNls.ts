@@ -35,6 +35,34 @@ export const KUUNDA_PROJECT_STRINGS = {
 		en: 'Other',
 		fr: 'Autre',
 	},
+	'kuunda.project.create.type.website.detail': {
+		en: 'Static HTML, CSS and JavaScript pages.',
+		fr: 'Pages HTML, CSS et JavaScript statiques.',
+	},
+	'kuunda.project.create.type.webapp.detail': {
+		en: 'A Node web app with a local server.',
+		fr: 'Une application web Node avec un serveur local.',
+	},
+	'kuunda.project.create.type.mobile.detail': {
+		en: 'A mobile shell, with optional store targets.',
+		fr: 'Une coque mobile, avec cibles de stores optionnelles.',
+	},
+	'kuunda.project.create.type.other.detail': {
+		en: 'A blank workspace with Kuunda project files.',
+		fr: 'Un espace de travail vide avec les fichiers projet Kuunda.',
+	},
+	'kuunda.project.create.cards.title': {
+		en: 'Create a project',
+		fr: 'Créer un projet',
+	},
+	'kuunda.project.create.cards.subtitle': {
+		en: 'Pick a type. Kuunda Vibe scaffolds the folder from that choice.',
+		fr: 'Choisissez un type. Kuunda Vibe échafaude le dossier à partir de ce choix.',
+	},
+	'kuunda.project.create.cards.cancel': {
+		en: 'Cancel',
+		fr: 'Annuler',
+	},
 	'kuunda.project.create.publish': {
 		en: 'Where should this mobile app be published later?',
 		fr: 'Où cette application mobile devra-t-elle être publiée plus tard ?',
@@ -54,6 +82,26 @@ export const KUUNDA_PROJECT_STRINGS = {
 	'kuunda.project.create.publish.none': {
 		en: 'None for now',
 		fr: 'Aucune pour l’instant',
+	},
+	'kuunda.project.create.publish.cards.title': {
+		en: 'Where should this mobile app be published later?',
+		fr: 'Où cette application mobile devra-t-elle être publiée plus tard ?',
+	},
+	'kuunda.project.create.publish.google_play.detail': {
+		en: 'Prepare Play Console metadata placeholders.',
+		fr: 'Prépare les emplacements des métadonnées Play Console.',
+	},
+	'kuunda.project.create.publish.app_store.detail': {
+		en: 'Prepare App Store Connect metadata placeholders.',
+		fr: 'Prépare les emplacements des métadonnées App Store Connect.',
+	},
+	'kuunda.project.create.publish.both.detail': {
+		en: 'Keep both Android and iOS store folders.',
+		fr: 'Conserve les dossiers des stores Android et iOS.',
+	},
+	'kuunda.project.create.publish.none.detail': {
+		en: 'Skip store folders for now. You can add them later.',
+		fr: 'Ignore les dossiers store pour l’instant. Vous pourrez les ajouter plus tard.',
 	},
 	'kuunda.project.create.name': {
 		en: 'Project folder name',

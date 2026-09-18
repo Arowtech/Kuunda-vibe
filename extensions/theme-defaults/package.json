@@ -14,6 +14,18 @@
   "contributes": {
     "themes": [
       {
+        "id": "Kuunda Vibe Dark",
+        "label": "%kuundaDarkColorThemeLabel%",
+        "uiTheme": "vs-dark",
+        "path": "./themes/kuunda_dark.json"
+      },
+      {
+        "id": "Kuunda Vibe Light",
+        "label": "%kuundaLightColorThemeLabel%",
+        "uiTheme": "vs",
+        "path": "./themes/kuunda_light.json"
+      },
+      {
         "id": "Default Dark+",
         "label": "%darkPlusColorThemeLabel%",
         "uiTheme": "vs-dark",

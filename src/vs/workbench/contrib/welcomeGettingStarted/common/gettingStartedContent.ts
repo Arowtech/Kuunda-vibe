@@ -2,6 +2,7 @@
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
+// Modified 2026-09-18 by Arowtech: welcome start list includes Kuunda Vibe New Project.
 
 import themePickerContent from './media/theme_picker.js';
 import notebookProfileContent from './media/notebookProfile.js';
@@ -98,6 +99,16 @@ type GettingStartedWalkthroughContent = BuiltinGettingStartedCategory[];
 type GettingStartedStartEntryContent = BuiltinGettingStartedStartEntry[];
 
 export const startEntries: GettingStartedStartEntryContent = [
+	{
+		id: 'kuundaNewProject',
+		title: localize('gettingStarted.kuundaNewProject.title', "New Kuunda Project..."),
+		description: localize('gettingStarted.kuundaNewProject.description', "Scaffold a website, web app, mobile app, or other workspace."),
+		icon: Codicon.newFolder,
+		content: {
+			type: 'startEntry',
+			command: 'command:kuunda.project.create',
+		}
+	},
 	{
 		id: 'welcome.showNewFileEntries',
 		title: localize('gettingStarted.newFile.title', "New File..."),

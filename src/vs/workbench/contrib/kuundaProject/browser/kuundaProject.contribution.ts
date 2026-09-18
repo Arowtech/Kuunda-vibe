@@ -3,73 +3,48 @@
  *  SPDX-License-Identifier: Apache-2.0
  *--------------------------------------------------------------------------------------------*/
 
+import './media/kuundaProject.css';
 import { Registry } from '../../../../platform/registry/common/platform.js';
 import { IWorkbenchContribution, IWorkbenchContributionsRegistry, Extensions as WorkbenchExtensions } from '../../../common/contributions.js';
 import { LifecyclePhase } from '../../../services/lifecycle/common/lifecycle.js';
 import { Action2, MenuId, registerAction2 } from '../../../../platform/actions/common/actions.js';
 import { ServicesAccessor } from '../../../../platform/instantiation/common/instantiation.js';
-import { INotificationService, Severity } from '../../../../platform/notification/common/notification.js';
+import { INotificationService } from '../../../../platform/notification/common/notification.js';
 import { IQuickInputService } from '../../../../platform/quickinput/common/quickInput.js';
-import { IDialogService, IFileDialogService } from '../../../../platform/dialogs/common/dialogs.js';
-import { ICommandService } from '../../../../platform/commands/common/commands.js';
-import { IWorkspaceContextService, WorkbenchState } from '../../../../platform/workspace/common/workspace.js';
+import { IFileDialogService } from '../../../../platform/dialogs/common/dialogs.js';
+import { ILayoutService } from '../../../../platform/layout/browser/layoutService.js';
 import { IHostService } from '../../../services/host/browser/host.js';
-import { isMacintosh } from '../../../../base/common/platform.js';
 import { kuundaProjectLocalize, kuundaProjectLocalize2, KUUNDA_PROJECT_STRINGS, type KuundaProjectStringKey } from '../common/kuundaProjectNls.js';
 import { IKuundaProjectService } from '../common/kuundaProjectService.js';
-import { PROJECT_TYPES, MOBILE_PUBLISH_OPTIONS, publishOptionFromTargets, sanitizeProjectName, type MobilePublishOption } from '../common/projectType.js';
+import { isProjectType, publishOptionFromTargets, sanitizeProjectName, type MobilePublishOption, type ProjectType } from '../common/projectType.js';
 import { IKuundaCloudService } from '../../kuundaCloud/common/kuundaCloudService.js';
 import { kuundaCloudLocalize } from '../../kuundaCloud/common/kuundaCloudNls.js';
 import { IKuundaPublishService } from '../../kuundaPublish/common/kuundaPublishService.js';
+import { pickProjectTypeCard, pickPublishOptionCard } from './kuundaProjectCards.js';
 
 class KuundaProjectContribution implements IWorkbenchContribution {
 	static readonly ID = 'workbench.contrib.kuundaProject';
 
-	constructor(
-		@IWorkspaceContextService workspace: IWorkspaceContextService,
-		@IDialogService dialog: IDialogService,
-		@ICommandService commands: ICommandService,
-	) {
+	constructor() {
 		kuundaProjectLocalize('kuunda.project.tagline');
-		if (workspace.getWorkbenchState() !== WorkbenchState.EMPTY) {
-			return;
-		}
-		void dialog.prompt({
-			type: Severity.Info,
-			message: kuundaProjectLocalize('kuunda.project.empty.title'),
-			detail: kuundaProjectLocalize('kuunda.project.empty.detail'),
-			buttons: [
-				{
-					label: kuundaProjectLocalize('kuunda.project.empty.create'),
-					run: () => commands.executeCommand('kuunda.project.create'),
-				},
-				{
-					label: kuundaProjectLocalize('kuunda.project.empty.open'),
-					run: () => commands.executeCommand(isMacintosh ? 'workbench.action.files.openFileFolder' : 'workbench.action.files.openFolder'),
-				},
-			],
-			cancelButton: {
-				label: kuundaProjectLocalize('kuunda.project.empty.later'),
-				run: () => { },
-			},
-		});
 	}
 }
 
-async function runCreateWizard(accessor: ServicesAccessor): Promise<void> {
+async function runCreateWizard(accessor: ServicesAccessor, presetType?: ProjectType): Promise<void> {
 	const project = accessor.get(IKuundaProjectService);
 	const quick = accessor.get(IQuickInputService);
 	const notify = accessor.get(INotificationService);
 	const fileDialog = accessor.get(IFileDialogService);
 	const host = accessor.get(IHostService);
-	const type = await pickRequired(quick, 'kuunda.project.create.type', PROJECT_TYPES, (id) => `kuunda.project.create.type.${id}` as KuundaProjectStringKey);
+	const layout = accessor.get(ILayoutService);
+	const type = presetType ?? await pickProjectTypeCard(layout);
 	if (!type) {
 		notify.info(kuundaProjectLocalize('kuunda.project.create.cancelled'));
 		return;
 	}
 	let publishOption: MobilePublishOption | undefined;
 	if (type === 'mobile') {
-		publishOption = await pickRequired(quick, 'kuunda.project.create.publish', MOBILE_PUBLISH_OPTIONS, (id) => `kuunda.project.create.publish.${id}` as KuundaProjectStringKey);
+		publishOption = await pickPublishOptionCard(layout);
 		if (!publishOption) {
 			notify.info(kuundaProjectLocalize('kuunda.project.create.cancelled'));
 			return;
@@ -128,27 +103,6 @@ async function runCreateWizard(accessor: ServicesAccessor): Promise<void> {
 	await host.openWindow([{ folderUri: result.folder }], { forceReuseWindow: true });
 }
 
-async function pickRequired<T extends string>(
-	quick: IQuickInputService,
-	promptKey: KuundaProjectStringKey,
-	ids: readonly T[],
-	labelKey: (id: T) => KuundaProjectStringKey,
-): Promise<T | undefined> {
-	const picked = await quick.pick(
-		ids.map((id) => ({
-			id,
-			label: kuundaProjectLocalize(labelKey(id)),
-			description: id,
-		})),
-		{
-			placeHolder: kuundaProjectLocalize(promptKey),
-			ignoreFocusLost: true,
-			canPickMany: false,
-		},
-	);
-	return picked?.id as T | undefined;
-}
-
 function localizeCreateError(error: string): string {
 	const key = `kuunda.project.error.${error}` as KuundaProjectStringKey;
 	if (key in KUUNDA_PROJECT_STRINGS) {
@@ -171,8 +125,8 @@ registerAction2(class extends Action2 {
 		});
 	}
 
-	async run(accessor: ServicesAccessor): Promise<void> {
-		await runCreateWizard(accessor);
+	async run(accessor: ServicesAccessor, type?: unknown): Promise<void> {
+		await runCreateWizard(accessor, isProjectType(type) ? type : undefined);
 	}
 });
 

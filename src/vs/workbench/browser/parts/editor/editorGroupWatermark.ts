@@ -2,6 +2,7 @@
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
+// Modified 2026-09-18 by Arowtech: empty-home watermark shows Kuunda Vibe logo and project type cards.
 
 import { localize } from '../../../../nls.js';
 import { Disposable, DisposableStore, IDisposable } from '../../../../base/common/lifecycle.js';
@@ -18,7 +19,6 @@ import { IThemeService } from '../../../../platform/theme/common/themeService.js
 import { isRecentFolder, IWorkspacesService } from '../../../../platform/workspaces/common/workspaces.js';
 import { IHostService } from '../../../services/host/browser/host.js';
 import { ILabelService, Verbosity } from '../../../../platform/label/common/label.js';
-import { ColorScheme } from '../../web.api.js';
 import { OpenFileFolderAction, OpenFolderAction } from '../../actions/workspaceActions.js';
 import { IWindowOpenable } from '../../../../platform/window/common/window.js';
 import { splitRecentLabel } from '../../../../base/common/labels.js';
@@ -27,6 +27,7 @@ import { IViewsService } from '../../../services/views/common/viewsService.js';
 /* eslint-disable */ // Void
 import { VOID_CTRL_K_ACTION_ID, VOID_CTRL_L_ACTION_ID } from '../../../contrib/void/browser/actionIDs.js';
 import { VIEWLET_ID as REMOTE_EXPLORER_VIEWLET_ID } from '../../../contrib/remote/browser/remoteExplorer.js';
+import { appendKuundaHomeProjectCards } from '../../../contrib/kuundaProject/browser/kuundaProjectCards.js';
 /* eslint-enable */
 
 // interface WatermarkEntry {
@@ -111,13 +112,11 @@ export class EditorGroupWatermark extends Disposable {
 		append(container, elements.root);
 		this.shortcuts = elements.shortcuts; // shortcuts div is modified on render()
 
-		// void icon style
+		// Kuunda Vibe icon — do not invert the orange mark
 		const updateTheme = () => {
-			const theme = this.themeService.getColorTheme().type
-			const isDark = theme === ColorScheme.DARK || theme === ColorScheme.HIGH_CONTRAST_DARK
-			elements.icon.style.maxWidth = '220px'
-			elements.icon.style.opacity = '50%'
-			elements.icon.style.filter = isDark ? '' : 'invert(1)' //brightness(.5)
+			elements.icon.style.maxWidth = '120px'
+			elements.icon.style.opacity = '1'
+			elements.icon.style.filter = ''
 		}
 		updateTheme()
 		this._register(
@@ -191,6 +190,7 @@ export class EditorGroupWatermark extends Disposable {
 				buttonContainer.style.alignItems = 'center'; // Center the buttons horizontally
 				buttonContainer.style.gap = '8px'; // Reduce gap between buttons from 16px to 8px
 				buttonContainer.style.marginBottom = '16px';
+				appendKuundaHomeProjectCards(voidIconBox, this.commandService);
 				voidIconBox.appendChild(buttonContainer);
 
 				// Open a folder
@@ -213,7 +213,6 @@ export class EditorGroupWatermark extends Disposable {
 				const openSSHButton = h('button')
 				openSSHButton.root.classList.add('void-openssh-button')
 				openSSHButton.root.style.display = 'block'
-				openSSHButton.root.style.backgroundColor = '#5a5a5a' // Made darker than the default gray
 				openSSHButton.root.style.width = '124px' // Set width to 124px as requested
 				openSSHButton.root.textContent = 'Open SSH'
 				openSSHButton.root.onclick = () => {

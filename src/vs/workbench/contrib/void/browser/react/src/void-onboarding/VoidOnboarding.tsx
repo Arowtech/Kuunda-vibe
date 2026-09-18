@@ -2,6 +2,7 @@
  *  Copyright 2025 Glass Devtools, Inc. All rights reserved.
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
+// Modified 2026-09-18 by Arowtech: onboarding title and mark are Kuunda Vibe.
 
 import { useEffect, useRef, useState } from 'react';
 import { useAccessor, useIsDark, useSettingsState } from '../util/services.js';
@@ -9,7 +10,6 @@ import { Brain, Check, ChevronRight, DollarSign, ExternalLink, Lock, X } from 'l
 import { displayInfoOfProviderName, ProviderName, providerNames, localProviderNames, featureNames, FeatureName, isFeatureNameDisabled } from '../../../../common/voidSettingsTypes.js';
 import { ChatMarkdownRender } from '../markdown/ChatMarkdownRender.js';
 import { OllamaSetupInstructions, OneClickSwitchButton, SettingsForProvider, ModelDump } from '../void-settings-tsx/Settings.js';
-import { ColorScheme } from '../../../../../../../platform/theme/common/theme.js';
 import ErrorBoundary from '../sidebar-tsx/ErrorBoundary.js';
 import { isLinux } from '../../../../../../../base/common/platform.js';
 
@@ -46,14 +46,11 @@ const VoidIcon = () => {
 	const divRef = useRef<HTMLDivElement | null>(null)
 
 	useEffect(() => {
-		// void icon style
 		const updateTheme = () => {
-			const theme = themeService.getColorTheme().type
-			const isDark = theme === ColorScheme.DARK || theme === ColorScheme.HIGH_CONTRAST_DARK
 			if (divRef.current) {
-				divRef.current.style.maxWidth = '220px'
-				divRef.current.style.opacity = '50%'
-				divRef.current.style.filter = isDark ? '' : 'invert(1)' //brightness(.5)
+				divRef.current.style.maxWidth = '180px'
+				divRef.current.style.opacity = '1'
+				divRef.current.style.filter = ''
 			}
 		}
 		updateTheme()
@@ -275,7 +272,7 @@ const AddProvidersPage = ({ pageIndex, setPageIndex }: { pageIndex: number, setP
 // 	OnboardingPage
 // 		title:
 // 			div
-// 				"Welcome to Void"
+// 				"Welcome to Kuunda Vibe"
 // 			image
 // 		content:<></>
 // 		title
@@ -429,8 +426,9 @@ const PrimaryActionButton = ({ children, className, ringSize, ...props }: { chil
 			className={`
 				flex items-center justify-center
 
-				text-white dark:text-black
-				bg-black/90 dark:bg-white/90
+				text-[#0B0C14]
+				bg-[#E4930A]
+				hover:bg-[#F0A31A]
 
 				${ringSize === 'xl' ? `
 					gap-2 px-16 py-8
@@ -547,7 +545,7 @@ const VoidOnboardingContent = () => {
 					voidMetricsService.capture('Completed Onboarding', { selectedProviderName, wantToUseOption })
 				}}
 				ringSize={voidSettingsState.globalSettings.isOnboardingComplete ? 'screen' : undefined}
-			>Enter the Void</PrimaryActionButton>
+			>Enter Kuunda Vibe</PrimaryActionButton>
 		</div>
 	</div>
 
@@ -596,9 +594,9 @@ const VoidOnboardingContent = () => {
 		0: <OnboardingPageShell
 			content={
 				<div className='flex flex-col items-center gap-8'>
-					<div className="text-5xl font-light text-center">Welcome to Void</div>
+					<div className="text-5xl font-light text-center">Welcome to Kuunda Vibe</div>
 
-					{/* Slice of Void image */}
+					{/* Kuunda Vibe mark */}
 					<div className='max-w-md w-full h-[30vh] mx-auto flex items-center justify-center'>
 						{!isLinux && <VoidIcon />}
 					</div>

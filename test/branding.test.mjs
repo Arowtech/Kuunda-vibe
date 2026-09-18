@@ -35,6 +35,8 @@ describe('Phase 1 — branding Kuunda Vibe', () => {
 		assert.equal(existsSync(join(root, 'resources/linux/code.png')), true);
 		assert.equal(existsSync(join(root, 'resources/win32/code.ico')), true);
 		assert.equal(existsSync(join(root, 'resources/darwin/code.icns')), true);
+		assert.equal(existsSync(join(root, 'resources/win32/inno-kuunda.bmp')), true);
+		assert.equal(existsSync(join(root, 'src/vs/workbench/browser/media/code-icon.png')), true);
 	});
 
 	it('chaque clé nls Kuunda a un anglais et un français', () => {
@@ -96,6 +98,44 @@ describe('Phase 1 — branding Kuunda Vibe', () => {
 			assert.doesNotMatch(src, /localize\(\s*key\s*,/, `${file} casse compile-build (eval nls)`);
 			assert.match(src, /formatKuundaMessage/, `${file} doit formater {0} sans nls.localize dynamique`);
 		}
+	});
+
+	it('l’installateur et l’accueil n’affichent plus la marque Void', () => {
+		const iss = read('build/win32/code.iss');
+		assert.match(iss, /inno-kuunda\.bmp/);
+		assert.doesNotMatch(iss, /WizardSmallImageFile=.*inno-void\.bmp/);
+		const onboarding = read('src/vs/workbench/contrib/void/browser/react/src/void-onboarding/VoidOnboarding.tsx');
+		assert.match(onboarding, /Welcome to Kuunda Vibe/);
+		assert.doesNotMatch(onboarding, /Welcome to Void/);
+		assert.doesNotMatch(onboarding, /invert\(1\)/);
+		const watermark = read('src/vs/workbench/browser/parts/editor/editorGroupWatermark.ts');
+		assert.match(watermark, /appendKuundaHomeProjectCards/);
+		assert.doesNotMatch(watermark, /invert\(1\)/);
+		const titlebar = read('src/vs/workbench/browser/parts/titlebar/media/titlebarpart.css');
+		assert.match(titlebar, /code-icon\.png/);
+	});
+
+	it('la charte Kuunda Cloud est le thème par défaut', () => {
+		const defaults = read('src/vs/workbench/services/themes/common/workbenchThemeService.ts');
+		assert.match(defaults, /COLOR_THEME_DARK = 'Kuunda Vibe Dark'/);
+		assert.match(defaults, /COLOR_THEME_LIGHT = 'Kuunda Vibe Light'/);
+		assert.equal(existsSync(join(root, 'extensions/theme-defaults/themes/kuunda_dark.json')), true);
+		assert.equal(existsSync(join(root, 'extensions/theme-defaults/themes/kuunda_light.json')), true);
+		const themePkg = JSON.parse(read('extensions/theme-defaults/package.json'));
+		assert.equal(themePkg.contributes.themes[0].id, 'Kuunda Vibe Dark');
+		assert.equal(themePkg.contributes.themes[1].id, 'Kuunda Vibe Light');
+		const dark = JSON.parse(read('extensions/theme-defaults/themes/kuunda_dark.json'));
+		assert.equal(dark.colors['button.background'], '#E4930A');
+		assert.equal(dark.colors['editor.background'], '#111218');
+		assert.equal(dark.colors['sideBar.background'], '#0E0F18');
+		assert.equal(dark.colors['activityBar.activeBorder'], '#E4930A');
+		const chrome = read('src/vs/workbench/contrib/kuundaBrand/browser/kuundaBrand.contribution.ts');
+		assert.match(chrome, /media\/kuundaChrome\.css/);
+		const voidCss = read('src/vs/workbench/contrib/void/browser/media/void.css');
+		assert.doesNotMatch(voidCss, /#306dce|#2563eb|#3b82f6/);
+		const styles = read('src/vs/workbench/contrib/void/browser/react/src/styles.css');
+		assert.doesNotMatch(styles, /#007FD4/);
+		assert.match(styles, /#E4930A/);
 	});
 
 	it('workbench charge la contribution kuundaBrand isolée', () => {

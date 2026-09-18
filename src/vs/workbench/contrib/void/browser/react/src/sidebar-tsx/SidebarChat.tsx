@@ -3,6 +3,7 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 // Modified 2026-09-17 by Arowtech: landing prompt suggests .projectrules.
+// Modified 2026-09-18 by Arowtech: chat composer and send control follow Kuunda Cloud cards.
 
 import React, { ButtonHTMLAttributes, FormEvent, FormHTMLAttributes, Fragment, KeyboardEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
@@ -343,11 +344,11 @@ export const VoidChatArea: React.FC<VoidChatAreaProps> = ({
 			ref={divRef}
 			className={`
 				gap-x-1
-                flex flex-col p-2 relative input text-left shrink-0
-                rounded-md
+                flex flex-col p-3 relative input text-left shrink-0
+                rounded-xl
                 bg-void-bg-1
 				transition-all duration-200
-				border border-void-border-3 focus-within:border-void-border-1 hover:border-void-border-1
+				border border-void-border-3 focus-within:border-[var(--vscode-focusBorder)] hover:border-[var(--vscode-focusBorder)]
 				max-h-[80vh] overflow-y-auto
                 ${className}
             `}
@@ -422,13 +423,10 @@ export const ButtonSubmit = ({ className, disabled, ...props }: ButtonProps & Re
 
 	return <button
 		type='button'
-		className={`rounded-full flex-shrink-0 flex-grow-0 flex items-center justify-center
-			${disabled ? 'bg-vscode-disabled-fg cursor-default' : 'bg-white cursor-pointer'}
+		className={`rounded-lg flex-shrink-0 flex-grow-0 flex items-center justify-center
+			${disabled ? 'bg-vscode-disabled-fg cursor-default' : 'bg-vscode-button-bg hover:bg-vscode-button-hover-bg cursor-pointer'}
 			${className}
 		`}
-		// data-tooltip-id='void-tooltip'
-		// data-tooltip-content={'Send'}
-		// data-tooltip-place='left'
 		{...props}
 	>
 		<IconArrowUp size={DEFAULT_BUTTON_SIZE} className="stroke-[2] p-[2px]" />
@@ -437,8 +435,8 @@ export const ButtonSubmit = ({ className, disabled, ...props }: ButtonProps & Re
 
 export const ButtonStop = ({ className, ...props }: ButtonHTMLAttributes<HTMLButtonElement>) => {
 	return <button
-		className={`rounded-full flex-shrink-0 flex-grow-0 cursor-pointer flex items-center justify-center
-			bg-white
+		className={`rounded-lg flex-shrink-0 flex-grow-0 cursor-pointer flex items-center justify-center
+			bg-vscode-button-secondary-bg
 			${className}
 		`}
 		type='button'
@@ -1190,7 +1188,7 @@ const UserMessageComponent = ({ chatMessage, messageIdx, isCheckpointGhost, curr
 			className={`
             text-left rounded-lg max-w-full
             ${mode === 'edit' ? ''
-					: mode === 'display' ? 'p-2 flex flex-col bg-void-bg-1 text-void-fg-1 overflow-x-auto cursor-pointer' : ''
+					: mode === 'display' ? 'p-2.5 flex flex-col bg-void-bg-1 text-void-fg-1 overflow-x-auto cursor-pointer rounded-xl border border-void-border-3' : ''
 				}
         `}
 			onClick={() => { if (mode === 'display') { onOpenEdit() } }}
