@@ -45,6 +45,9 @@
  * @property {(userId: string) => Promise<TransactionSummary[]>} listTransactions
  * @property {(userId: string, planId: string) => Promise<CheckoutResult>} startCheckout
  *
+ * @typedef {object} IPricingCatalogClient
+ * @property {() => Promise<import('./pricing-catalog.js').PricingCatalog>} getPricingCatalog
+ *
  * @typedef {object} ProvisioningRequest
  * @property {string} userId
  * @property {string} displayName

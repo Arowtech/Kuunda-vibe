@@ -223,7 +223,7 @@ function rulesFor(type, name) {
 
 function readmeFor(type, name, publishTargets) {
 	const publish = type === 'mobile' ? `\n\nMobile publishing target: ${publishOptionFromTargets(publishTargets)}. Store credentials and AAB/IPA builds are Phase 7.` : '';
-	return `# ${name}\n\nScaffolded by Kuunda Vibe as a **${type}** project.${publish}\n\nKuunda Cloud is enabled by default. Create a Kuunda account in Studio to attach a sandbox to this IDE. The agent manages the sandbox; you promote migrations to production from Kuunda Cloud. Project credentials live in gitignored \`.env.local\`. Disable or replace it from the Kuunda Cloud commands.\n`;
+	return `# ${name}\n\nScaffolded by Kuunda Vibe as a **${type}** project.${publish}\n\nKuunda Cloud is enabled by default: this project gets its own Cloud space (standard plan) automatically — no Kuunda Cloud account to create. Change or upgrade the plan from Kuunda Vibe settings (\`Kuunda Vibe: Manage Cloud Plan\`). The agent manages the sandbox; you promote migrations to production from Kuunda Cloud. Project credentials live in gitignored \`.env.local\`. Disable or replace it from the Kuunda Cloud commands.\n`;
 }
 
 function websiteFiles(name) {

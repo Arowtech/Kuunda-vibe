@@ -1,4 +1,5 @@
 import { DEFAULT_API_BASE_URL } from './contracts.js';
+import { PRICING_CATALOG_PATH } from './pricing-catalog.js';
 import { DEFAULT_REQUEST_TIMEOUT_MS, fetchWithTimeout } from '../../kuunda-ai/src/network-policy.js';
 
 /**
@@ -67,6 +68,10 @@ export function createPlatformClient(options = {}) {
 		/** @type {import('./contracts.js').IBillingClient['listPlans']} */
 		listPlans() {
 			return request('/v1/billing/plans');
+		},
+		/** @type {import('./contracts.js').IPricingCatalogClient['getPricingCatalog']} */
+		getPricingCatalog() {
+			return request(PRICING_CATALOG_PATH);
 		},
 		/** @type {import('./contracts.js').IBillingClient['listTransactions']} */
 		listTransactions(userId) {

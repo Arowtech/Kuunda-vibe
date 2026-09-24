@@ -10,8 +10,84 @@ export const CLOUD_CLIENT_PATH = 'src/kuunda/client.js';
 export const SECRET_PLACEHOLDER = '<SET VIA SECRET STORE>';
 export const CLOUD_GITIGNORE_ENTRIES = ['.env.local', '.kuunda/cloud.local.json'];
 export const SEED_TABLE = 'items';
+/** Every project starts on the standard Cloud plan; upgrades happen in IDE settings. */
+export const DEFAULT_CLOUD_PLAN = 'standard';
+/**
+ * The main Kuunda Vibe account id lives here: one account per installation, created
+ * automatically, with no Kuunda Cloud signup and no web account ever required.
+ * Every project of the install is centralised under this single account.
+ */
+export const CLOUD_ACCOUNT_STORAGE_KEY = 'kuunda.cloud.accountId';
+/** Prefix of an auto-created account id (kuunda vibe account). */
+export const CLOUD_ACCOUNT_PREFIX = 'kva_';
+/**
+ * Route mode of the transitioning platform API. `auto` tries the spec routes
+ * (`/v1/accounts/{accountId}/…`) and falls back to the legacy routes; `off` never
+ * calls a legacy route, so a missing spec route surfaces as a real error.
+ * Set from the IDE setting `kuunda.cloud.legacyRoutes`.
+ */
+export function sanitizeRouteMode(value) {
+	return String(value || '').trim().toLowerCase() === 'off' ? 'off' : 'auto';
+}
+
+/**
+ * Every route family the client calls: the spec route we want, and the legacy route
+ * to delete. The report counts how each one is served, so the fallback is removed on
+ * evidence (`spec > 0` and `legacy === 0` for every family) instead of on hope.
+ */
+export const ROUTE_FAMILIES = [
+	{ family: 'projects.create', spec: 'POST /v1/accounts/{accountId}/projects', legacy: 'POST /v1/provisioning/projects' },
+	{ family: 'projects.list', spec: 'GET /v1/accounts/{accountId}/projects', legacy: 'GET /v1/account/projects?accountId={accountId}' },
+	{ family: 'project.archive', spec: 'POST /v1/accounts/{accountId}/projects/{ref}/archive', legacy: 'POST /v1/account/projects/{ref}/archive' },
+	{ family: 'project.restore', spec: 'POST /v1/accounts/{accountId}/projects/{ref}/restore', legacy: 'POST /v1/account/projects/{ref}/restore' },
+	{ family: 'project.plan', spec: 'PUT /v1/accounts/{accountId}/projects/{ref}/plan', legacy: 'POST /v1/provisioning/projects/{ref}/plan' },
+	{ family: 'project.tables', spec: 'GET /v1/accounts/{accountId}/projects/{ref}/tables', legacy: 'GET /v1/provisioning/projects/{ref}/tables' },
+	{ family: 'plans', spec: 'GET /v1/plans', legacy: 'GET /v1/provisioning/plans' },
+	{ family: 'link.start', spec: 'POST /v1/accounts/{accountId}/link/start', legacy: 'POST /v1/account/link/start' },
+	{ family: 'link.claim', spec: 'POST /v1/accounts/link/claim', legacy: 'POST /v1/account/link/claim' },
+];
+
+/** Non-negative integer, or 0 for anything a platform could send back. */
+function callCount(value) {
+	return typeof value === 'number' && Number.isFinite(value) && value > 0 ? Math.floor(value) : 0;
+}
+
+/**
+ * Human-readable route evidence. Kept next to the panel formatter so the counter is
+ * visible where the user already looks, not only in logs.
+ */
+export function formatRouteReport(report = {}) {
+	const value = report || {};
+	const mode = sanitizeRouteMode(value.mode);
+	const families = Array.isArray(value.families) ? value.families : [];
+	const lines = ['Kuunda Cloud routes'];
+	lines.push(`mode: ${mode}${mode === 'off' ? ' (spec only, no legacy fallback)' : ' (legacy fallback allowed)'}`);
+	lines.push(`calls: spec=${callCount(value.spec)} legacy=${callCount(value.legacy)} across ${families.length} families`);
+	const since = callCount(value.since);
+	if (since) {
+		lines.push(`evidence since: ${new Date(since).toISOString()}`);
+	}
+	lines.push(value.legacyRemovable
+		? 'legacy removal: ready — every family is served by the spec routes'
+		: 'legacy removal: not yet — at least one family has no spec proof');
+	for (const row of families) {
+		const spec = callCount(row && row.spec);
+		const legacy = callCount(row && row.legacy);
+		const last = row && row.lastRoute === 'legacy' ? 'legacy' : row && row.lastRoute === 'spec' ? 'spec' : 'none';
+		const state = !spec && !legacy ? 'unexercised' : legacy > 0 ? 'legacy still used' : 'spec only';
+		lines.push(`- ${row && row.family ? row.family : 'unknown'}: spec=${spec} legacy=${legacy} last=${last} (${state})`);
+		if (legacy > 0 && row && row.legacyPath) {
+			lines.push(`  legacy route to retire: ${row.legacyPath}`);
+		}
+	}
+	return lines.join('\n');
+}
 
 const SECRET_KEY = /anon[_-]?key|service[_-]?role|operator|password|secret|credential|token|authorization|api[_-]?key/i;
+const OWNER_ID_PATTERN = /^[A-Za-z0-9_-]{8,96}$/;
+const PLAN_ID_PATTERN = /^[a-z0-9][a-z0-9_-]{0,31}$/;
+const LINK_CODE_PATTERN = /^[A-Z0-9]{4}(?:-[A-Z0-9]{4}){0,3}$/;
+const REPO_URL_PATTERN = /^https:\/\/[a-z0-9.-]+\/[A-Za-z0-9._-]+\/[A-Za-z0-9._-]+$/i;
 
 export function parseCloudSettings(raw) {
 	let data = raw;
@@ -19,18 +95,68 @@ export function parseCloudSettings(raw) {
 		try {
 			data = JSON.parse(raw);
 		} catch {
-			return { enabled: CLOUD_ENABLED_DEFAULT };
+			return { enabled: CLOUD_ENABLED_DEFAULT, plan: DEFAULT_CLOUD_PLAN };
 		}
 	}
 	const cloud = data && typeof data === 'object' ? data.cloud : data;
 	if (!cloud || typeof cloud !== 'object' || Array.isArray(cloud)) {
-		return { enabled: CLOUD_ENABLED_DEFAULT };
+		return { enabled: CLOUD_ENABLED_DEFAULT, plan: DEFAULT_CLOUD_PLAN };
 	}
 	const enabled = cloud.enabled !== false;
 	const projectRef = sanitizeProjectRef(cloud.projectRef);
 	const env = cloud.env === 'production' ? 'production' : cloud.env === 'sandbox' ? 'sandbox' : undefined;
 	const url = sanitizeCloudUrl(cloud.url);
-	return { enabled, projectRef, env, url };
+	const plan = sanitizePlanId(cloud.plan);
+	const repo = sanitizeRepoUrl(cloud.repo);
+	return { enabled, projectRef, env, url, plan, repo };
+}
+
+/** Short human code used to adopt the same account on another machine. */
+export function sanitizeLinkCode(value) {
+	const code = String(value || '').trim().toUpperCase();
+	return LINK_CODE_PATTERN.test(code) ? code : undefined;
+}
+
+/** Normalised, https-only repository url (never a token, never ssh). */
+export function sanitizeRepoUrl(value) {
+	const url = String(value || '').trim().replace(/\.git$/, '');
+	if (!REPO_URL_PATTERN.test(url) || url.length > 220) {
+		return undefined;
+	}
+	return url;
+}
+
+/**
+ * Extracts the `origin` remote from a `.git/config` so the project record can
+ * carry the source location — the only way code is "synced" (via git, not us).
+ */
+export function parseGitRemote(configText) {
+	const text = String(configText || '');
+	const origin = /\[remote "origin"\]([\s\S]*?)(?:\r?\n\[|$)/.exec(text);
+	const scope = origin ? origin[1] : text;
+	const match = /url\s*=\s*([^\r\n]+)/i.exec(scope);
+	if (!match) {
+		return undefined;
+	}
+	let url = match[1].trim();
+	const ssh = /^git@([A-Za-z0-9.-]+):(.+)$/.exec(url);
+	if (ssh) {
+		url = `https://${ssh[1]}/${ssh[2]}`;
+	}
+	return sanitizeRepoUrl(url);
+}
+
+export function sanitizeOwnerId(value) {
+	const ownerId = String(value || '').trim();
+	if (!OWNER_ID_PATTERN.test(ownerId)) {
+		return undefined;
+	}
+	return ownerId;
+}
+
+export function sanitizePlanId(value) {
+	const planId = String(value || '').trim().toLowerCase();
+	return PLAN_ID_PATTERN.test(planId) ? planId : DEFAULT_CLOUD_PLAN;
 }
 
 export function sanitizeProjectRef(value) {
@@ -73,10 +199,14 @@ export function redactCloudPayload(payload) {
 	return out;
 }
 
+/**
+ * Cloud provisioning never requires a Kuunda Cloud signup: the IDE resolves an
+ * owner identity (signed-in user, otherwise the anonymous install id) and the
+ * platform creates a per-project space on the standard plan automatically.
+ */
 export function decideCloudProvisioning({
 	enabled = CLOUD_ENABLED_DEFAULT,
-	userId,
-	hasSession,
+	ownerId,
 	alreadyProvisioned = false,
 	apiOk,
 } = {}) {
@@ -86,8 +216,7 @@ export function decideCloudProvisioning({
 	if (alreadyProvisioned) {
 		return { ok: true, action: 'reuse', enabled: true };
 	}
-	const signedIn = hasSession === true || (hasSession !== false && Boolean(String(userId || '').trim()));
-	if (!signedIn || !String(userId || '').trim()) {
+	if (!sanitizeOwnerId(ownerId)) {
 		return { ok: true, action: 'pending_user', enabled: true };
 	}
 	if (apiOk === false) {
@@ -110,6 +239,7 @@ export function resolveCloudRecordAfterDecision({
 			projectRef: api?.kuundaProjectRef || api?.projectId,
 			env: 'sandbox',
 			url: api?.url,
+			plan: api?.planId,
 		});
 	}
 	return publicCloudRecord({
@@ -117,6 +247,7 @@ export function resolveCloudRecordAfterDecision({
 		projectRef: previous?.projectRef || api?.kuundaProjectRef || api?.projectId,
 		env: previous?.env === 'production' || previous?.env === 'sandbox' ? previous.env : undefined,
 		url: previous?.url || api?.url,
+		plan: previous?.plan || api?.planId,
 	});
 }
 
@@ -130,7 +261,7 @@ export function serializeManifestWithCloud(manifest, cloud) {
 	}, null, '\t')}\n`;
 }
 
-export function publicCloudRecord({ enabled = true, projectRef, env, url } = {}) {
+export function publicCloudRecord({ enabled = true, projectRef, env, url, plan, repo } = {}) {
 	const record = { enabled: enabled !== false };
 	const safeRef = sanitizeProjectRef(projectRef);
 	if (safeRef) {
@@ -142,6 +273,11 @@ export function publicCloudRecord({ enabled = true, projectRef, env, url } = {})
 	const safeUrl = sanitizeCloudUrl(url);
 	if (safeUrl) {
 		record.url = safeUrl;
+	}
+	record.plan = sanitizePlanId(plan);
+	const safeRepo = sanitizeRepoUrl(repo);
+	if (safeRepo) {
+		record.repo = safeRepo;
 	}
 	return redactCloudPayload(record);
 }
@@ -203,20 +339,21 @@ export function crudClientSource(type) {
 	return `${header}const KUUNDA_URL = process.env.KUUNDA_URL || '${SECRET_PLACEHOLDER}';\nconst KUUNDA_ANON_KEY = process.env.KUUNDA_ANON_KEY || '${SECRET_PLACEHOLDER}';\n\nexport async function listItems() {\n\tconst response = await fetch(\`\${KUUNDA_URL}/rest/v1/${SEED_TABLE}\`, {\n\t\theaders: { apikey: KUUNDA_ANON_KEY, Authorization: \`Bearer \${KUUNDA_ANON_KEY}\` },\n\t});\n\tif (!response.ok) {\n\t\tthrow new Error('kuunda_rest_error');\n\t}\n\treturn response.json();\n}\n\nexport async function createItem(title) {\n\tconst response = await fetch(\`\${KUUNDA_URL}/rest/v1/${SEED_TABLE}\`, {\n\t\tmethod: 'POST',\n\t\theaders: { apikey: KUUNDA_ANON_KEY, Authorization: \`Bearer \${KUUNDA_ANON_KEY}\`, 'Content-Type': 'application/json' },\n\t\tbody: JSON.stringify({ title }),\n\t});\n\tif (!response.ok) {\n\t\tthrow new Error('kuunda_rest_error');\n\t}\n\treturn response.json();\n}\n`;
 }
 
-export function cloudReadmeSection({ enabled, url } = {}) {
+export function cloudReadmeSection({ enabled, url, plan } = {}) {
 	const state = enabled === false ? 'disabled' : 'enabled by default';
 	const endpoint = sanitizeCloudUrl(url) || SECRET_PLACEHOLDER;
-	return `\n## Kuunda Cloud\n\nProvisioning is **${state}**. REST URL: \`${endpoint}\`.\nSign in (or create a Kuunda account) in Studio to attach a **sandbox** to this IDE. The agent may manage that sandbox; you promote migrations to production from Kuunda Cloud.\nCopy \`.env.local\` from the scaffold (gitignored) and replace \`${SECRET_PLACEHOLDER}\` with the project anon key issued at runtime. Never commit operator or service_role keys.\nCRUD helper: \`${CLOUD_CLIENT_PATH}\` (\`${SEED_TABLE}\` table).\n`;
+	const planId = sanitizePlanId(plan);
+	return `\n## Kuunda Cloud\n\nProvisioning is **${state}** on the **${planId}** plan. REST URL: \`${endpoint}\`.\nThis project gets its own Kuunda Cloud space automatically — no account to create. Change or upgrade the plan from Kuunda Vibe settings (\`Kuunda Vibe: Manage Cloud Plan\`). The agent may manage the sandbox; you promote migrations to production from Kuunda Cloud.\nCopy \`.env.local\` from the scaffold (gitignored) and replace \`${SECRET_PLACEHOLDER}\` with the project anon key issued at runtime. Never commit operator or service_role keys.\nCRUD helper: \`${CLOUD_CLIENT_PATH}\` (\`${SEED_TABLE}\` table).\n`;
 }
 
-export function scaffoldCloudFiles({ type, enabled = true, projectRef, env, url, anonKey, existingGitignore = '' } = {}) {
+export function scaffoldCloudFiles({ type, enabled = true, projectRef, env, url, anonKey, existingGitignore = '', plan, repo } = {}) {
 	const decision = decideCloudProvisioning({
 		enabled,
-		userId: 'scaffold',
+		ownerId: 'anon_scaffold',
 		alreadyProvisioned: Boolean(projectRef),
 		apiOk: true,
 	});
-	const publicCloud = publicCloudRecord({ enabled: decision.enabled, projectRef, env, url });
+	const publicCloud = publicCloudRecord({ enabled: decision.enabled, projectRef, env, url, plan, repo });
 	const gitignore = mergeGitignore(existingGitignore);
 	const files = [
 		{ path: CLOUD_CLIENT_PATH, content: crudClientSource(type || 'other') },
@@ -243,20 +380,22 @@ export function formatCloudContext(cloud) {
 	if (publicCloud.enabled === false) {
 		return 'Kuunda Cloud: disabled (replaceable in project settings).';
 	}
+	const plan = sanitizePlanId(publicCloud.plan);
 	if (!publicCloud.projectRef) {
-		return 'Kuunda Cloud: enabled but not linked. Ask the user to create or sign in to their Kuunda account in Studio so this IDE can attach a sandbox database. Do not invent credentials or a production URL.';
+		return `Kuunda Cloud: enabled but not provisioned yet (plan=${plan}). The IDE creates the project space automatically; retry provisioning from the Cloud panel. No Kuunda Cloud account is required and the user must not be asked to sign up. Do not invent credentials or a production URL.`;
 	}
 	const env = publicCloud.env || 'sandbox';
 	if (env === 'production') {
-		return `Kuunda Cloud: enabled ref=${publicCloud.projectRef} env=production. Treat production as user-owned. Do not apply schema or data migrations there. The user promotes sandbox work from the Kuunda Cloud dashboard.`;
+		return `Kuunda Cloud: enabled ref=${publicCloud.projectRef} env=production plan=${plan}. Treat production as user-owned. Do not apply schema or data migrations there. The user promotes sandbox work from the Kuunda Cloud dashboard.`;
 	}
-	return `Kuunda Cloud: enabled ref=${publicCloud.projectRef} env=sandbox. You may manage this sandbox autonomously (schema, migrations, seed data). Never push to production; tell the user to promote migrations in Kuunda Cloud (app.kuunda.cloud).`;
+	return `Kuunda Cloud: enabled ref=${publicCloud.projectRef} env=sandbox plan=${plan}. You may manage this sandbox autonomously (schema, migrations, seed data). Never push to production; tell the user to promote migrations in Kuunda Cloud (app.kuunda.cloud).`;
 }
 
-export function formatCloudPanel({ cloud, tables } = {}) {
+export function formatCloudPanel({ cloud, tables, routes } = {}) {
 	const publicCloud = publicCloudRecord(cloud || { enabled: true });
 	const lines = ['Kuunda Cloud'];
 	lines.push(`enabled: ${publicCloud.enabled !== false}`);
+	lines.push(`plan: ${sanitizePlanId(publicCloud.plan)}`);
 	if (publicCloud.projectRef) {
 		lines.push(`project: ${publicCloud.projectRef}`);
 	}
@@ -267,11 +406,24 @@ export function formatCloudPanel({ cloud, tables } = {}) {
 		lines.push(`url: ${publicCloud.url}`);
 	}
 	if (!publicCloud.projectRef) {
-		lines.push('link: create a Kuunda account in Studio to attach this IDE');
-	} else if ((publicCloud.env || 'sandbox') === 'sandbox') {
-		lines.push('agent: sandbox (autonomous). production: you promote in Kuunda Cloud.');
+		lines.push('link: the IDE provisions this project space automatically — no account needed');
 	} else {
-		lines.push('production is user-owned — promote from Kuunda Cloud, not the agent.');
+		lines.push('manage plan: Kuunda Vibe settings → Cloud plan');
+	}
+	if (publicCloud.projectRef) {
+		if ((publicCloud.env || 'sandbox') === 'sandbox') {
+			lines.push('agent: sandbox (autonomous). production: you promote in Kuunda Cloud.');
+		} else {
+			lines.push('production is user-owned — promote from Kuunda Cloud, not the agent.');
+		}
+	}
+	if (routes) {
+		const families = Array.isArray(routes.families) ? routes.families : [];
+		const unexercised = families.filter((row) => !callCount(row && row.spec) && !callCount(row && row.legacy)).length;
+		const verdict = routes.legacyRemovable
+			? 'legacy fallback ready to remove'
+			: unexercised ? `${unexercised} families unexercised` : 'legacy fallback still needed';
+		lines.push(`routes: spec=${callCount(routes.spec)} legacy=${callCount(routes.legacy)} mode=${sanitizeRouteMode(routes.mode)} (${verdict})`);
 	}
 	const rows = Array.isArray(tables) ? tables : [];
 	if (!rows.length) {

@@ -22,7 +22,7 @@ Une **identité Kuunda unique** pour l’IDE et le web (`app.kuunda.cloud` + `ap
 | Id | Comportement | Où |
 | --- | --- | --- |
 | 11.1 Studio | Overlay identité / crédits / usage / appareils / Cloud / sécurité | `openKuundaAccountStudio` |
-| 11.2 Email | Signup + login in-app ; Cloud `pending_user` ouvre ce formulaire | `POST /v1/auth/signup` · `/v1/auth/login` |
+| 11.2 Email | Signup + login in-app (optionnel, jamais requis pour le Cloud) | `POST /v1/auth/signup` · `/v1/auth/login` |
 | 11.3 OAuth | Google / GitHub / Apple via navigateur + PKCE | `/v1/auth/oauth/start` · `/finish` |
 | 11.4 Pairing | Code court + poll | `/v1/auth/device/start` · `/poll` |
 | 11.5 Sync web | Handoff court vers le dashboard déjà identifié | `POST /v1/auth/web-handoff` |
@@ -66,7 +66,7 @@ Sans ces providers et sans les routes Worker, le Studio affiche *Account service
 - Contrats HTTP : `packages/cloud-client`
 - UI : `src/vs/workbench/contrib/kuundaAccount/`
 - Accroche crédits : `kuundaBillingService` lit la session et envoie `Authorization: Bearer`
-- Accroche Cloud : `pending_user` → Studio `{ intent: 'signUp', reason: 'cloud' }` ; Bearer sur `POST /v1/provisioning/projects` (`env: sandbox`)
+- Accroche Cloud : compte principal auto `kva_<uuid>` (aucun compte web requis) ; `userId` de session envoyé seulement comme indice d’attribution, Bearer si présent — aucun écran de création de compte déclenché par le Cloud
 - Accroche accueil : `appendKuundaHomeAccountCta`
 
 ## Hors de portée (public)

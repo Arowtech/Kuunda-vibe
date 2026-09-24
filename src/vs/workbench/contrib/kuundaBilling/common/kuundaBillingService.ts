@@ -10,12 +10,14 @@ import { createDecorator } from '../../../../platform/instantiation/common/insta
 import { IStorageService, StorageScope, StorageTarget } from '../../../../platform/storage/common/storage.js';
 import { INotificationService, Severity } from '../../../../platform/notification/common/notification.js';
 import { BillingPlan, CheckoutResult, CreditAlertLevel, CreditsBalance, DEFAULT_API_BASE_URL, DEFAULT_ACCOUNT_URL, TransactionSummary, creditAlertLevel } from './creditPolicy.js';
+import { PricingCatalog, PRICING_CATALOG_PATH, UsageTokens, estimateCredits as estimateCreditsFromCatalog, validatePricingCatalog } from './pricingCatalog.js';
 import { kuundaBillingLocalize, paymentFailureMessage } from './kuundaBillingNls.js';
 import { classifyNetworkError, fetchWithTimeout } from '../../kuundaAi/common/networkPolicy.js';
 import { IKuundaLegalService } from '../../kuundaLegal/common/kuundaLegalService.js';
 import { IKuundaAccountService } from '../../kuundaAccount/common/kuundaAccountService.js';
 
 const USER_KEY = 'kuunda.billing.userId';
+const CATALOG_KEY = 'kuunda.billing.pricingCatalog';
 
 export interface IKuundaBillingService {
 	readonly _serviceBrand: undefined;
@@ -26,6 +28,10 @@ export interface IKuundaBillingService {
 	clearUserId(): Promise<void>;
 	getBalance(): Promise<CreditsBalance | undefined>;
 	listPlans(): Promise<BillingPlan[]>;
+	/** Published from the admin dashboard, in USD. Never a compiled-in tariff. */
+	getPricingCatalog(): Promise<PricingCatalog | undefined>;
+	lastPricingCatalog(): PricingCatalog | undefined;
+	estimateCredits(modelId: string, usage: UsageTokens): number | undefined;
 	listTransactions(): Promise<TransactionSummary[]>;
 	startCheckout(planId: string): Promise<CheckoutResult | undefined>;
 	ensureCanRunAgent(): Promise<{ ok: boolean; message?: string }>;
@@ -40,6 +46,7 @@ export class KuundaBillingService extends Disposable implements IKuundaBillingSe
 	readonly accountUrl = DEFAULT_ACCOUNT_URL;
 
 	private balance: CreditsBalance | undefined;
+	private catalog: PricingCatalog | undefined;
 	private lastAlert: CreditAlertLevel | undefined;
 	private lastFailureId: string | undefined;
 	private lastNetworkCode: string | undefined;
@@ -128,6 +135,60 @@ export class KuundaBillingService extends Disposable implements IKuundaBillingSe
 			this.notifyNetwork(error);
 			return [];
 		}
+	}
+
+	/**
+	 * A bad or unreachable publish never breaks the IDE: an invalid catalog is
+	 * rejected and the last known good one keeps serving pre-run quotes.
+	 */
+	async getPricingCatalog(): Promise<PricingCatalog | undefined> {
+		if (!this.legalService.decideSend('billing').ok) {
+			return this.lastPricingCatalog();
+		}
+		try {
+			const response = await fetchWithTimeout(`${DEFAULT_API_BASE_URL}${PRICING_CATALOG_PATH}`, {
+				headers: await this.platformHeaders(),
+			});
+			if (!response.ok) {
+				return this.lastPricingCatalog();
+			}
+			const raw = await response.json() as PricingCatalog;
+			if (!validatePricingCatalog(raw).ok) {
+				return this.lastPricingCatalog();
+			}
+			this.catalog = raw;
+			this.storageService.store(CATALOG_KEY, JSON.stringify(raw), StorageScope.APPLICATION, StorageTarget.USER);
+			this.lastNetworkCode = undefined;
+			return raw;
+		} catch (error) {
+			this.notifyNetwork(error);
+			return this.lastPricingCatalog();
+		}
+	}
+
+	lastPricingCatalog(): PricingCatalog | undefined {
+		if (this.catalog) {
+			return this.catalog;
+		}
+		const stored = this.storageService.get(CATALOG_KEY, StorageScope.APPLICATION);
+		if (!stored) {
+			return undefined;
+		}
+		try {
+			const parsed = JSON.parse(stored) as PricingCatalog;
+			if (validatePricingCatalog(parsed).ok) {
+				this.catalog = parsed;
+				return parsed;
+			}
+		} catch {
+			return undefined;
+		}
+		return undefined;
+	}
+
+	/** Pre-run quote only. The server stays authoritative for what is charged. */
+	estimateCredits(modelId: string, usage: UsageTokens): number | undefined {
+		return estimateCreditsFromCatalog(this.lastPricingCatalog(), modelId, usage);
 	}
 
 	async listTransactions(): Promise<TransactionSummary[]> {

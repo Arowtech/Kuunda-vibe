@@ -22,6 +22,9 @@ Ce guide est mis à jour **à chaque phase**. Il n'est pas un README marketing.
 | [09-packaging.md](09-packaging.md) | Phase 9 : kuunda-builder, signature, auto-update interne |
 | [10-post-launch.md](10-post-launch.md) | Phase 10 : feedback opt-in, backlog, plan upstream |
 | [11-account.md](11-account.md) | Phase 11 : compte Studio web ↔ IDE, OAuth, crédits |
+| [12-org-integration.md](12-org-integration.md) | Spec à transmettre à Kuunda Cloud : organisations, managed accounts, API de délégation |
+| [13-openrouter-ai-gateway.md](13-openrouter-ai-gateway.md) | Spec à transmettre à Kuunda Cloud : passerelle IA OpenRouter, débit des crédits, politique de données |
+| [14-pricing-catalog-admin.md](14-pricing-catalog-admin.md) | Spec à transmettre à Kuunda Cloud : catalogue tarifaire USD, console d'administration, garde-fous de marge |
 | `LICENSE` | Apache-2.0 (texte officiel non modifié) |
 | `LICENSE-VS-Code.txt` | MIT Code - OSS (Microsoft) |
 | `NOTICE` | Chaîne d'attribution Microsoft → Void → Arowtech |
@@ -29,6 +32,32 @@ Ce guide est mis à jour **à chaque phase**. Il n'est pas un README marketing.
 | `GOVERNANCE.md` | Steward, PR, branches |
 | `CONTRIBUTING.md` | Comment contribuer |
 | [i18n-en-fr.md](i18n-en-fr.md) | UI bilingue EN/FR, anglais par défaut |
+
+## Specs à transmettre à Kuunda Cloud
+
+Ces documents ne sont pas des phases : ce sont des **specs d'interface**, écrites ici parce que le contrat vit ici. Règle de rédaction : une spec décrit des routes que le client **appelle déjà** ou est prêt à appeler ; l'implémentation est dans le dépôt privé. Quand les routes répondent, **aucun changement de client n'est nécessaire**.
+
+| Doc | Sujet | Appelant |
+| --- | --- | --- |
+| [12-org-integration.md](12-org-integration.md) | Organisations, managed accounts, projets, liaison multi-appareils | IDE |
+| [13-openrouter-ai-gateway.md](13-openrouter-ai-gateway.md) | Passerelle IA (clé OpenRouter côté serveur), débit des crédits, preuve de la politique de données | IDE |
+| [14-pricing-catalog-admin.md](14-pricing-catalog-admin.md) | Catalogue tarifaire USD, console d'administration, règles de refus de publication | IDE (lecture) + console |
+
+**Discipline de synchronisation :** la forme partagée est `packages/cloud-client/src/` ; tout champ qui y change se répercute le jour même dans le doc correspondant. Les codes de refus du catalogue (`PRICING_VALIDATION_CODES`) et les tarifs modèles vivent dans le code public sous forme de **forme** seulement — jamais de valeur — et un test vérifie que la table du doc 14 et le code ne divergent pas.
+
+**Noms des dépôts (vérifiés sur GitHub avec le compte `Arowtech`, 24 sept. 2026) :**
+
+| Dépôt | Visibilité | Rôle |
+| --- | --- | --- |
+| `Arowtech/Kuunda-vibe` | public | cet IDE (Apache-2.0 + MIT héritée) |
+| `Arowtech/kuunda-vibe-cloud` | privé | composants commerciaux séparables de Kuunda Vibe — ledger, tarifs, agrégateur de paiement, provisioning opérateur, custody des clés de signature. **Destinataire des specs 12/13/14.** |
+| `Arowtech/kuunda-cloud` | privé | plateforme Kuunda Cloud (dashboard, services, facturation, invoices) — projet distinct, jumeau du clone local |
+
+La frontière juridique du dépôt public est **`Arowtech/kuunda-vibe-cloud`** : c'est ce nom que portent `GOVERNANCE.md`, `NOTICE`, `docs/legal/COMPOSANTS-PROPRIETAIRES.md`, `docs/legal/CLA-*.md`, `docs/codebase/03bis-credits.md`, `docs/codebase/12-org-integration.md`, les contrats `packages/cloud-client/src/`, `legalPolicy`/`legal-policy` et `test/license-compliance.test.mjs`.
+
+**Piège à ne pas confondre :** `Arowtech/kuunda-cloud` (le dépôt plateforme) et les domaines `*.kuunda-cloud.com` ne désignent **pas** la frontière propriétaire du dépôt public — seul `Arowtech/kuunda-vibe-cloud` la désigne. Un test verrouille cette distinction (`test/repo-names.test.mjs`).
+
+**Les deux modes IA sont retenus (tranché, 24 sept. 2026) :** **BYOK** (clé OpenRouter de l'utilisateur dans les réglages, déjà câblée côté client) **et** **passerelle gérée** (clé OpenRouter côté serveur Kuunda Cloud, débit en crédits). Les deux coexistent sans changement de client : le mode se choisit par le provider actif, pas par une option de compilation. Doc 13 décrit les deux.
 
 ## Phases
 
@@ -77,5 +106,5 @@ product.json                     nom Kuunda Vibe, quality=internal, updateUrl
 
 ## Stack figée
 
-Voir `00-licence-et-gouvernance.md`, `00bis-infrastructure.md`, `01-rename.md`, `02-autocomplete-chat.md`, `03-agent.md`, `03bis-credits.md`, `04-devtools.md`, `04bis-extension-api.md`, `05-project-type.md`, `06-kuunda-cloud.md`, `07-publishing.md`, `08-reliability.md`, `08bis-legal.md`, `09-packaging.md`, `10-post-launch.md`, `11-account.md`.
+Voir `00-licence-et-gouvernance.md`, `00bis-infrastructure.md`, `01-rename.md`, `02-autocomplete-chat.md`, `03-agent.md`, `03bis-credits.md`, `04-devtools.md`, `04bis-extension-api.md`, `05-project-type.md`, `06-kuunda-cloud.md`, `07-publishing.md`, `08-reliability.md`, `08bis-legal.md`, `09-packaging.md`, `10-post-launch.md`, `11-account.md`, `12-org-integration.md`, `13-openrouter-ai-gateway.md`, `14-pricing-catalog-admin.md`.
 `engines` de compilation : ceux de Void/VS Code. Tests Kuunda : `npm test` (Node 24).

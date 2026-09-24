@@ -60,6 +60,7 @@ import {
 	PROJECT_MANIFEST_PATH,
 	decideDestination,
 	CLOUD_ENABLED_DEFAULT,
+	DEFAULT_CLOUD_PLAN,
 	CLOUD_ENV_PATH,
 	CLOUD_CLIENT_PATH,
 	SECRET_PLACEHOLDER,
@@ -67,7 +68,14 @@ import {
 	redactCloudPayload,
 	decideCloudProvisioning,
 	publicCloudRecord,
+	sanitizePlanId,
+	sanitizeLinkCode,
+	sanitizeRepoUrl,
+	parseGitRemote,
 	resolveCloudRecordAfterDecision,
+	ROUTE_FAMILIES,
+	sanitizeRouteMode,
+	formatRouteReport,
 	mergeGitignore,
 	persistableAnonKey,
 	scaffoldCloudFiles,
@@ -605,22 +613,45 @@ describe('Phase 6 — Kuunda Cloud par défaut', () => {
 	it('provisionne par défaut, rédige les secrets, et ignore git pour les clés projet', () => {
 		assert.equal(CLOUD_ENABLED_DEFAULT, true);
 		assert.equal(decideCloudProvisioning({ enabled: false }).action, 'skip');
+		// No owner identity → the IDE generates one; signup is never required.
 		assert.equal(decideCloudProvisioning({ enabled: true }).action, 'pending_user');
-		assert.equal(decideCloudProvisioning({ enabled: true, userId: 'u1', apiOk: false }).action, 'pending_api');
-		assert.equal(decideCloudProvisioning({ enabled: true, userId: 'u1', hasSession: false }).action, 'pending_user');
-		assert.equal(decideCloudProvisioning({ enabled: true, hasSession: true }).action, 'pending_user');
-		assert.equal(decideCloudProvisioning({ enabled: true, userId: 'u1', hasSession: true }).action, 'provision');
-		assert.equal(decideCloudProvisioning({ enabled: true, userId: 'u1', alreadyProvisioned: true, hasSession: false }).action, 'reuse');
+		assert.equal(decideCloudProvisioning({ enabled: true, apiOk: false }).action, 'pending_user', 'no owner short-circuits before the api check');
+		assert.equal(decideCloudProvisioning({ enabled: true, ownerId: 'bad' }).action, 'pending_user', 'too-short owner ids are rejected, not signup prompts');
+		assert.equal(decideCloudProvisioning({ enabled: true, ownerId: 'anon_0123456789' }).action, 'provision', 'anonymous install identities provision without any session');
+		assert.equal(decideCloudProvisioning({ enabled: true, ownerId: 'user_0123456789' }).action, 'provision', 'signed-in owners provision too');
+		assert.equal(decideCloudProvisioning({ enabled: true, ownerId: 'anon_0123456789', apiOk: false }).action, 'pending_api');
+		assert.equal(decideCloudProvisioning({ enabled: true, ownerId: 'anon_0123456789', alreadyProvisioned: true }).action, 'reuse');
+		assert.equal(DEFAULT_CLOUD_PLAN, 'standard', 'every project starts on the standard plan');
+		assert.equal(sanitizePlanId(undefined), 'standard');
+		assert.equal(sanitizePlanId('Pro'), 'pro');
+		assert.equal(sanitizePlanId('not a plan!'), 'standard');
+		assert.equal(publicCloudRecord({ projectRef: 'proj_ab' }).plan, 'standard');
+		assert.equal(publicCloudRecord({ plan: 'pro' }).plan, 'pro');
+		assert.equal(parseCloudSettings({ cloud: { plan: 'pro' } }).plan, 'pro');
+		assert.equal(parseCloudSettings({}).plan, 'standard');
+		// Multi-machine: the account travels via a short link code, not a web signup.
+		assert.equal(sanitizeLinkCode('ab12-cd34'), 'AB12-CD34');
+		assert.equal(sanitizeLinkCode('nope!'), undefined);
+		// The record remembers where the code lives; we never sync the code itself.
+		assert.equal(sanitizeRepoUrl('https://github.com/Arowtech/Kuunda-vibe.git'), 'https://github.com/Arowtech/Kuunda-vibe');
+		assert.equal(sanitizeRepoUrl('git@github.com:Arowtech/Kuunda-vibe.git'), undefined);
+		assert.equal(sanitizeRepoUrl('https://evil.example'), undefined);
+		assert.equal(parseGitRemote('[remote "origin"]\n\turl = git@github.com:Arowtech/Kuunda-vibe.git\n'), 'https://github.com/Arowtech/Kuunda-vibe');
+		assert.equal(parseGitRemote('[remote "upstream"]\n\turl = https://github.com/other/x\n'), 'https://github.com/other/x');
+		assert.equal(parseGitRemote('[remote "origin"]\n\turl = git@github.com:Arowtech/app.git\n[remote "upstream"]\n\turl = https://github.com/other/x\n'), 'https://github.com/Arowtech/app');
+		assert.equal(parseGitRemote(''), undefined);
+		assert.equal(publicCloudRecord({ repo: 'https://github.com/a/b' }).repo, 'https://github.com/a/b');
+		assert.equal('repo' in publicCloudRecord({ repo: 'git@github.com:a/b.git' }), false);
 		assert.equal(resolveCloudRecordAfterDecision({
 			decision: { ok: true, action: 'pending_user', enabled: true },
-			previous: { enabled: true, projectRef: 'proj_ab', env: 'sandbox', url: 'https://proj-ab.kuunda-cloud.com' },
+			previous: { enabled: true, projectRef: 'proj_ab', env: 'sandbox', url: 'https://proj-ab.kuunda-cloud.com', plan: 'pro' },
 		}).projectRef, 'proj_ab');
 		assert.equal(resolveCloudRecordAfterDecision({
 			decision: { ok: true, action: 'provision', enabled: true },
 			api: { kuundaProjectRef: 'proj_new', env: 'production', url: 'https://proj-new.kuunda-cloud.com' },
 		}).env, 'sandbox');
-		assert.equal(decideCloudProvisioning({ enabled: true, userId: 'u1', apiOk: true }).action, 'provision');
-		assert.equal(decideCloudProvisioning({ enabled: true, userId: 'u1' }).action, 'provision');
+		assert.equal(decideCloudProvisioning({ enabled: true, ownerId: 'anon_0123456789', apiOk: true }).action, 'provision');
+		assert.equal(decideCloudProvisioning({ enabled: true, ownerId: 'anon_0123456789' }).action, 'provision');
 		assert.equal(sanitizeCloudUrlSafe(), undefined);
 		assert.equal(publicCloudRecord({ url: 'https://evil.example', enabled: true }).url, undefined);
 		assert.equal(publicCloudRecord({ url: 'https://proj-ab.kuunda-cloud.com', projectRef: '../etc' }).projectRef, undefined);
@@ -632,6 +663,60 @@ describe('Phase 6 — Kuunda Cloud par défaut', () => {
 		const parsed = parseCloudSettings({ cloud: { enabled: false, projectRef: 'proj_deadbeef', env: 'sandbox' } });
 		assert.equal(parsed.enabled, false);
 		assert.equal(parsed.projectRef, 'proj_deadbeef');
+	});
+
+	it('compte les familles de routes servies par la spec pour supprimer le legacy', () => {
+		// `auto` is the migration default, `off` is the proof mode: spec routes only.
+		assert.equal(sanitizeRouteMode(undefined), 'auto');
+		assert.equal(sanitizeRouteMode('auto'), 'auto');
+		assert.equal(sanitizeRouteMode('OFF'), 'off');
+		assert.equal(sanitizeRouteMode(' off '), 'off');
+		assert.equal(sanitizeRouteMode('nonsense'), 'auto');
+		assert.ok(ROUTE_FAMILIES.length >= 8, 'every platform call belongs to a counted family');
+		for (const entry of ROUTE_FAMILIES) {
+			assert.match(entry.spec, /^(GET|POST|PUT|DELETE) \/v1\//, entry.family);
+			assert.match(entry.legacy, /^(GET|POST|PUT|DELETE) \/v1\//, entry.family);
+		}
+		const rows = ROUTE_FAMILIES.map((entry) => ({
+			family: entry.family,
+			specPath: entry.spec,
+			legacyPath: entry.legacy,
+			spec: 3,
+			legacy: 0,
+			lastRoute: 'spec',
+		}));
+		const ready = formatRouteReport({ mode: 'auto', spec: rows.length * 3, legacy: 0, families: rows, legacyRemovable: true });
+		assert.match(ready, /mode: auto/);
+		assert.match(ready, new RegExp(`spec=${rows.length * 3} legacy=0`));
+		assert.match(ready, /legacy removal: ready/);
+		assert.match(ready, /last=spec/);
+		const blocked = formatRouteReport({
+			mode: 'off',
+			legacyRemovable: false,
+			families: [{ family: 'plans', specPath: 'GET /v1/plans', legacyPath: 'GET /v1/provisioning/plans', spec: 0, legacy: 2, lastRoute: 'legacy' }],
+		});
+		assert.match(blocked, /mode: off/);
+		assert.match(blocked, /legacy removal: not yet/);
+		assert.match(blocked, /legacy still used/);
+		assert.match(blocked, /legacy route to retire: GET \/v1\/provisioning\/plans/);
+		// Junk from storage must never inflate the counters.
+		const junk = formatRouteReport({ mode: 'auto', spec: -5, legacy: Number.NaN, families: [null, { family: 'x', spec: '9', legacy: -1 }], legacyRemovable: false });
+		assert.match(junk, /calls: spec=0 legacy=0 across 2 families/);
+		assert.match(junk, /- x: spec=0 legacy=0 last=none \(unexercised\)/);
+		assert.match(formatRouteReport(undefined), /calls: spec=0 legacy=0 across 0 families/);
+		// The panel is where the counter becomes visible without a command.
+		assert.match(
+			formatCloudPanel({ cloud: {}, tables: [], routes: { mode: 'auto', spec: 4, legacy: 0, families: [{ family: 'plans', spec: 4, legacy: 0 }], legacyRemovable: false } }),
+			/routes: spec=4 legacy=0 mode=auto \(legacy fallback still needed\)/,
+		);
+		assert.match(
+			formatCloudPanel({ cloud: {}, tables: [], routes: { mode: 'auto', spec: 9, legacy: 0, families: [{ family: 'plans', spec: 9, legacy: 0 }], legacyRemovable: true } }),
+			/routes: spec=9 legacy=0 mode=auto \(legacy fallback ready to remove\)/,
+		);
+		assert.match(
+			formatCloudPanel({ cloud: {}, tables: [], routes: { mode: 'auto', spec: 1, legacy: 0, families: [{ family: 'plans', spec: 1, legacy: 0 }, { family: 'link.claim', spec: 0, legacy: 0 }], legacyRemovable: false } }),
+			/\(1 families unexercised\)/,
+		);
 	});
 
 	it('échafaude le client CRUD et des fichiers secrets gitignorés, jamais service_role', () => {
@@ -656,7 +741,8 @@ describe('Phase 6 — Kuunda Cloud par défaut', () => {
 		assert.doesNotMatch(manifest, /anonKey|service_role|sk_/);
 		assert.match(formatCloudContext(scaffold.cloud), /proj_ab/);
 		assert.match(formatCloudContext(scaffold.cloud), /sandbox/);
-		assert.match(formatCloudContext({ enabled: true }), /Studio/);
+		assert.match(formatCloudContext({ enabled: true }), /automatically/);
+		assert.match(formatCloudContext({ enabled: true }), /No Kuunda Cloud account is required/);
 		assert.match(formatCloudContext({ enabled: true, projectRef: 'proj_ab', env: 'sandbox' }), /promote/);
 		assert.match(formatCloudContext({ enabled: true, projectRef: 'proj_ab', env: 'production' }), /user-owned/);
 		assert.match(formatCloudPanel({ cloud: scaffold.cloud, tables: [{ name: 'items', rowCount: 0 }] }), /items \(0\)/);
@@ -664,7 +750,8 @@ describe('Phase 6 — Kuunda Cloud par défaut', () => {
 		const website = scaffoldProjectFiles({ type: 'website', name: 'landing' });
 		assert.equal(website.ok, true);
 		if (website.ok) {
-			assert.match(website.files.find((file) => file.path === 'README.md')?.content || '', /Kuunda Cloud is enabled by default/);
+			assert.match(website.files.find((file) => file.path === 'README.md')?.content || '', /enabled by default/);
+			assert.match(website.files.find((file) => file.path === 'README.md')?.content || '', /standard/);
 		}
 	});
 });

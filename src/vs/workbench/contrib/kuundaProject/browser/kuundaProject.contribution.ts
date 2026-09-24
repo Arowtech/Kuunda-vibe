@@ -10,7 +10,6 @@ import { LifecyclePhase } from '../../../services/lifecycle/common/lifecycle.js'
 import { Action2, MenuId, registerAction2 } from '../../../../platform/actions/common/actions.js';
 import { ServicesAccessor } from '../../../../platform/instantiation/common/instantiation.js';
 import { INotificationService } from '../../../../platform/notification/common/notification.js';
-import { ICommandService } from '../../../../platform/commands/common/commands.js';
 import { IQuickInputService } from '../../../../platform/quickinput/common/quickInput.js';
 import { IFileDialogService } from '../../../../platform/dialogs/common/dialogs.js';
 import { ILayoutService } from '../../../../platform/layout/browser/layoutService.js';
@@ -96,8 +95,8 @@ async function runCreateWizard(accessor: ServicesAccessor, presetType?: ProjectT
 	if (!cloudResult.ok) {
 		notify.info(kuundaCloudLocalize('kuunda.cloud.provision.pendingApi'));
 	} else if (cloudResult.action === 'pending_user') {
+		// Cloud is anonymous-first: never push a Kuunda Cloud signup here.
 		notify.info(kuundaCloudLocalize('kuunda.cloud.provision.pendingUser'));
-		await accessor.get(ICommandService).executeCommand('kuunda.account.openStudio', { intent: 'signUp', reason: 'cloud' });
 	} else if (cloudResult.action === 'pending_api') {
 		notify.info(kuundaCloudLocalize('kuunda.cloud.provision.pendingApi'));
 	} else if (cloudResult.action === 'reuse' || cloudResult.action === 'provision') {
