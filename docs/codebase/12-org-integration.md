@@ -1,8 +1,11 @@
 # 12 — Intégration plateforme (organisations) pour Kuunda Cloud
 
-**Destinataires :** équipe Kuunda Cloud (Worker privé `kuunda-vibe-cloud`, `app.kuunda.cloud`, schéma SQL).
+**Destinataires :** équipe Kuunda Cloud (dépôt privé `kuunda-vibe-cloud` : Worker `apps/api`, `apps/web`, schéma SQL).
 **Objectif :** permettre à une plateforme tierce (Kuunda Vibe en premier client) d'intégrer la base Kuunda Cloud et de **gérer à la place de l'utilisateur**, sans jamais passer par l'interface Kuunda Cloud ni demander une inscription à l'utilisateur final.
 **Documents jumeaux :** [13-openrouter-ai-gateway.md](13-openrouter-ai-gateway.md) (modèles, crédits, politique de données) et [14-pricing-catalog-admin.md](14-pricing-catalog-admin.md) (catalogue tarifaire et console).
+**Point d'atterrissage :** routes `/v1/orgs/…` et `/v1/accounts/…` dans `apps/api` (Hono, `api.ide.kuunda-cloud.com`) ; mapping dans `sql/0003` — **non appliqué en prod** au 24 sept. 2026 ; provisioner documenté dans `docs/PROVISIONING.md`.
+
+> **Dépendance à connaître :** la revendication d'un compte (§4, « claim ») et l'attribution `userId` reposent sur une session utilisateur, dont l'authentification répond encore `501` dans le privé. Les quatre niveaux du modèle (§2) et la délégation par `accountId` n'en dépendent **pas** : c'est précisément pourquoi la clé de plateforme est le chemin principal et la session un confort.
 
 ## 1. Le besoin en une phrase
 

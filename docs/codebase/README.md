@@ -57,6 +57,34 @@ La frontière juridique du dépôt public est **`Arowtech/kuunda-vibe-cloud`** :
 
 **Piège à ne pas confondre :** `Arowtech/kuunda-cloud` (le dépôt plateforme) et les domaines `*.kuunda-cloud.com` ne désignent **pas** la frontière propriétaire du dépôt public — seul `Arowtech/kuunda-vibe-cloud` la désigne. Un test verrouille cette distinction (`test/repo-names.test.mjs`).
 
+### Dépôt privé `Arowtech/kuunda-vibe-cloud` — arbre réel et points d'atterrissage
+
+**Source :** le README du dépôt privé, relevé le 24 sept. 2026. Ce tableau est le contrat d'atterrissage des specs : quand une spec dit « à implémenter », c'est ici que ça tombe.
+
+| Chemin | Rôle |
+| --- | --- |
+| `apps/api` | Worker Cloudflare (Hono 4.13.8) — `api.ide.kuunda-cloud.com`. **Reçoit les routes des docs 12, 13 et 14.** |
+| `apps/updates` | Worker isolé — `updates.ide.kuunda-cloud.com` (feed de mises à jour). |
+| `apps/web` | Pages — vitrine + shell du dashboard. **La console d'administration du doc 14 atterrit ici.** |
+| `sql/` | `0001` ledger, `0003` mapping, `0004` jobs de publication. `0003` et `0004` **non appliqués en prod**. |
+| `packages/kuunda-cloud-operator` | Allocation `proj_*` + mapping. Jamais de `service_role`. |
+| `packages/update-control-plane` | Feed updates + signature en CI. Jamais de route `/sign` HTTP. |
+| `packages/mobile-ci` | `resolve-runner` + publisher. Jamais de `p8` / keystore. |
+| `packages/feedback-plane` | Inbox des rapports opt-in. Jamais de télémétrie silencieuse. |
+
+Docs internes du privé — la spec qui l'instruit doit les nommer : `docs/BILLING.md` (3bis), `docs/PROVISIONING.md` (6), `docs/RELIABILITY.md` (8), `docs/LEGAL.md` (8bis), `docs/UPDATE-TRUST-CHAIN.md` (9), `docs/FEEDBACK.md` (10).
+
+| Spec | Où elle atterrit dans le privé |
+| --- | --- |
+| [12-org-integration.md](12-org-integration.md) | `apps/api` (routes `/v1/orgs/…`, `/v1/accounts/…`), `sql/0003`, `docs/PROVISIONING.md` |
+| [13-openrouter-ai-gateway.md](13-openrouter-ai-gateway.md) | `apps/api` (routes `/v1/ai/…`), ledger et débit de crédits — `docs/BILLING.md`, `sql/0001` |
+| [14-pricing-catalog-admin.md](14-pricing-catalog-admin.md) | `apps/web` (console), `apps/api` (routes `/v1/pricing/…`, `/v1/admin/…`), `sql/0001` |
+
+**Deux prérequis du privé, non satisfaits au 24 sept. 2026 — chemin critique avant 12/13 :**
+
+1. **L'authentification de session répond encore `501`** (état Phase 8 du privé). Or le doc 13 exige `Authorization: Bearer <jeton de session Kuunda>` et le doc 12 s'en sert pour la revendication d'un compte. Tant que la session vaut `501`, **la passerelle gérée ne peut pas être mise en service** : c'est ce qui bloque le passage en crédits, pas la passerelle elle-même.
+2. **`sql/0003` et `sql/0004` ne sont pas appliqués en prod.** Le mapping `platform_provisioned_projects` et les jobs de publication mobile dépendent de ces migrations ; l'IDE fonctionne aujourd'hui sur les routes legacy précisément pour cette raison.
+
 **Les deux modes IA sont retenus (tranché, 24 sept. 2026) :** **BYOK** (clé OpenRouter de l'utilisateur dans les réglages, déjà câblée côté client) **et** **passerelle gérée** (clé OpenRouter côté serveur Kuunda Cloud, débit en crédits). Les deux coexistent sans changement de client : le mode se choisit par le provider actif, pas par une option de compilation. Doc 13 décrit les deux.
 
 ## Phases

@@ -1,8 +1,9 @@
 # 13 — Passerelle IA Kuunda (OpenRouter)
 
-**Destinataires :** équipe Kuunda Cloud (dépôt privé `kuunda-vibe-cloud`, service de facturation + passerelle IA).
+**Destinataires :** équipe Kuunda Cloud (dépôt privé `kuunda-vibe-cloud`, Worker `apps/api` + ledger de crédits).
 **Objectif :** servir les modèles par une clé OpenRouter détenue par Kuunda, débiter les crédits, et imposer la politique de données — **sans jamais exposer la clé dans l'IDE**.
 **Doc jumeau :** [14-pricing-catalog-admin.md](14-pricing-catalog-admin.md) (ce que coûte chaque modèle et ce qui est facturé).
+**Point d'atterrissage :** `apps/api` (Hono, `api.ide.kuunda-cloud.com`) pour les routes `/v1/ai/…` ; débit et solde dans le ledger (`docs/BILLING.md`, `sql/0001`).
 
 ## 1. L'essentiel
 
@@ -82,6 +83,16 @@ Payload OpenAI, **plus** un bloc d'extension ignoré par tout client OpenAI stan
 | Modèle hors du plan | `403` + `{ "error": "model_not_allowed" }` |
 | Quota de plan atteint | `429` + `Retry-After` + `{ "error": "quota_exceeded" }` |
 | Aucun provider conforme disponible | `503` + `{ "error": "no_compliant_provider" }` — **jamais** un repli silencieux vers un provider qui journalise |
+
+### 4.6 Prérequis bloquant : la session doit valoir jeton
+
+Tout ce document suppose qu'un jeton de session Kuunda existe et autorise l'appel. **Ce n'est pas le cas aujourd'hui** : l'authentification de session répond encore `501` dans le privé (état Phase 8). Ordre de mise en service imposé par cette dépendance :
+
+1. session échangeable contre un jeton que `apps/api` accepte (`401 invalid_session` sinon, cf. 4.5) ;
+2. débit idempotent adossé au ledger, sur les tokens réellement consommés ;
+3. passerelle `/v1/ai/…` ouverte au client.
+
+Tant que (1) renvoie `501`, le mode géré ne peut pas être activé côté IDE — la clé OpenRouter serveur serait sans titulaire. C'est la première brique à livrer, avant le routage.
 
 ## 5. Politique de routage : imposée par le serveur, pas par le client
 

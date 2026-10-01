@@ -44,3 +44,7 @@ src/vs/workbench/contrib/void/browser/react/out/**
 src/vs/workbench/contrib/void/browser/react/src2/**
 void_icons/
 /artifacts/
+
+# Répertoires de travail isolés : clones d'autres dépôts (dont le dépôt privé
+# kuunda-vibe-cloud). Leur contenu ne doit jamais entrer dans ce dépôt public.
+.worktrees/

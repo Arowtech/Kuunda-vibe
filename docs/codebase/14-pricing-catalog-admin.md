@@ -1,8 +1,9 @@
 # 14 — Catalogue tarifaire et console d'administration
 
-**Destinataires :** équipe Kuunda Cloud (dépôt privé `kuunda-vibe-cloud` : console `apps/`, service de facturation, schéma SQL).
+**Destinataires :** équipe Kuunda Cloud (dépôt privé `kuunda-vibe-cloud` : console `apps/web`, routes `apps/api`, ledger `sql/0001`).
 **Objectif :** permettre de changer les plans, les crédits inclus, la valeur d'un crédit et le tarif de chaque modèle **depuis une console**, sans publier une nouvelle version de l'IDE, et sans jamais laisser une erreur de saisie faire perdre de l'argent.
 **Doc jumeau :** [13-openrouter-ai-gateway.md](13-openrouter-ai-gateway.md) (qui sert les modèles et comment les crédits sont débités).
+**Point d'atterrissage :** console dans `apps/web` (Pages, shell du dashboard) ; routes `/v1/pricing/…` et `/v1/admin/pricing/…` dans `apps/api` ; version publiée et audit adossés au ledger `sql/0001`. Le job de relecture hebdomadaire (§7) est un job du Worker `apps/api`, jamais une publication automatique.
 
 ## 1. L'essentiel
 
