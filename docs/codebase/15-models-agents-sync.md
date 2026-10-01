@@ -81,12 +81,14 @@ Limite à connaître : l'appairage relie à la **session interne** de la console
 
 ## 6. Prérequis avant d'annoncer « synchronisé »
 
-- [ ] Identité authentifiée et appairage Web ↔ Windows ↔ macOS partagés (appairage serveur livré ; OAuth/email et client desktop restent à faire).
+- [x] Passerelle OpenRouter managée implémentée et couverte par un test d'intégration : relais SSE token par token, garde-fou BYOK, clé absente/vide, absence de fuite de clé.
+- [x] Secrets de la passerelle documentés côté privé (`OPENROUTER_API_KEY`, `AI_CREDITS_PER_1K_TOKENS`).
+- [~] Identité authentifiée et appairage Web ↔ Windows ↔ macOS partagés — **partiel** : appairage serveur livré ; OAuth/email et client desktop restent à faire.
 - [ ] Persistance durable des documents, révisions, tombstones, appareils, audit, idempotence et état de run.
 - [ ] Consommateur desktop implémenté/testé : SSE pour les changements, WS pour l'agent, HTTP pour la reprise.
 - [ ] Coffre OS BYOK vérifié sur les plateformes ciblées ; aucun secret envoyé.
 - [ ] Débit géré par réservation/règlement idempotent et persistant.
-- [ ] Tests d'intégration multi-appareil validés.
+- [~] Tests d'intégration multi-appareil et de Durable Object — **partiel** : tests d'intégration du Worker et des DO ajoutés côté privé ; aucune exécution Wrangler.
 
 ## 7. Politique de données et sécurité
 
@@ -98,3 +100,23 @@ Une clé ne monte **jamais** depuis le client. Les payloads de profil/préféren
 - Ne jamais envoyer règles projet ni contexte workspace à l'API.
 - Traiter SSE/WS comme des **signaux**, et `/changes` (ou une relecture HTTP) comme la **vérité**.
 - Composer le prompt localement dans l'ordre fixé ; ne synchroniser que le slug de modèle, jamais la clé.
+
+## 9. État d'implémentation (mise à jour 2026-10-01)
+
+Instantané honnête côté privé (`kuunda-vibe-cloud`) ; rien ici ne rend la synchronisation « product-ready ».
+
+**Livré et testé**
+
+- Passerelle OpenRouter managée : relais SSE token par token, politique de données imposée, garde-fou `byok_is_local`, `501 gateway_not_configured` sans clé, aucune fuite de clé (`test/api/ai-gateway-integration.test.mjs`).
+- Secrets de la passerelle documentés (`OPENROUTER_API_KEY`, `AI_CREDITS_PER_1K_TOKENS`) dans `docs/SECRETS.md`.
+- Appairage d'appareil : Durable Object `DevicePairing`, bearer scellé au `deviceId`, révocation, purge par alarme (`test/api/device-pairing.test.mjs`, `test/api/device-pairing-integration.test.mjs`).
+- Console dashboard : envoi réel vers `POST /v1/ai/gateway/chat` avec affichage en streaming.
+
+**Toujours à faire**
+
+- Persistance durable (migration SQL non appliquée) et débit transactionnel.
+- Client desktop (dépôt public `Arowtech/Kuunda-vibe`, Phase 0).
+- Identité authentifiée (OAuth/email) — l'appairage reste lié à la session anonyme.
+- Exécution réelle Wrangler / Durable Objects.
+
+> Les tests d'intégration du Worker se sautent proprement quand les dépendances de l'API ne sont pas installées (`npm install` dans `apps/api`).
