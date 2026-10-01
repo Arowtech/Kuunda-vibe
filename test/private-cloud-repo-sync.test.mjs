@@ -66,9 +66,11 @@ describe('Synchronisation avec le dépôt privé kuunda-vibe-cloud', () => {
 		assert.ok(LANDING.test(hub), 'le hub doit annoncer la section d’atterrissage');
 	});
 
-	it('le hub déclare les deux prérequis non satisfaits du privé', () => {
+	it('le hub rattache le chemin critique au secret de session et aux migrations, pas à une route absente', () => {
 		const hub = read(HUB);
-		assert.ok(hub.includes('`501`'), "le hub doit signaler que l'authentification de session répond 501");
+		assert.ok(hub.includes('`SESSION_SIGNING_SECRET`'), 'le hub doit nommer le secret de session à poser dans le privé');
+		assert.ok(hub.includes('`401 invalid_session`'), 'le hub doit dire que le privé refuse une session absente en 401');
+		assert.equal(/répond encore `501`/.test(hub), false, 'le hub ne doit plus annoncer une session qui répond 501');
 		assert.ok(/0003.*0004|0004.*0003/s.test(hub), 'le hub doit signaler les migrations 0003 / 0004 non appliquées');
 		assert.ok(/non appliqués en prod/i.test(hub), 'le hub doit dire que les migrations ne sont pas appliquées en prod');
 	});
@@ -81,16 +83,19 @@ describe('Synchronisation avec le dépôt privé kuunda-vibe-cloud', () => {
 		}
 	});
 
-	it('le doc 13 traite la session 501 comme un prérequis bloquant, pas comme un détail', () => {
+	it('le doc 13 traite le secret de session comme un prérequis bloquant, pas comme un détail', () => {
 		const doc = read(SPECS[13]);
-		assert.ok(doc.includes('501'), 'doc 13 doit nommer le 501 de la session');
+		assert.ok(doc.includes('`SESSION_SIGNING_SECRET`'), 'doc 13 doit nommer le secret de session à poser');
+		assert.ok(doc.includes('`501 session_unconfigured`'), 'doc 13 doit nommer l’échec fermé du privé quand le secret manque');
+		assert.equal(/répond encore `501`/.test(doc), false, 'doc 13 ne doit plus annoncer une session qui répond 501');
 		assert.ok(/prérequis bloquant/i.test(doc), 'doc 13 doit qualifier la session de prérequis bloquant');
 		assert.ok(/avant le routage/i.test(doc), 'doc 13 doit ordonner session → ledger → passerelle');
 	});
 
 	it('le doc 12 distingue la délégation par clé (indépendante de la session) de la revendication', () => {
 		const doc = read(SPECS[12]);
-		assert.ok(doc.includes('501'), 'doc 12 doit nommer le 501 de la session');
+		assert.ok(doc.includes('`SESSION_SIGNING_SECRET`'), 'doc 12 doit nommer le secret de session comme le blocage restant');
+		assert.equal(/répond encore `501`/.test(doc), false, 'le doc 12 ne doit plus annoncer une session qui répond 501');
 		assert.ok(/n'en dépendent \*\*pas\*\*/.test(doc), 'doc 12 doit dire que la délégation par accountId ne dépend pas de la session');
 	});
 

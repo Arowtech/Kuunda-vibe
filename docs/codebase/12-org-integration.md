@@ -5,7 +5,7 @@
 **Documents jumeaux :** [13-openrouter-ai-gateway.md](13-openrouter-ai-gateway.md) (modèles, crédits, politique de données) et [14-pricing-catalog-admin.md](14-pricing-catalog-admin.md) (catalogue tarifaire et console).
 **Point d'atterrissage :** routes `/v1/orgs/…` et `/v1/accounts/…` dans `apps/api` (Hono, `api.ide.kuunda-cloud.com`) ; mapping dans `sql/0003` — **non appliqué en prod** au 24 sept. 2026 ; provisioner documenté dans `docs/PROVISIONING.md`.
 
-> **Dépendance à connaître :** la revendication d'un compte (§4, « claim ») et l'attribution `userId` reposent sur une session utilisateur, dont l'authentification répond encore `501` dans le privé. Les quatre niveaux du modèle (§2) et la délégation par `accountId` n'en dépendent **pas** : c'est précisément pourquoi la clé de plateforme est le chemin principal et la session un confort.
+> **Dépendance à connaître :** la revendication d'un compte (§4, « claim ») et l'attribution `userId` reposent sur une session utilisateur. Cette session est livrée depuis le 25 sept. 2026 (`POST /v1/auth/session`, jeton HMAC de 30 jours) : le blocage n'est plus une livraison à faire, mais un secret à poser — `SESSION_SIGNING_SECRET` — sans quoi la route répond `501 session_unconfigured`. Les quatre niveaux du modèle (§2) et la délégation par `accountId` n'en dépendent **pas** : c'est précisément pourquoi la clé de plateforme est le chemin principal et la session un confort.
 
 ## 1. Le besoin en une phrase
 

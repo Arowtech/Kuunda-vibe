@@ -32,7 +32,7 @@ F1 : `kuunda.account.openStudio`, `kuunda.account.signOut`, `kuunda.account.sign
 
 ## Contrats API (privé `kuunda-vibe-cloud`)
 
-Le Worker doit cesser de répondre 501 et fédérer **Kuunda Cloud Auth** (mêmes utilisateurs que `app.kuunda.cloud`) :
+Le Worker doit cesser de répondre 501 sur ces routes et fédérer **Kuunda Cloud Auth** (mêmes utilisateurs que `app.kuunda.cloud`). Une brique est déjà livrée : `POST /v1/auth/session` émet un jeton HMAC de 30 jours (session anonyme, sans email ni mot de passe). Ce qui reste à livrer est la fédération d'identité ci-dessous :
 
 - `POST /v1/auth/signup` `{ email, password, displayName? }` → session
 - `POST /v1/auth/login` `{ email, password }` → session

@@ -84,15 +84,15 @@ Payload OpenAI, **plus** un bloc d'extension ignoré par tout client OpenAI stan
 | Quota de plan atteint | `429` + `Retry-After` + `{ "error": "quota_exceeded" }` |
 | Aucun provider conforme disponible | `503` + `{ "error": "no_compliant_provider" }` — **jamais** un repli silencieux vers un provider qui journalise |
 
-### 4.6 Prérequis bloquant : la session doit valoir jeton
+### 4.6 Prérequis bloquant : le secret de session, pas la route
 
-Tout ce document suppose qu'un jeton de session Kuunda existe et autorise l'appel. **Ce n'est pas le cas aujourd'hui** : l'authentification de session répond encore `501` dans le privé (état Phase 8). Ordre de mise en service imposé par cette dépendance :
+Tout ce document suppose qu'un jeton de session Kuunda existe et autorise l'appel. **La route est livrée depuis le 25 sept. 2026** : dans le privé, `POST /v1/auth/session` émet `{ userId, accessToken, expiresIn }`, un jeton HMAC de 30 jours que `apps/api` accepte ensuite en `Authorization: Bearer` — jeton absent ou invalide : `401 invalid_session` ; jeton périmé : `401 expired_session`. Le prérequis n'est donc plus « livrer la session » mais « **poser `SESSION_SIGNING_SECRET`** » (≥ 32 caractères) dans l'environnement visé : sans ce secret, la route répond `501 session_unconfigured`, n'émet aucun jeton, et le mode géré doit rester fermé. Ordre de mise en service inchangé :
 
-1. session échangeable contre un jeton que `apps/api` accepte (`401 invalid_session` sinon, cf. 4.5) ;
+1. secret posé, session échangeable contre un jeton que `apps/api` accepte (`401 invalid_session` sinon, cf. 4.5) ;
 2. débit idempotent adossé au ledger, sur les tokens réellement consommés ;
 3. passerelle `/v1/ai/…` ouverte au client.
 
-Tant que (1) renvoie `501`, le mode géré ne peut pas être activé côté IDE — la clé OpenRouter serveur serait sans titulaire. C'est la première brique à livrer, avant le routage.
+Tant que (1) n'est pas configuré dans l'environnement visé, le mode géré ne doit pas être activé côté IDE — la clé OpenRouter serveur serait sans titulaire. C'est la première brique à configurer, avant le routage.
 
 ## 5. Politique de routage : imposée par le serveur, pas par le client
 

@@ -59,7 +59,7 @@ Sans jeton dispatch, l'API crée un job `pending_ci` avec le log `build_not_disp
 
 ## Hors de portée
 
-- Auth session réelle (toujours 501 ; userId-in-body comme 3bis/6)
+- Comptes utilisateurs réels (signup / login / OAuth : absents). La session est livrée : `POST /v1/auth/session` puis `Authorization: Bearer` ; sans `SESSION_SIGNING_SECRET` posé, l'identification retombe sur le `userId` du body (3bis/6)
 - Application SQL 0004 / `wrangler deploy` / dispatch GitHub réel
 - Upload réel vers Google Play Console ou App Store Connect
 - Phase 9 (packaging / signature / auto-update)

@@ -59,7 +59,7 @@ La frontière juridique du dépôt public est **`Arowtech/kuunda-vibe-cloud`** :
 
 ### Dépôt privé `Arowtech/kuunda-vibe-cloud` — arbre réel et points d'atterrissage
 
-**Source :** le README du dépôt privé, relevé le 24 sept. 2026. Ce tableau est le contrat d'atterrissage des specs : quand une spec dit « à implémenter », c'est ici que ça tombe.
+**Source :** le README du dépôt privé, relevé le 24 sept. 2026, complété le 1er oct. 2026 (session livrée). Ce tableau est le contrat d'atterrissage des specs : quand une spec dit « à implémenter », c'est ici que ça tombe.
 
 | Chemin | Rôle |
 | --- | --- |
@@ -80,9 +80,9 @@ Docs internes du privé — la spec qui l'instruit doit les nommer : `docs/BILLI
 | [13-openrouter-ai-gateway.md](13-openrouter-ai-gateway.md) | `apps/api` (routes `/v1/ai/…`), ledger et débit de crédits — `docs/BILLING.md`, `sql/0001` |
 | [14-pricing-catalog-admin.md](14-pricing-catalog-admin.md) | `apps/web` (console), `apps/api` (routes `/v1/pricing/…`, `/v1/admin/…`), `sql/0001` |
 
-**Deux prérequis du privé, non satisfaits au 24 sept. 2026 — chemin critique avant 12/13 :**
+**Deux prérequis du privé au 1er oct. 2026 — chemin critique avant 12/13 :**
 
-1. **L'authentification de session répond encore `501`** (état Phase 8 du privé). Or le doc 13 exige `Authorization: Bearer <jeton de session Kuunda>` et le doc 12 s'en sert pour la revendication d'un compte. Tant que la session vaut `501`, **la passerelle gérée ne peut pas être mise en service** : c'est ce qui bloque le passage en crédits, pas la passerelle elle-même.
+1. **Le secret de session doit être posé : la route, elle, est livrée.** Depuis le 25 sept. 2026, `POST /v1/auth/session` émet `{ userId, accessToken, expiresIn }` — un jeton HMAC de 30 jours — que `apps/api` accepte ensuite en `Authorization: Bearer` : c'est ce que le doc 13 exige et ce dont le doc 12 se sert pour la revendication d'un compte. Il reste une **configuration**, pas une livraison : sans `SESSION_SIGNING_SECRET` (≥ 32 caractères) dans l'environnement, la route répond `501 session_unconfigured` et n'émet aucun jeton — **la passerelle gérée doit donc rester fermée dans cet environnement**. Secret posé, une session absente ou invalide vaut `401 invalid_session`. (Sans secret, le privé retombe sur le `userId` du body, comme en 3bis/6.)
 2. **`sql/0003` et `sql/0004` ne sont pas appliqués en prod.** Le mapping `platform_provisioned_projects` et les jobs de publication mobile dépendent de ces migrations ; l'IDE fonctionne aujourd'hui sur les routes legacy précisément pour cette raison.
 
 **Les deux modes IA sont retenus (tranché, 24 sept. 2026) :** **BYOK** (clé OpenRouter de l'utilisateur dans les réglages, déjà câblée côté client) **et** **passerelle gérée** (clé OpenRouter côté serveur Kuunda Cloud, débit en crédits). Les deux coexistent sans changement de client : le mode se choisit par le provider actif, pas par une option de compilation. Doc 13 décrit les deux.
