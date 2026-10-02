@@ -25,6 +25,7 @@ Ce guide est mis à jour **à chaque phase**. Il n'est pas un README marketing.
 | [12-org-integration.md](12-org-integration.md) | Spec à transmettre à Kuunda Cloud : organisations, managed accounts, API de délégation |
 | [13-openrouter-ai-gateway.md](13-openrouter-ai-gateway.md) | Spec à transmettre à Kuunda Cloud : passerelle IA OpenRouter, débit des crédits, politique de données |
 | [14-pricing-catalog-admin.md](14-pricing-catalog-admin.md) | Spec à transmettre à Kuunda Cloud : catalogue tarifaire USD, console d'administration, garde-fous de marge |
+| [15-models-agents-sync.md](15-models-agents-sync.md) | Spec à transmettre à Kuunda Cloud : synchronisation des modèles et profils d'agent entre Web, Windows et macOS |
 | `LICENSE` | Apache-2.0 (texte officiel non modifié) |
 | `LICENSE-VS-Code.txt` | MIT Code - OSS (Microsoft) |
 | `NOTICE` | Chaîne d'attribution Microsoft → Void → Arowtech |
@@ -42,6 +43,7 @@ Ces documents ne sont pas des phases : ce sont des **specs d'interface**, écrit
 | [12-org-integration.md](12-org-integration.md) | Organisations, managed accounts, projets, liaison multi-appareils | IDE |
 | [13-openrouter-ai-gateway.md](13-openrouter-ai-gateway.md) | Passerelle IA (clé OpenRouter côté serveur), débit des crédits, preuve de la politique de données | IDE |
 | [14-pricing-catalog-admin.md](14-pricing-catalog-admin.md) | Catalogue tarifaire USD, console d'administration, règles de refus de publication | IDE (lecture) + console |
+| [15-models-agents-sync.md](15-models-agents-sync.md) | Profils d'agent et préférences synchronisés, transports SSE/WS/HTTP, identité d'appareil, politique de données | IDE (desktop) + Web |
 
 **Discipline de synchronisation :** la forme partagée est `packages/cloud-client/src/` ; tout champ qui y change se répercute le jour même dans le doc correspondant. Les codes de refus du catalogue (`PRICING_VALIDATION_CODES`) et les tarifs modèles vivent dans le code public sous forme de **forme** seulement — jamais de valeur — et un test vérifie que la table du doc 14 et le code ne divergent pas.
 
@@ -79,6 +81,7 @@ Docs internes du privé — la spec qui l'instruit doit les nommer : `docs/BILLI
 | [12-org-integration.md](12-org-integration.md) | `apps/api` (routes `/v1/orgs/…`, `/v1/accounts/…`), `sql/0003`, `docs/PROVISIONING.md` |
 | [13-openrouter-ai-gateway.md](13-openrouter-ai-gateway.md) | `apps/api` (routes `/v1/ai/…`), ledger et débit de crédits — `docs/BILLING.md`, `sql/0001` |
 | [14-pricing-catalog-admin.md](14-pricing-catalog-admin.md) | `apps/web` (console), `apps/api` (routes `/v1/pricing/…`, `/v1/admin/…`), `sql/0001` |
+| [15-models-agents-sync.md](15-models-agents-sync.md) | `apps/api` (routes `/v1/ai/…`), `apps/web` (console), `sql/0001` et `docs/BILLING.md` |
 
 **Deux prérequis du privé au 1er oct. 2026 — chemin critique avant 12/13 :**
 
@@ -134,5 +137,5 @@ product.json                     nom Kuunda Vibe, quality=internal, updateUrl
 
 ## Stack figée
 
-Voir `00-licence-et-gouvernance.md`, `00bis-infrastructure.md`, `01-rename.md`, `02-autocomplete-chat.md`, `03-agent.md`, `03bis-credits.md`, `04-devtools.md`, `04bis-extension-api.md`, `05-project-type.md`, `06-kuunda-cloud.md`, `07-publishing.md`, `08-reliability.md`, `08bis-legal.md`, `09-packaging.md`, `10-post-launch.md`, `11-account.md`, `12-org-integration.md`, `13-openrouter-ai-gateway.md`, `14-pricing-catalog-admin.md`.
+Voir `00-licence-et-gouvernance.md`, `00bis-infrastructure.md`, `01-rename.md`, `02-autocomplete-chat.md`, `03-agent.md`, `03bis-credits.md`, `04-devtools.md`, `04bis-extension-api.md`, `05-project-type.md`, `06-kuunda-cloud.md`, `07-publishing.md`, `08-reliability.md`, `08bis-legal.md`, `09-packaging.md`, `10-post-launch.md`, `11-account.md`, `12-org-integration.md`, `13-openrouter-ai-gateway.md`, `14-pricing-catalog-admin.md`, `15-models-agents-sync.md`.
 `engines` de compilation : ceux de Void/VS Code. Tests Kuunda : `npm test` (Node 24).
