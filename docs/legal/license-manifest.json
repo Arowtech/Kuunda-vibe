@@ -3,7 +3,7 @@
   "publicRepository": "https://github.com/Arowtech/Kuunda-vibe.git",
   "steward": "Arowtech",
   "projectLicense": "Apache-2.0",
-  "phase": 0,
+	"phase": "10",
   "upstream": [
     {
       "name": "Code - OSS (Visual Studio Code)",
@@ -32,13 +32,16 @@
     "NOTICE",
     "CONTRIBUTING.md",
     "GOVERNANCE.md",
-    "CODE_OF_CONDUCT.md"
+    "CODE_OF_CONDUCT.md",
+    "ThirdPartyNotices.txt"
   ],
   "proprietaryExcluded": [
     "billing",
     "genius-pay",
     "kuunda-cloud-operator",
     "credits-ledger",
-    "update-control-plane"
+    "update-control-plane",
+    "mobile-ci",
+    "feedback-plane"
   ]
 }

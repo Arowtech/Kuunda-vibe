@@ -1,0 +1,43 @@
+title = "Kuunda Vibe gitleaks"
+
+# Custom --config replaces the built-in ruleset unless we extend it.
+# Keep default detection; only ignore known Code-OSS / Void false positives.
+[extend]
+useDefault = true
+
+# Microsoft Application Insights instrumentation keys shipped publicly in
+# vscode / Void extension manifests. They are not Kuunda credentials.
+[[allowlists]]
+description = "Code-OSS public aiKey in extension package.json"
+targetRules = ["generic-api-key"]
+condition = "AND"
+regexTarget = "line"
+regexes = ['''"aiKey"\s*:\s*"[0-9a-fA-F-]+"''']
+paths = ['''(^|/)extensions/[^/]+/package\.json$''']
+
+# Skipped VS Code unit-test fixture: Firebase Storage URL with a query token.
+[[allowlists]]
+description = "VS Code uri.test.ts Firebase storage fixture"
+targetRules = ["generic-api-key"]
+condition = "AND"
+regexTarget = "line"
+regexes = ['''firebasestorage\.googleapis\.com/.+[?&]token=''']
+paths = ['''(^|/)src/vs/base/test/common/uri\.test\.ts$''']
+
+# Dummy PKCS8 used by publish/redaction tests. Historical commits contained a
+# truncated zeroed EC blob (MIGHAgEA…); current tests use TEST_FIXTURE padding.
+# Dummy `sk_live_*` strings used by looksLikeSecret / persistable redaction
+# tests match default rule stripe-access-token (suffix ≥ 10 alnum).
+# Path allowlist is required because `gitleaks detect` scans git history.
+[[allowlists]]
+description = "Dummy PKCS8 and Stripe-like fixtures in kuunda-ai.test.mjs"
+targetRules = ["private-key", "stripe-access-token"]
+paths = ['''(^|/)packages/kuunda-ai/test/kuunda-ai\.test\.mjs$''']
+
+# Default Gitleaks allowlists ignore some well-known documentation PATs
+# (e.g. ghp_ + a–z + 0–9). Keep a Kuunda-specific rule so those still fail CI.
+[[rules]]
+id = "kuunda-github-pat"
+description = "GitHub PAT (not subject to Gitleaks global example allowlist)"
+regex = '''ghp_[0-9a-zA-Z]{36}'''
+tags = ["key", "GitHub"]

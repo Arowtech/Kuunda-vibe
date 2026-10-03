@@ -1,0 +1,262 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright 2026 Arowtech
+ *  SPDX-License-Identifier: Apache-2.0
+ *--------------------------------------------------------------------------------------------*/
+
+.kuunda-account-home {
+	width: 100%;
+	max-width: 520px;
+	margin: 0 auto 16px;
+}
+
+.kuunda-account-home-cta {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	width: 100%;
+	padding: 12px 14px;
+	text-align: left;
+	cursor: pointer;
+	font-family: inherit;
+	appearance: none;
+	color: var(--vscode-foreground);
+	background: color-mix(in srgb, var(--vscode-button-background, #E4930A) 12%, var(--vscode-editor-background));
+	border: 1px solid var(--vscode-focusBorder, #E4930A);
+	border-radius: 12px;
+}
+
+.kuunda-account-home-cta strong {
+	font-size: 13px;
+}
+
+.kuunda-account-home-cta span {
+	font-size: 12px;
+	opacity: 0.8;
+}
+
+.kuunda-account-overlay {
+	position: absolute;
+	inset: 0;
+	z-index: 10000;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: color-mix(in srgb, #0B0C14 62%, transparent);
+}
+
+.kuunda-account-dialog {
+	width: min(920px, calc(100% - 48px));
+	max-height: min(720px, calc(100% - 48px));
+	overflow: auto;
+	padding: 22px 24px 20px;
+	border-radius: 16px;
+	background: var(--vscode-editor-background, #111218);
+	border: 1px solid var(--vscode-widget-border, #1C1D28);
+	box-shadow: 0 24px 80px color-mix(in srgb, #0B0C14 55%, transparent);
+}
+
+.kuunda-account-header {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 12px;
+	margin-bottom: 18px;
+}
+
+.kuunda-account-kicker {
+	font-size: 11px;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: var(--vscode-button-background, #E4930A);
+	margin-bottom: 4px;
+}
+
+.kuunda-account-title {
+	font-size: 22px;
+	font-weight: 650;
+}
+
+.kuunda-account-subtitle {
+	margin-top: 4px;
+	font-size: 13px;
+	opacity: 0.78;
+	max-width: 560px;
+}
+
+.kuunda-account-close,
+.kuunda-account-btn,
+.kuunda-account-linkish {
+	font-family: inherit;
+	cursor: pointer;
+	border-radius: 10px;
+}
+
+.kuunda-account-close {
+	border: 1px solid transparent;
+	background: transparent;
+	color: var(--vscode-foreground);
+	padding: 6px 10px;
+}
+
+.kuunda-account-btn {
+	border: 1px solid transparent;
+	padding: 9px 14px;
+	font-weight: 600;
+}
+
+.kuunda-account-btn.primary {
+	background: var(--vscode-button-background, #E4930A);
+	color: var(--vscode-button-foreground, #0B0C14);
+}
+
+.kuunda-account-btn.ghost {
+	background: transparent;
+	border-color: var(--vscode-widget-border, #1C1D28);
+	color: var(--vscode-foreground);
+}
+
+.kuunda-account-btn.oauth {
+	width: 100%;
+	background: color-mix(in srgb, var(--vscode-editor-background) 88%, var(--vscode-foreground) 12%);
+	border-color: var(--vscode-widget-border, #1C1D28);
+	color: var(--vscode-foreground);
+	font-weight: 600;
+}
+
+.kuunda-account-layout {
+	display: grid;
+	grid-template-columns: 188px 1fr;
+	gap: 18px;
+}
+
+.kuunda-account-signed-out {
+	display: grid;
+	grid-template-columns: 1fr 1.1fr;
+	gap: 22px;
+}
+
+.kuunda-account-rail {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+.kuunda-account-rail button {
+	text-align: left;
+	padding: 8px 10px;
+	border-radius: 8px;
+	border: 1px solid transparent;
+	background: transparent;
+	color: var(--vscode-foreground);
+	font-family: inherit;
+	cursor: pointer;
+}
+
+.kuunda-account-rail button.active {
+	background: color-mix(in srgb, var(--vscode-button-background, #E4930A) 16%, transparent);
+	border-color: var(--vscode-focusBorder, #E4930A);
+}
+
+.kuunda-account-card {
+	padding: 14px 16px;
+	border-radius: 12px;
+	border: 1px solid var(--vscode-widget-border, #1C1D28);
+	background: color-mix(in srgb, var(--vscode-editor-background) 92%, var(--vscode-foreground) 8%);
+	margin-bottom: 10px;
+}
+
+.kuunda-account-badge {
+	display: inline-flex;
+	align-items: center;
+	padding: 2px 8px;
+	border-radius: 999px;
+	font-size: 11px;
+	font-weight: 650;
+	background: var(--vscode-button-background, #E4930A);
+	color: var(--vscode-button-foreground, #0B0C14);
+}
+
+.kuunda-account-field {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	margin-bottom: 10px;
+}
+
+.kuunda-account-field label {
+	font-size: 12px;
+	opacity: 0.8;
+}
+
+.kuunda-account-field input {
+	height: 34px;
+	padding: 0 10px;
+	border-radius: 8px;
+	border: 1px solid var(--vscode-input-border, var(--vscode-widget-border));
+	background: var(--vscode-input-background);
+	color: var(--vscode-input-foreground);
+	font-family: inherit;
+}
+
+.kuunda-account-error {
+	color: var(--vscode-errorForeground, #E5484D);
+	font-size: 12px;
+	margin: 8px 0;
+}
+
+.kuunda-account-hint {
+	font-size: 12px;
+	opacity: 0.72;
+	margin: 8px 0 12px;
+}
+
+.kuunda-account-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin-top: 8px;
+}
+
+.kuunda-account-oauth {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	margin: 12px 0;
+}
+
+.kuunda-account-code {
+	font-size: 28px;
+	letter-spacing: 0.28em;
+	font-weight: 700;
+	margin: 8px 0;
+}
+
+.kuunda-account-meter {
+	height: 8px;
+	border-radius: 99px;
+	background: color-mix(in srgb, var(--vscode-foreground) 12%, transparent);
+	overflow: hidden;
+	margin: 8px 0 12px;
+}
+
+.kuunda-account-meter span {
+	display: block;
+	height: 100%;
+	background: var(--vscode-button-background, #E4930A);
+}
+
+.kuunda-account-row {
+	display: flex;
+	justify-content: space-between;
+	gap: 12px;
+	align-items: center;
+	padding: 8px 0;
+	border-bottom: 1px solid color-mix(in srgb, var(--vscode-widget-border, #1C1D28) 70%, transparent);
+}
+
+@media (max-width: 720px) {
+	.kuunda-account-signed-out,
+	.kuunda-account-layout {
+		grid-template-columns: 1fr;
+	}
+}
