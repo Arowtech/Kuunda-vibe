@@ -159,10 +159,10 @@ export function defaultBrowserWindowOptions(accessor: ServicesAccessor, windowSt
 		experimentalDarkMode: true
 	};
 
-	if (isLinux) {
-		options.icon = join(environmentMainService.appRoot, 'resources/linux/code.png'); // always on Linux
-	} else if (isWindows && !environmentMainService.isBuilt) {
-		options.icon = join(environmentMainService.appRoot, 'resources/win32/code_150x150.png'); // only when running out of sources on Windows
+	if (isWindows) {
+		options.icon = join(environmentMainService.appRoot, 'resources/win32/code_150x150.png');
+	} else if (isLinux) {
+		options.icon = join(environmentMainService.appRoot, 'resources/linux/code.png');
 	}
 
 	if (isMacintosh) {

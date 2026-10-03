@@ -2,7 +2,7 @@
  *  Copyright 2025 Glass Devtools, Inc. All rights reserved.
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
-// Modified 2026-09-18 by Arowtech: Void UI tokens follow Kuunda Cloud (orange focus/links).
+/* Modified 2026-09-18 by Arowtech: Void UI tokens follow Kuunda Cloud (orange focus/links). */
 
 @tailwind base;
 @tailwind components;

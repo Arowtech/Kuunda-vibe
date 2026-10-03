@@ -34,9 +34,10 @@ describe('Phase 1 — branding Kuunda Vibe', () => {
 		assert.equal(existsSync(join(root, 'resources/branding/wordmark.png')), true);
 		assert.equal(existsSync(join(root, 'resources/linux/code.png')), true);
 		assert.equal(existsSync(join(root, 'resources/win32/code.ico')), true);
+		assert.equal(existsSync(join(root, 'resources/win32/code_150x150.png')), true);
 		assert.equal(existsSync(join(root, 'resources/darwin/code.icns')), true);
 		assert.equal(existsSync(join(root, 'resources/win32/inno-kuunda.bmp')), true);
-		assert.equal(existsSync(join(root, 'src/vs/workbench/browser/media/code-icon.png')), true);
+		assert.equal(existsSync(join(root, 'src/vs/workbench/browser/media/code-icon.svg')), true);
 	});
 
 	it('chaque clé nls Kuunda a un anglais et un français', () => {
@@ -69,6 +70,10 @@ describe('Phase 1 — branding Kuunda Vibe', () => {
 	it('les libellés Windows / transfert ne disent plus Void', () => {
 		const visual = read('resources/win32/VisualElementsManifest.xml');
 		assert.match(visual, /ShortDisplayName="Kuunda Vibe"/);
+		assert.match(visual, /BackgroundColor="#E4930A"/);
+		const nativeWindows = read('src/vs/platform/windows/electron-main/windows.ts');
+		assert.match(nativeWindows, /if \(isWindows\) \{\s*options\.icon = join\(environmentMainService\.appRoot, 'resources\/win32\/code_150x150\.png'/);
+		assert.doesNotMatch(nativeWindows, /isWindows && !environmentMainService\.isBuilt/);
 		assert.doesNotMatch(visual, /ShortDisplayName="Void"/);
 		const transfer = read('src/vs/workbench/contrib/void/browser/extensionTransferService.ts');
 		assert.match(transfer, /'Kuunda Vibe'/);
@@ -109,11 +114,15 @@ describe('Phase 1 — branding Kuunda Vibe', () => {
 		assert.match(onboarding, /Welcome to Kuunda Vibe/);
 		assert.doesNotMatch(onboarding, /Welcome to Void/);
 		assert.doesNotMatch(onboarding, /invert\(1\)/);
+		assert.match(onboarding, /@@kuunda-vibe-icon/);
+		const watermarkCss = read('src/vs/workbench/browser/parts/editor/media/editorgroupview.css');
+		assert.match(watermarkCss, /background-image: url\('\.\.\/\.\.\/\.\.\/media\/code-icon\.svg'\)/);
+		assert.doesNotMatch(watermarkCss, /void_cube_noshadow\.png/);
 		const watermark = read('src/vs/workbench/browser/parts/editor/editorGroupWatermark.ts');
 		assert.match(watermark, /appendKuundaHomeProjectCards/);
 		assert.doesNotMatch(watermark, /invert\(1\)/);
 		const titlebar = read('src/vs/workbench/browser/parts/titlebar/media/titlebarpart.css');
-		assert.match(titlebar, /code-icon\.png/);
+		assert.match(titlebar, /code-icon\.svg/);
 	});
 
 	it('la charte Kuunda Cloud est le thème par défaut', () => {
@@ -135,6 +144,7 @@ describe('Phase 1 — branding Kuunda Vibe', () => {
 		const voidCss = read('src/vs/workbench/contrib/void/browser/media/void.css');
 		assert.doesNotMatch(voidCss, /#306dce|#2563eb|#3b82f6/);
 		const styles = read('src/vs/workbench/contrib/void/browser/react/src/styles.css');
+		assert.doesNotMatch(styles, /^\/\//m, 'CSS must not contain JavaScript-style line comments');
 		assert.doesNotMatch(styles, /#007FD4/);
 		assert.match(styles, /#E4930A/);
 	});
