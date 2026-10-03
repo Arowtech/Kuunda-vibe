@@ -142,6 +142,7 @@ describe('Phase 1 — branding Kuunda Vibe', () => {
 		const chrome = read('src/vs/workbench/contrib/kuundaBrand/browser/kuundaBrand.contribution.ts');
 		assert.match(chrome, /media\/kuundaChrome\.css/);
 		const voidCss = read('src/vs/workbench/contrib/void/browser/media/void.css');
+		assert.doesNotMatch(voidCss, /^\/\//m, 'CSS must not contain JavaScript-style line comments');
 		assert.doesNotMatch(voidCss, /#306dce|#2563eb|#3b82f6/);
 		const styles = read('src/vs/workbench/contrib/void/browser/react/src/styles.css');
 		assert.doesNotMatch(styles, /^\/\//m, 'CSS must not contain JavaScript-style line comments');
