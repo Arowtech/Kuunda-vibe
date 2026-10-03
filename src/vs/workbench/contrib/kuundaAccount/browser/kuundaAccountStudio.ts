@@ -283,7 +283,7 @@ export function openKuundaAccountStudio(
 		const input = append(field, $('input')) as HTMLInputElement;
 		input.type = type;
 		input.name = name;
-		input.autocomplete = type === 'password' ? 'current-password' : name;
+		input.autocomplete = type === 'password' ? 'current-password' : type === 'email' ? 'email' : 'name';
 	}
 
 	function addCommandButton(parent: HTMLElement, label: string, onClick: () => void): void {
