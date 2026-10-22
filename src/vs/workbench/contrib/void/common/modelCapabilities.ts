@@ -142,7 +142,7 @@ export const defaultModelsOfProvider = {
 	],
 	lmStudio: [], // autodetected
 
-	openRouter: [...kuundaOpenRouterChatModels], // Catalogue Kuunda : paliers gratuit, standard, standard+, expert.
+	openRouter: [...kuundaOpenRouterChatModels], // Curated Kuunda Cloud models only.
 	groq: [ // https://console.groq.com/docs/models
 		'qwen-qwq-32b',
 		'llama-3.3-70b-versatile',
