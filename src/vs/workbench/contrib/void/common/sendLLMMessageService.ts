@@ -156,7 +156,7 @@ export class LLMMessageService extends Disposable implements ILLMMessageService 
 				token = undefined
 			}
 			if (!token) {
-				this.llmMessageHooks.onError[requestId]?.({ message: 'Connectez-vous à Kuunda pour utiliser ce modèle. Une clé OpenRouter personnelle reste facultative.', fullError: null })
+				this.llmMessageHooks.onError[requestId]?.({ requestId, message: 'Connectez-vous à Kuunda pour utiliser ce modèle. Une clé OpenRouter personnelle reste facultative.', fullError: null })
 				this._clearChannelHooks(requestId)
 				return
 			}
@@ -164,13 +164,24 @@ export class LLMMessageService extends Disposable implements ILLMMessageService 
 		}
 
 		// params will be stripped of all its functions over the IPC channel
-		this.channel.call('sendLLMMessage', {
-			...proxyParams,
-			requestId,
-			settingsOfProvider,
-			modelSelection,
-			mcpTools,
-		} satisfies MainSendLLMMessageParams);
+		const shared = { requestId, settingsOfProvider, modelSelection, mcpTools, logging: proxyParams.logging, modelSelectionOptions: proxyParams.modelSelectionOptions, overridesOfModel: proxyParams.overridesOfModel }
+		if (proxyParams.messagesType === 'chatMessages') {
+			this.channel.call('sendLLMMessage', {
+				...shared,
+				messagesType: 'chatMessages',
+				messages: proxyParams.messages,
+				separateSystemMessage: proxyParams.separateSystemMessage,
+				chatMode: proxyParams.chatMode,
+			} satisfies MainSendLLMMessageParams)
+		} else {
+			this.channel.call('sendLLMMessage', {
+				...shared,
+				messagesType: 'FIMMessage',
+				messages: proxyParams.messages,
+				separateSystemMessage: undefined,
+				chatMode: undefined,
+			} satisfies MainSendLLMMessageParams)
+		}
 	}
 
 	abort(requestId: string) {
