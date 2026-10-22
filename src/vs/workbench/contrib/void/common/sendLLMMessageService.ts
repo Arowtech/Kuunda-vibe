@@ -107,7 +107,7 @@ export class LLMMessageService extends Disposable implements ILLMMessageService 
 	}
 
 	sendLLMMessage(params: ServiceSendLLMMessageParams) {
-		const { onText, onFinalMessage, onError, onAbort, modelSelection, ...proxyParams } = params;
+		const { onText, onFinalMessage, onError, onAbort, modelSelection } = params;
 
 		// throw an error if no model/provider selected (this should usually never be reached, the UI should check this first, but might happen in cases like Apply where we haven't built much UI/checks yet, good practice to have check logic on backend)
 		if (modelSelection === null) {
@@ -142,46 +142,77 @@ export class LLMMessageService extends Disposable implements ILLMMessageService 
 		this.llmMessageHooks.onError[requestId] = onError
 		this.llmMessageHooks.onAbort[requestId] = onAbort // used internally only
 
-		void this._sendWithAccount(requestId, proxyParams, settingsOfProvider, modelSelection, mcpTools)
+		void this._sendWithAccount(requestId, params, settingsOfProvider, modelSelection, mcpTools)
 
 		return requestId
 	}
 
-	private async _sendWithAccount(requestId: string, proxyParams: Omit<ServiceSendLLMMessageParams, 'onText' | 'onFinalMessage' | 'onError' | 'onAbort' | 'modelSelection'>, settingsOfProvider: MainSendLLMMessageParams['settingsOfProvider'], modelSelection: NonNullable<ServiceSendLLMMessageParams['modelSelection']>, mcpTools: MainSendLLMMessageParams['mcpTools']) {
-		if (modelSelection.providerName === 'openRouter' && !settingsOfProvider.openRouter.apiKey?.trim()) {
-			let token: string | undefined
-			try {
-				token = await this.accountService.getAccessToken()
-			} catch {
-				token = undefined
-			}
-			if (!token) {
-				this.llmMessageHooks.onError[requestId]?.({ requestId, message: 'Connectez-vous à Kuunda pour utiliser ce modèle. Une clé OpenRouter personnelle reste facultative.', fullError: null })
-				this._clearChannelHooks(requestId)
+	private async _ensureKuundaSession(requestId: string, settingsOfProvider: MainSendLLMMessageParams['settingsOfProvider'], modelSelection: NonNullable<ServiceSendLLMMessageParams['modelSelection']>): Promise<boolean> {
+		if (modelSelection.providerName !== 'openRouter' || settingsOfProvider.openRouter.apiKey?.trim()) {
+			return true
+		}
+		let token: string | undefined
+		try {
+			token = await this.accountService.getAccessToken()
+		} catch {
+			token = undefined
+		}
+		if (!token) {
+			this.llmMessageHooks.onError[requestId]?.({ requestId, message: 'Connectez-vous à Kuunda pour utiliser ce modèle. Une clé OpenRouter personnelle reste facultative.', fullError: null })
+			this._clearChannelHooks(requestId)
+			return false
+		}
+		Object.assign(settingsOfProvider.openRouter, { kuundaSessionToken: token })
+		return true
+	}
+
+	private async _sendWithAccount(requestId: string, params: ServiceSendLLMMessageParams, settingsOfProvider: MainSendLLMMessageParams['settingsOfProvider'], modelSelection: NonNullable<ServiceSendLLMMessageParams['modelSelection']>, mcpTools: MainSendLLMMessageParams['mcpTools']) {
+		// Capture the message shape before any await. A later check no longer narrows it.
+		if (params.messagesType === 'chatMessages') {
+			const messages = params.messages
+			const separateSystemMessage = params.separateSystemMessage
+			const chatMode = params.chatMode
+			const logging = params.logging
+			const modelSelectionOptions = params.modelSelectionOptions
+			const overridesOfModel = params.overridesOfModel
+			if (!await this._ensureKuundaSession(requestId, settingsOfProvider, modelSelection)) {
 				return
 			}
-			Object.assign(settingsOfProvider.openRouter, { kuundaSessionToken: token })
-		}
-
-		// params will be stripped of all its functions over the IPC channel
-		const shared = { requestId, settingsOfProvider, modelSelection, mcpTools, logging: proxyParams.logging, modelSelectionOptions: proxyParams.modelSelectionOptions, overridesOfModel: proxyParams.overridesOfModel }
-		if (proxyParams.messagesType === 'chatMessages') {
 			this.channel.call('sendLLMMessage', {
-				...shared,
+				requestId,
+				settingsOfProvider,
+				modelSelection,
+				mcpTools,
+				logging,
+				modelSelectionOptions,
+				overridesOfModel,
 				messagesType: 'chatMessages',
-				messages: proxyParams.messages,
-				separateSystemMessage: proxyParams.separateSystemMessage,
-				chatMode: proxyParams.chatMode,
+				messages,
+				separateSystemMessage,
+				chatMode,
 			} satisfies MainSendLLMMessageParams)
-		} else {
-			this.channel.call('sendLLMMessage', {
-				...shared,
-				messagesType: 'FIMMessage',
-				messages: proxyParams.messages,
-				separateSystemMessage: undefined,
-				chatMode: undefined,
-			} satisfies MainSendLLMMessageParams)
+			return
 		}
+		const messages = params.messages
+		const logging = params.logging
+		const modelSelectionOptions = params.modelSelectionOptions
+		const overridesOfModel = params.overridesOfModel
+		if (!await this._ensureKuundaSession(requestId, settingsOfProvider, modelSelection)) {
+			return
+		}
+		this.channel.call('sendLLMMessage', {
+			requestId,
+			settingsOfProvider,
+			modelSelection,
+			mcpTools,
+			logging,
+			modelSelectionOptions,
+			overridesOfModel,
+			messagesType: 'FIMMessage',
+			messages,
+			separateSystemMessage: undefined,
+			chatMode: undefined,
+		} satisfies MainSendLLMMessageParams)
 	}
 
 	abort(requestId: string) {
