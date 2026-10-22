@@ -9,7 +9,7 @@ describe('Auto choisit le modèle pour chaque requête', () => {
 	it('une question courte reste sur le modèle inclus', () => {
 		assert.equal(
 			resolveKuundaAutoModel('agent', [user('Salut, que fait ce fichier ?')]),
-			'poolside/laguna-xs-2.1:free',
+			'anthropic/claude-haiku-5.5',
 		);
 	});
 

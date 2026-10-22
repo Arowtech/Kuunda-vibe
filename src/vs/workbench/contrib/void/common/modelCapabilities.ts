@@ -76,8 +76,8 @@ export const KUUNDA_AUTO_MODEL = 'kuunda/auto'
 /** Chat catalog. Auto is Kuunda's router. Other rows keep the real vendor, like Cursor. */
 export const kuundaChatCatalog = [
 	{ id: KUUNDA_AUTO_MODEL, label: 'Auto', vendor: 'Kuunda', hiddenByDefault: false },
-	{ id: 'poolside/laguna-xs-2.1:free', label: 'Laguna XS', vendor: 'Poolside', hiddenByDefault: false },
-	{ id: 'nvidia/nemotron-3-ultra:free', label: 'Nemotron 3 Ultra', vendor: 'NVIDIA', hiddenByDefault: false },
+	{ id: 'anthropic/claude-haiku-5.5', label: 'Claude Haiku 5.5', vendor: 'Anthropic', hiddenByDefault: false },
+	{ id: 'google/gemini-3.1-flash-lite', label: 'Gemini 3.1 Flash Lite', vendor: 'Google', hiddenByDefault: false },
 	{ id: 'deepseek/deepseek-v4.1-flash', label: 'DeepSeek V4.1 Flash', vendor: 'DeepSeek', hiddenByDefault: false },
 	{ id: 'z-ai/glm-5.3-flash', label: 'GLM 5.3 Flash', vendor: 'Z.ai', hiddenByDefault: true },
 	{ id: 'moonshotai/kimi-k3', label: 'Kimi K3', vendor: 'Moonshot', hiddenByDefault: true },
@@ -1287,8 +1287,8 @@ const kuundaOpenRouterChatModelOptions = {
 
 const openRouterModelOptions_assumingOpenAICompat = {
 	'kuunda/auto': kuundaOpenRouterChatModelOptions,
-	'poolside/laguna-xs-2.1:free': kuundaOpenRouterChatModelOptions,
-	'nvidia/nemotron-3-ultra:free': kuundaOpenRouterChatModelOptions,
+	'anthropic/claude-haiku-5.5': kuundaOpenRouterChatModelOptions,
+	'google/gemini-3.1-flash-lite': kuundaOpenRouterChatModelOptions,
 	'deepseek/deepseek-v4.1-flash': kuundaOpenRouterChatModelOptions,
 	'z-ai/glm-5.3-flash': kuundaOpenRouterChatModelOptions,
 	'moonshotai/kimi-k3': kuundaOpenRouterChatModelOptions,

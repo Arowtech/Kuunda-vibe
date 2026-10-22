@@ -49,8 +49,8 @@ describe('Phase 2 — branchement IDE kuundaAi', () => {
 		const transport = read('src/vs/workbench/contrib/void/electron-main/llmMessage/sendLLMMessage.impl.ts');
 		for (const modelId of [
 			'kuunda/auto',
-			'poolside/laguna-xs-2.1:free',
-			'nvidia/nemotron-3-ultra:free',
+			'anthropic/claude-haiku-5.5',
+			'google/gemini-3.1-flash-lite',
 			'deepseek/deepseek-v4.1-flash',
 			'z-ai/glm-5.3-flash',
 			'moonshotai/kimi-k3',

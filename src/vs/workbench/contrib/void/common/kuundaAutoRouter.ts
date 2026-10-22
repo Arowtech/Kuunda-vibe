@@ -10,7 +10,7 @@
  * signal among the latest user text, conversation depth, and recent tool calls.
  */
 
-const EFFICIENT_MODEL = 'poolside/laguna-xs-2.1:free'
+const EFFICIENT_MODEL = 'anthropic/claude-haiku-5.5'
 const STANDARD_MODEL = 'deepseek/deepseek-v4.1-flash'
 const LONG_CONTEXT_MODEL = 'z-ai/glm-5.3-flash'
 const FRONTIER_MODEL = 'anthropic/claude-sonnet-5'
