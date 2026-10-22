@@ -51,7 +51,7 @@ jobs:
     name: Plan package
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
@@ -72,7 +72,7 @@ jobs:
     env:
       VSCODE_ARCH: x64
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 1
       - uses: actions/setup-node@v4
@@ -101,7 +101,7 @@ jobs:
     env:
       VSCODE_ARCH: arm64
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 1
       - uses: actions/setup-node@v4
@@ -130,7 +130,7 @@ jobs:
     env:
       VSCODE_ARCH: arm64
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 1
       - uses: actions/setup-node@v4
@@ -157,7 +157,7 @@ jobs:
     env:
       VSCODE_ARCH: x64
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 1
       - uses: actions/setup-node@v4
