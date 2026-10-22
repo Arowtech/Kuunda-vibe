@@ -12,9 +12,9 @@ import { registerSingleton, InstantiationType } from '../../../../platform/insta
 import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
 import { IStorageService, StorageScope, StorageTarget } from '../../../../platform/storage/common/storage.js';
 import { IMetricsService } from './metricsService.js';
-import { defaultProviderSettings, getModelCapabilities, ModelOverrides } from './modelCapabilities.js';
+import { defaultProviderSettings, getModelCapabilities, KUUNDA_AUTO_MODEL, kuundaChatModelHiddenByDefault, kuundaOpenRouterChatModels, ModelOverrides } from './modelCapabilities.js';
 import { VOID_SETTINGS_STORAGE_KEY } from './storageKeys.js';
-import { defaultSettingsOfProvider, FeatureName, ProviderName, ModelSelectionOfFeature, SettingsOfProvider, SettingName, providerNames, ModelSelection, modelSelectionsEqual, featureNames, VoidStatefulModelInfo, GlobalSettings, GlobalSettingName, defaultGlobalSettings, ModelSelectionOptions, OptionsOfModelSelection, ChatMode, OverridesOfModel, defaultOverridesOfModel, MCPUserStateOfName as MCPUserStateOfName, MCPUserState } from './voidSettingsTypes.js';
+import { defaultSettingsOfProvider, FeatureName, ProviderName, ModelSelectionOfFeature, SettingsOfProvider, SettingName, providerNames, ModelSelection, modelSelectionsEqual, featureNames, VoidStatefulModelInfo, GlobalSettings, GlobalSettingName, defaultGlobalSettings, ModelSelectionOptions, OptionsOfModelSelection, ChatMode, normalizeChatMode, OverridesOfModel, defaultOverridesOfModel, MCPUserStateOfName as MCPUserStateOfName, MCPUserState } from './voidSettingsTypes.js';
 
 
 // name is the name in the dropdown
@@ -93,7 +93,13 @@ const _modelsWithSwappedInNewModels = (options: { existingModels: VoidStatefulMo
 		existingModelsMap[existingModel.modelName] = existingModel
 	}
 
-	const newDefaultModels = models.map((modelName, i) => ({ modelName, type, isHidden: !!existingModelsMap[modelName]?.isHidden, }))
+	const newDefaultModels = models.map((modelName) => ({
+		modelName,
+		type,
+		isHidden: existingModelsMap[modelName]
+			? !!existingModelsMap[modelName].isHidden
+			: kuundaChatModelHiddenByDefault(modelName),
+	}))
 
 	return [
 		...newDefaultModels, // swap out all the models of this type for the new models of this type
@@ -114,7 +120,10 @@ export const modelFilterOfFeatureName: {
 		emptyMessage: null | { message: string, priority: 'always' | 'fallback' }
 	} } = {
 	'Autocomplete': { filter: (o, opts) => getModelCapabilities(o.providerName, o.modelName, opts.overridesOfModel).supportsFIM, emptyMessage: { message: 'No models support FIM', priority: 'always' } },
-	'Chat': { filter: o => true, emptyMessage: null, },
+	'Chat': {
+		filter: o => o.providerName === 'openRouter' && kuundaOpenRouterChatModels.includes(o.modelName as (typeof kuundaOpenRouterChatModels)[number]),
+		emptyMessage: { message: 'Connectez-vous à Kuunda pour utiliser le Chat.', priority: 'always' },
+	},
 	'Ctrl+K': { filter: o => true, emptyMessage: null, },
 	'Apply': { filter: o => true, emptyMessage: null, },
 	'SCM': { filter: o => true, emptyMessage: null, },
@@ -169,7 +178,8 @@ const _validatedModelState = (state: Omit<VoidSettingsState, '_modelOptions'>): 
 	let newModelOptions: ModelOption[] = []
 	for (const providerName of providerNames) {
 		const providerTitle = providerName // displayInfoOfProviderName(providerName).title.toLowerCase() // looks better lowercase, best practice to not use raw providerName
-		if (!newSettingsOfProvider[providerName]._didFillInProviderSettings) continue // if disabled, don't display model options
+		// OpenRouter chat models are included with the Kuunda account. A personal API key stays optional.
+		if (providerName !== 'openRouter' && !newSettingsOfProvider[providerName]._didFillInProviderSettings) continue
 		for (const { modelName, isHidden } of newSettingsOfProvider[providerName].models) {
 			if (isHidden) continue
 			newModelOptions.push({ name: `${modelName} (${providerTitle})`, selection: { providerName, modelName } })
@@ -296,6 +306,16 @@ class VoidSettingsService extends Disposable implements IVoidSettingsService {
 
 			// Kuunda Phase 2: Tab on unless the stored value is already a boolean
 			if (readS.globalSettings.enableAutocomplete === undefined) readS.globalSettings.enableAutocomplete = true;
+			readS.globalSettings.chatMode = normalizeChatMode(readS.globalSettings.chatMode)
+			if (readS.globalSettings.cursorPickerVisibilityApplied !== true) {
+				for (const model of readS.settingsOfProvider?.openRouter?.models ?? []) {
+					if (kuundaChatModelHiddenByDefault(model.modelName)) model.isHidden = true
+				}
+				if (readS.modelSelectionOfFeature) {
+					readS.modelSelectionOfFeature.Chat = { providerName: 'openRouter', modelName: KUUNDA_AUTO_MODEL }
+				}
+				readS.globalSettings.cursorPickerVisibilityApplied = true
+			}
 		}
 		catch (e) {
 			readS = defaultState()

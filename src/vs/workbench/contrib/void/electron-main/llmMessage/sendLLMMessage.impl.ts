@@ -16,6 +16,8 @@ import { GoogleAuth } from 'google-auth-library'
 
 import { AnthropicLLMChatMessage, GeminiLLMChatMessage, LLMChatMessage, LLMFIMMessage, ModelListParams, OllamaModelResponse, OnError, OnFinalMessage, OnText, RawToolCallObj, RawToolParamsObj } from '../../common/sendLLMMessageTypes.js';
 import { ChatMode, displayInfoOfProviderName, ModelSelectionOptions, OverridesOfModel, ProviderName, SettingsOfProvider } from '../../common/voidSettingsTypes.js';
+import { KUUNDA_AUTO_MODEL } from '../../common/modelCapabilities.js';
+import { resolveKuundaAutoModel } from '../../common/kuundaAutoRouter.js';
 import { getSendableReasoningInfo, getModelCapabilities, getProviderCapabilities, defaultProviderSettings, getReservedOutputTokenSpace } from '../../common/modelCapabilities.js';
 import { extractReasoningWrapper, extractXMLToolsWrapper } from './extractGrammar.js';
 import { availableTools, InternalToolInfo } from '../../common/prompt/prompts.js';
@@ -95,7 +97,19 @@ const newOpenAICompatibleSDK = async ({ settingsOfProvider, providerName, includ
 		return new OpenAI({ baseURL: `${thisConfig.endpoint}/v1`, apiKey: 'noop', ...commonPayloadOpts })
 	}
 	else if (providerName === 'openRouter') {
-		const thisConfig = settingsOfProvider[providerName]
+		const thisConfig = settingsOfProvider[providerName] as typeof settingsOfProvider.openRouter & { kuundaSessionToken?: string }
+		const ownKey = thisConfig.apiKey?.trim()
+		if (!ownKey && thisConfig.kuundaSessionToken) {
+			return new OpenAI({
+				baseURL: 'https://api.ide.kuunda-cloud.com/v1/ai',
+				apiKey: thisConfig.kuundaSessionToken,
+				defaultHeaders: {
+					'X-Title': 'Kuunda Vibe',
+					'Idempotency-Key': crypto.randomUUID(),
+				},
+				...commonPayloadOpts,
+			})
+		}
 		return new OpenAI({
 			baseURL: 'https://openrouter.ai/api/v1',
 			apiKey: thisConfig.apiKey,
@@ -301,13 +315,22 @@ const _sendOpenAICompatibleChat = async ({ messages, onText, onFinalMessage, onE
 		// Required to select the model
 		(openai as AzureOpenAI).deploymentName = modelName;
 	}
+	const routedModel = providerName === 'openRouter' && modelName_ === KUUNDA_AUTO_MODEL
+		? resolveKuundaAutoModel(chatMode, messages)
+		: modelName
 	const options: OpenAI.Chat.Completions.ChatCompletionCreateParamsStreaming = {
-		model: modelName,
+		model: routedModel,
 		messages: messages as any,
 		stream: true,
 		...nativeToolsObj,
-		...additionalOpenAIPayload
+		...additionalOpenAIPayload,
 		// max_completion_tokens: maxTokens,
+	}
+	const managedKuunda = providerName === 'openRouter'
+		&& !(settingsOfProvider.openRouter.apiKey?.trim())
+		&& !!(settingsOfProvider.openRouter as { kuundaSessionToken?: string }).kuundaSessionToken
+	if (providerName === 'openRouter' && !managedKuunda) {
+		Object.assign(options, { provider: { data_collection: 'deny', zdr: true } })
 	}
 
 	// open source models - manually parse think tokens

@@ -43,6 +43,36 @@ describe('Phase 2 — branchement IDE kuundaAi', () => {
 		assert.match(helper, /parseStreamingDiff/);
 	});
 
+	it('le Chat utilise uniquement le catalogue OpenRouter Cloud et impose la politique BYOK', () => {
+		const capabilities = read('src/vs/workbench/contrib/void/common/modelCapabilities.ts');
+		const settings = read('src/vs/workbench/contrib/void/common/voidSettingsService.ts');
+		const transport = read('src/vs/workbench/contrib/void/electron-main/llmMessage/sendLLMMessage.impl.ts');
+		for (const modelId of [
+			'kuunda/auto',
+			'poolside/laguna-xs-2.1:free',
+			'nvidia/nemotron-3-ultra:free',
+			'deepseek/deepseek-v4.1-flash',
+			'z-ai/glm-5.3-flash',
+			'moonshotai/kimi-k3',
+			'anthropic/claude-sonnet-5',
+		]) {
+			assert.ok(capabilities.includes(`'${modelId}'`), `${modelId} absent du catalogue IDE`);
+		}
+		assert.match(capabilities, /openRouter: \[\.\.\.kuundaOpenRouterChatModels\]/);
+		assert.match(settings, /o\.providerName === 'openRouter' && kuundaOpenRouterChatModels\.includes/);
+		assert.match(transport, /if \(providerName === 'openRouter' && !managedKuunda\) \{\s*Object\.assign\(options, \{ provider: \{ data_collection: 'deny', zdr: true \} \}\)/);
+		assert.match(transport, /baseURL: 'https:\/\/api\.ide\.kuunda-cloud\.com\/v1\/ai'/);
+		const chat = read('src/vs/workbench/contrib/void/browser/chatThreadService.ts');
+		assert.match(chat, /const byokOpenRouter = modelSelection\?\.providerName === 'openRouter'/);
+		assert.equal((chat.match(/!byokOpenRouter/g) || []).length, 2);
+		assert.match(settings, /providerName !== 'openRouter' && !newSettingsOfProvider\[providerName\]\._didFillInProviderSettings/);
+		assert.match(read('src/vs/workbench/contrib/void/common/voidSettingsTypes.ts'), /export type ChatMode = 'agent' \| 'plan' \| 'ask' \| 'debug'/);
+		assert.match(capabilities, /export \{ resolveKuundaAutoModel \} from '\.\/kuundaAutoRouter\.js'/);
+		assert.match(transport, /resolveKuundaAutoModel\(chatMode, messages\)/);
+		assert.match(capabilities, /vendor: 'Anthropic'/);
+		assert.match(capabilities, /hiddenByDefault: true/);
+	});
+
 	it('chaque clé nls kuundaAi a en et fr distincts', () => {
 		const strings = JSON.parse(read('src/vs/workbench/contrib/kuundaAi/common/strings.json'));
 		const nlsSrc = read('src/vs/workbench/contrib/kuundaAi/common/kuundaAiNls.ts');

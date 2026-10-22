@@ -844,7 +844,8 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 			this._setStreamState(threadId, undefined)
 			return
 		}
-		if (!this._kuundaLegal.isStrictOffline()) {
+		const byokOpenRouter = modelSelection?.providerName === 'openRouter' && !!this._settingsService.state.settingsOfProvider.openRouter?.apiKey?.trim()
+		if (!this._kuundaLegal.isStrictOffline() && !byokOpenRouter) {
 			const billingGate = await this._kuundaBilling.ensureCanRunAgent()
 			if (!billingGate.ok) {
 				this._notificationService.notify({
@@ -1042,7 +1043,7 @@ class ChatThreadService extends Disposable implements IChatThreadService {
 			const changedPaths = collectCheckpointPaths(thread?.messages ?? [])
 			this._kuundaAgent.settleThread(threadId, { changedPaths })
 			this._notifyKuundaBackground(threadId, 'review', changedPaths.length)
-			if (!this._kuundaLegal.isStrictOffline()) {
+			if (!this._kuundaLegal.isStrictOffline() && !byokOpenRouter) {
 				void this._kuundaBilling.recordUsage(1)
 			}
 		}

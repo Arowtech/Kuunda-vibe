@@ -11,6 +11,7 @@ import { SelectBox } from '../../../../../../../base/browser/ui/selectBox/select
 import { IconWarning } from '../sidebar-tsx/SidebarChat.js'
 import { VOID_OPEN_SETTINGS_ACTION_ID, VOID_TOGGLE_SETTINGS_ACTION_ID } from '../../../voidSettingsPane.js'
 import { modelFilterOfFeatureName, ModelOption } from '../../../../../../../workbench/contrib/void/common/voidSettingsService.js'
+import { kuundaChatModelById } from '../../../../../../../workbench/contrib/void/common/modelCapabilities.js'
 import { WarningBox } from './WarningBox.js'
 import ErrorBoundary from '../sidebar-tsx/ErrorBoundary.js'
 
@@ -37,9 +38,9 @@ const ModelSelectBox = ({ options, featureName, className }: { options: ModelOpt
 		options={options}
 		selectedOption={selectedOption}
 		onChangeOption={onChangeOption}
-		getOptionDisplayName={(option) => option.selection.modelName}
-		getOptionDropdownName={(option) => option.selection.modelName}
-		getOptionDropdownDetail={(option) => option.selection.providerName}
+		getOptionDisplayName={(option) => kuundaChatModelById(option.selection.modelName)?.label ?? option.selection.modelName}
+		getOptionDropdownName={(option) => kuundaChatModelById(option.selection.modelName)?.label ?? option.selection.modelName}
+		getOptionDropdownDetail={(option) => kuundaChatModelById(option.selection.modelName)?.vendor ?? option.selection.providerName}
 		getOptionsEqual={(a, b) => optionsEqual([a], [b])}
 		className={className}
 		matchInputWidth={false}

@@ -249,16 +249,18 @@ const ReasoningOptionSlider = ({ featureName }: { featureName: FeatureName }) =>
 
 
 
-const nameOfChatMode = {
-	'normal': 'Chat',
-	'gather': 'Gather',
+const nameOfChatMode: Record<ChatMode, string> = {
 	'agent': 'Agent',
+	'plan': 'Plan',
+	'ask': 'Ask',
+	'debug': 'Debug',
 }
 
-const detailOfChatMode = {
-	'normal': 'Normal chat',
-	'gather': 'Reads files, but can\'t edit',
-	'agent': 'Edits files and uses tools',
+const detailOfChatMode: Record<ChatMode, string> = {
+	'agent': 'Modifie le projet et lance des commandes',
+	'plan': 'Prépare un plan, sans modifier les fichiers',
+	'ask': 'Répond et lit le code, sans modifier',
+	'debug': 'Cherche la cause, puis corrige',
 }
 
 
@@ -268,7 +270,7 @@ const ChatModeDropdown = ({ className }: { className: string }) => {
 	const voidSettingsService = accessor.get('IVoidSettingsService')
 	const settingsState = useSettingsState()
 
-	const options: ChatMode[] = useMemo(() => ['normal', 'gather', 'agent'], [])
+	const options: ChatMode[] = useMemo(() => ['agent', 'plan', 'ask', 'debug'], [])
 
 	const onChangeOption = useCallback((newVal: ChatMode) => {
 		voidSettingsService.setGlobalSetting('chatMode', newVal)
@@ -389,8 +391,8 @@ export const VoidChatArea: React.FC<VoidChatAreaProps> = ({
 						<ReasoningOptionSlider featureName={featureName} />
 
 						<div className='flex items-center flex-wrap gap-x-2 gap-y-1 text-nowrap '>
-							{featureName === 'Chat' && <ChatModeDropdown className='text-xs text-void-fg-3 bg-void-bg-1 border border-void-border-2 rounded py-0.5 px-1' />}
-							<ModelDropdown featureName={featureName} className='text-xs text-void-fg-3 bg-void-bg-1 rounded' />
+							{featureName === 'Chat' && <ChatModeDropdown className='text-[13px] text-void-fg-1 bg-void-bg-2 rounded-md px-2 py-1' />}
+							<ModelDropdown featureName={featureName} className='text-[13px] text-void-fg-2 rounded-md px-2 py-1' />
 						</div>
 					</div>
 				)}

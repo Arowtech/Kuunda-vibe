@@ -6,6 +6,7 @@
 
 import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react'; // Added useRef import just in case it was missed, though likely already present
 import { ProviderName, SettingName, displayInfoOfSettingName, providerNames, VoidStatefulModelInfo, customSettingNamesOfProvider, RefreshableProviderName, refreshableProviderNames, displayInfoOfProviderName, nonlocalProviderNames, localProviderNames, GlobalSettingName, featureNames, displayInfoOfFeatureName, isProviderNameDisabled, FeatureName, hasDownloadButtonsOnModelsProviderNames, subTextMdOfProviderName } from '../../../../common/voidSettingsTypes.js'
+import { kuundaChatModelById } from '../../../../common/modelCapabilities.js'
 import ErrorBoundary from '../sidebar-tsx/ErrorBoundary.js'
 import { VoidButtonBgDarken, VoidCustomDropdownBox, VoidInputBox2, VoidSimpleInputBox, VoidSwitch } from '../util/inputs.js'
 import { useAccessor, useIsDark, useIsOptedOut, useRefreshModelListener, useRefreshModelState, useSettingsState } from '../util/services.js'
@@ -440,9 +441,15 @@ export const ModelDump = ({ filteredProviders }: { filteredProviders?: ProviderN
 		{modelDump.map((m, i) => {
 			const { isHidden, type, modelName, providerName, providerEnabled } = m
 
-			const isNewProviderName = (i > 0 ? modelDump[i - 1] : undefined)?.providerName !== providerName
+			const catalogModel = providerName === 'openRouter' ? kuundaChatModelById(modelName) : undefined
+			const previous = i > 0 ? modelDump[i - 1] : undefined
+			const previousVendor = previous?.providerName === 'openRouter' ? kuundaChatModelById(previous.modelName)?.vendor : undefined
+			const isNewProviderName = catalogModel
+				? previousVendor !== catalogModel.vendor
+				: previous?.providerName !== providerName
 
-			const providerTitle = displayInfoOfProviderName(providerName).title
+			const providerTitle = catalogModel?.vendor ?? displayInfoOfProviderName(providerName).title
+			const modelTitle = catalogModel?.label ?? modelName
 
 			const disabled = !providerEnabled
 			const value = disabled ? false : !isHidden
@@ -469,7 +476,7 @@ export const ModelDump = ({ filteredProviders }: { filteredProviders?: ProviderN
 				{/* left part is width:full */}
 				<div className={`flex flex-grow items-center gap-4`}>
 					<span className='w-full max-w-32'>{isNewProviderName ? providerTitle : ''}</span>
-					<span className='w-fit max-w-[400px] truncate'>{modelName}</span>
+					<span className='w-fit max-w-[400px] truncate'>{modelTitle}</span>
 				</div>
 
 				{/* right part is anything that fits */}

@@ -71,6 +71,33 @@ export const defaultProviderSettings = {
 
 
 
+export const KUUNDA_AUTO_MODEL = 'kuunda/auto'
+
+/** Chat catalog. Auto is Kuunda's router. Other rows keep the real vendor, like Cursor. */
+export const kuundaChatCatalog = [
+	{ id: KUUNDA_AUTO_MODEL, label: 'Auto', vendor: 'Kuunda', hiddenByDefault: false },
+	{ id: 'poolside/laguna-xs-2.1:free', label: 'Laguna XS', vendor: 'Poolside', hiddenByDefault: false },
+	{ id: 'nvidia/nemotron-3-ultra:free', label: 'Nemotron 3 Ultra', vendor: 'NVIDIA', hiddenByDefault: false },
+	{ id: 'deepseek/deepseek-v4.1-flash', label: 'DeepSeek V4.1 Flash', vendor: 'DeepSeek', hiddenByDefault: false },
+	{ id: 'z-ai/glm-5.3-flash', label: 'GLM 5.3 Flash', vendor: 'Z.ai', hiddenByDefault: true },
+	{ id: 'moonshotai/kimi-k3', label: 'Kimi K3', vendor: 'Moonshot', hiddenByDefault: true },
+	{ id: 'anthropic/claude-sonnet-5', label: 'Claude Sonnet 5', vendor: 'Anthropic', hiddenByDefault: true },
+] as const
+
+export const kuundaOpenRouterChatModels = kuundaChatCatalog.map(model => model.id)
+
+export type KuundaChatModelId = (typeof kuundaChatCatalog)[number]['id']
+
+export function kuundaChatModelById(modelId: string) {
+	return kuundaChatCatalog.find(model => model.id === modelId)
+}
+
+export function kuundaChatModelHiddenByDefault(modelId: string) {
+	return kuundaChatModelById(modelId)?.hiddenByDefault === true
+}
+
+export { resolveKuundaAutoModel } from './kuundaAutoRouter.js'
+
 export const defaultModelsOfProvider = {
 	openAI: [ // https://platform.openai.com/docs/models/gp
 		'gpt-4.1',
@@ -115,25 +142,7 @@ export const defaultModelsOfProvider = {
 	],
 	lmStudio: [], // autodetected
 
-	openRouter: [ // https://openrouter.ai/models
-		// 'anthropic/claude-3.7-sonnet:thinking',
-		'anthropic/claude-opus-4',
-		'anthropic/claude-sonnet-4',
-		'qwen/qwen3-235b-a22b',
-		'anthropic/claude-3.7-sonnet',
-		'anthropic/claude-3.5-sonnet',
-		'deepseek/deepseek-r1',
-		'deepseek/deepseek-r1-zero:free',
-		'mistralai/devstral-small:free'
-		// 'openrouter/quasar-alpha',
-		// 'google/gemini-2.5-pro-preview-03-25',
-		// 'mistralai/codestral-2501',
-		// 'qwen/qwen-2.5-coder-32b-instruct',
-		// 'mistralai/mistral-small-3.1-24b-instruct:free',
-		// 'google/gemini-2.0-flash-lite-preview-02-05:free',
-		// 'google/gemini-2.0-pro-exp-02-05:free',
-		// 'google/gemini-2.0-flash-exp:free',
-	],
+	openRouter: [...kuundaOpenRouterChatModels], // Catalogue Kuunda : paliers gratuit, standard, standard+, expert.
 	groq: [ // https://console.groq.com/docs/models
 		'qwen-qwq-32b',
 		'llama-3.3-70b-versatile',
@@ -1264,7 +1273,26 @@ const liteLLMSettings: VoidStaticProviderInfo = { // https://docs.litellm.ai/doc
 
 
 // ---------------- OPENROUTER ----------------
+const kuundaOpenRouterChatModelOptions = {
+	// Admission floor from the gateway doc until the published catalog carries exact windows.
+	contextWindow: 200_000,
+	reservedOutputTokenSpace: 32_000,
+	cost: { input: 0, output: 0 },
+	downloadable: false,
+	supportsFIM: false,
+	supportsSystemMessage: 'system-role',
+	specialToolFormat: 'openai-style',
+	reasoningCapabilities: false,
+} as const satisfies VoidStaticModelInfo
+
 const openRouterModelOptions_assumingOpenAICompat = {
+	'kuunda/auto': kuundaOpenRouterChatModelOptions,
+	'poolside/laguna-xs-2.1:free': kuundaOpenRouterChatModelOptions,
+	'nvidia/nemotron-3-ultra:free': kuundaOpenRouterChatModelOptions,
+	'deepseek/deepseek-v4.1-flash': kuundaOpenRouterChatModelOptions,
+	'z-ai/glm-5.3-flash': kuundaOpenRouterChatModelOptions,
+	'moonshotai/kimi-k3': kuundaOpenRouterChatModelOptions,
+	'anthropic/claude-sonnet-5': kuundaOpenRouterChatModelOptions,
 	'qwen/qwen3-235b-a22b': {
 		contextWindow: 40_960,
 		reservedOutputTokenSpace: null,

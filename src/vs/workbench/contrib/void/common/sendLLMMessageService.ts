@@ -16,6 +16,7 @@ import { Disposable } from '../../../../base/common/lifecycle.js';
 import { IVoidSettingsService } from './voidSettingsService.js';
 import { IMCPService } from './mcpService.js';
 import { IKuundaLegalService } from '../../kuundaLegal/common/kuundaLegalService.js';
+import { IKuundaAccountService } from '../../kuundaAccount/common/kuundaAccountService.js';
 import { kuundaLegalLocalize } from '../../kuundaLegal/common/kuundaLegalNls.js';
 
 // calls channel to implement features
@@ -67,6 +68,7 @@ export class LLMMessageService extends Disposable implements ILLMMessageService 
 		// @INotificationService private readonly notificationService: INotificationService,
 		@IMCPService private readonly mcpService: IMCPService,
 		@IKuundaLegalService private readonly legalService: IKuundaLegalService,
+		@IKuundaAccountService private readonly accountService: IKuundaAccountService,
 	) {
 		super()
 
@@ -126,7 +128,10 @@ export class LLMMessageService extends Disposable implements ILLMMessageService 
 			return null
 		}
 
-		const { settingsOfProvider, } = this.voidSettingsService.state
+		const settingsOfProvider = {
+			...this.voidSettingsService.state.settingsOfProvider,
+			openRouter: { ...this.voidSettingsService.state.settingsOfProvider.openRouter },
+		}
 
 		const mcpTools = this.legalService.isStrictOffline() ? [] : this.mcpService.getMCPTools()
 
@@ -137,6 +142,27 @@ export class LLMMessageService extends Disposable implements ILLMMessageService 
 		this.llmMessageHooks.onError[requestId] = onError
 		this.llmMessageHooks.onAbort[requestId] = onAbort // used internally only
 
+		void this._sendWithAccount(requestId, proxyParams, settingsOfProvider, modelSelection, mcpTools)
+
+		return requestId
+	}
+
+	private async _sendWithAccount(requestId: string, proxyParams: Omit<ServiceSendLLMMessageParams, 'onText' | 'onFinalMessage' | 'onError' | 'onAbort' | 'modelSelection'>, settingsOfProvider: MainSendLLMMessageParams['settingsOfProvider'], modelSelection: NonNullable<ServiceSendLLMMessageParams['modelSelection']>, mcpTools: MainSendLLMMessageParams['mcpTools']) {
+		if (modelSelection.providerName === 'openRouter' && !settingsOfProvider.openRouter.apiKey?.trim()) {
+			let token: string | undefined
+			try {
+				token = await this.accountService.getAccessToken()
+			} catch {
+				token = undefined
+			}
+			if (!token) {
+				this.llmMessageHooks.onError[requestId]?.({ message: 'Connectez-vous à Kuunda pour utiliser ce modèle. Une clé OpenRouter personnelle reste facultative.', fullError: null })
+				this._clearChannelHooks(requestId)
+				return
+			}
+			Object.assign(settingsOfProvider.openRouter, { kuundaSessionToken: token })
+		}
+
 		// params will be stripped of all its functions over the IPC channel
 		this.channel.call('sendLLMMessage', {
 			...proxyParams,
@@ -145,8 +171,6 @@ export class LLMMessageService extends Disposable implements ILLMMessageService 
 			modelSelection,
 			mcpTools,
 		} satisfies MainSendLLMMessageParams);
-
-		return requestId
 	}
 
 	abort(requestId: string) {

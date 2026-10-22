@@ -5,7 +5,7 @@
  *--------------------------------------------------------------------------------------*/
 // Modified 2026-09-17 by Arowtech: Tab (autocomplete) is enabled by default for Kuunda Vibe.
 
-import { defaultModelsOfProvider, defaultProviderSettings, ModelOverrides } from './modelCapabilities.js';
+import { defaultModelsOfProvider, defaultProviderSettings, kuundaChatModelHiddenByDefault, ModelOverrides } from './modelCapabilities.js';
 import { ToolApprovalType } from './toolsServiceTypes.js';
 import { VoidSettingsState } from './voidSettingsService.js'
 
@@ -250,7 +250,7 @@ const modelInfoOfDefaultModelNames = (defaultModelNames: string[]): { models: Vo
 		models: defaultModelNames.map((modelName, i) => ({
 			modelName,
 			type: 'default',
-			isHidden: defaultModelNames.length >= 10, // hide all models if there are a ton of them, and make user enable them individually
+			isHidden: kuundaChatModelHiddenByDefault(modelName) || defaultModelNames.length >= 10, // third-party chat models stay off until enabled, like Cursor Settings → Models
 		}))
 	}
 }
@@ -436,7 +436,14 @@ export const isFeatureNameDisabled = (featureName: FeatureName, settingsState: V
 
 
 
-export type ChatMode = 'agent' | 'gather' | 'normal'
+export type ChatMode = 'agent' | 'plan' | 'ask' | 'debug'
+
+export function normalizeChatMode(mode: string | undefined): ChatMode {
+	if (mode === 'agent' || mode === 'plan' || mode === 'ask' || mode === 'debug') return mode
+	if (mode === 'gather') return 'plan'
+	if (mode === 'normal') return 'ask'
+	return 'agent'
+}
 
 
 export type GlobalSettings = {
@@ -453,6 +460,7 @@ export type GlobalSettings = {
 	isOnboardingComplete: boolean;
 	disableSystemMessage: boolean;
 	autoAcceptLLMChanges: boolean;
+	cursorPickerVisibilityApplied: boolean;
 }
 
 export const defaultGlobalSettings: GlobalSettings = {
@@ -469,6 +477,7 @@ export const defaultGlobalSettings: GlobalSettings = {
 	isOnboardingComplete: false,
 	disableSystemMessage: false,
 	autoAcceptLLMChanges: false,
+	cursorPickerVisibilityApplied: true,
 }
 
 export type GlobalSettingName = keyof GlobalSettings
