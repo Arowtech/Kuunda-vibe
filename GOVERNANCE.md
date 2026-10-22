@@ -1,6 +1,6 @@
 # Gouvernance — Kuunda Vibe
 
-**Statut :** Phase 0, dépôt public `https://github.com/Arowtech/Kuunda-vibe.git`
+**Statut :** Phase 10 itération post-lancement en cours.
 **Steward :** Arowtech
 **Licence du dépôt public :** Apache-2.0 (cœur Code - OSS : MIT)
 
@@ -29,9 +29,9 @@ Tant que la liste des mainteneurs n'est pas publiée ailleurs, le steward assume
 1. **CLA obligatoire** pour tout contributeur externe (individuel ou corporate). Les commits Arowtech internes n'ont pas besoin d'un CLA séparé.
 2. **Une préoccupation par PR.** Pas de mélange « rebase Void + billing + rename ».
 3. **Revue obligatoire** d'au moins un mainteneur qui n'est pas le seul auteur (dès qu'il existe deux mainteneurs ; en phase solo, auto-revue documentée dans la PR).
-4. **CI verte obligatoire** avant merge : job `gitleaks` (Gitleaks CLI 8.30.1) et job `license-compliance`. Un finding Gitleaks bloque le merge.
+4. **CI verte obligatoire** avant merge : job `gitleaks` (Gitleaks CLI 8.30.1), job `license-compliance`, et job `cla` pour un contributeur externe. Un finding Gitleaks bloque le merge.
 5. **Aucun secret** dans la PR (clés, `.env`, identifiants stores, dumps de facturation). Le scan Gitleaks s'ajoute à cette règle, il ne la remplace pas.
-6. **Tests** pour tout module nouveau ou modifié. En Phase 0, c'est `test/license-compliance.test.mjs`.
+6. **Tests** pour tout module nouveau ou modifié. Les tests Kuunda (`npm test`) couvrent licence, cloud-client et branding. Les tests VS Code se lancent via les scripts du dossier `scripts/`.
 7. **Licence** : fichiers nouveaux Arowtech en Apache-2.0 ; fichiers hérités : conserver les headers ; fichiers modifiés : notice de changement (§4(b)).
 8. **Pas de reformatage massif** du code VS Code / Void hors besoin fonctionnel — cela casse les rebases.
 9. Toute action destructive (force-push sur `main`, suppression de tags de release, rotation d'une clé de signature) exige une confirmation écrite du steward.
@@ -52,9 +52,10 @@ Pas de commits directs sur `main` une fois la protection activée.
 
 ## 5. Langues
 
+- **Interface utilisateur de l'IDE :** bilingue **anglais + français**, **anglais par défaut**. Toute chaîne visible (menus, commandes, écran d'accueil, paramètres, messages d'erreur) passe par le système de nls/i18n de VS Code (`nls.localize` / packs `vscode-nls`), avec `en` comme locale de repli et `fr` fourni dès l'introduction de la chaîne. Ne jamais coder une chaîne UI en dur dans une seule langue.
 - **Code et commentaires dans `src/` hérités de VS Code / Void :** anglais, pour rester rebase-able.
-- **Modules Kuunda isolés** (`src/vs/workbench/contrib/kuunda-*/` une fois créés) : anglais pour le code, afin d'éviter un îlot linguistique.
-- **Documentation interne Phase 0 / gouvernance :** français.
+- **Modules Kuunda isolés** (`src/vs/workbench/contrib/kuunda-*/` une fois créés) : identifiants, APIs et commentaires en anglais ; libellés utilisateur via nls EN/FR.
+- **Documentation interne / gouvernance :** français.
 - **CLA :** anglais (texte qui fait foi), résumé français non contraignant.
 - Issues et PR : français ou anglais.
 

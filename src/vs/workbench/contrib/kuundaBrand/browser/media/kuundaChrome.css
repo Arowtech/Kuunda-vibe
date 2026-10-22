@@ -1,0 +1,39 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright 2026 Arowtech
+ *  SPDX-License-Identifier: Apache-2.0
+ *--------------------------------------------------------------------------------------------*/
+
+/* Kuunda Cloud charter: navy surfaces, orange accent, card-like panels. */
+
+.monaco-workbench .part.titlebar .command-center-center {
+	border-radius: 10px;
+}
+
+.monaco-workbench .part.sidebar .composite,
+.monaco-workbench .part.auxiliarybar .composite,
+.monaco-workbench .part.panel .composite {
+	border-radius: 0;
+}
+
+.monaco-workbench .part.auxiliarybar > .content {
+	padding-top: 2px;
+}
+
+.monaco-workbench .part.sidebar .monaco-list .monaco-list-row,
+.monaco-workbench .part.auxiliarybar .monaco-list .monaco-list-row {
+	border-radius: 6px;
+}
+
+.monaco-workbench .quick-input-widget {
+	border-radius: 12px;
+	overflow: hidden;
+}
+
+.monaco-workbench .notification-toast-container .notification-toast {
+	border-radius: 10px;
+}
+
+.monaco-workbench .part.editor > .content .editor-group-container > .title .tabs-container > .tab {
+	border-top-left-radius: 8px;
+	border-top-right-radius: 8px;
+}

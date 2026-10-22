@@ -1,0 +1,59 @@
+# CLA gate: external contributors must paste the sentence from
+# docs/legal/CLA-INDIVIDUAL.md or CLA-CORPORATE.md before merge.
+# Arowtech OWNER/MEMBER skip (GOVERNANCE.md). No third-party CLA license key.
+name: CLA
+
+on:
+  pull_request:
+    types: [opened, edited, reopened, synchronize]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  cla:
+    name: cla
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Evaluate CLA
+        env:
+          PR_LOGIN: ${{ github.event.pull_request.user.login }}
+          PR_ASSOCIATION: ${{ github.event.pull_request.author_association }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: node .github/scripts/cla-check.mjs
+      - name: Comment when CLA is missing
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const body = [
+              '**CLA required before merge.**',
+              '',
+              'Paste one of these sentences in the pull request description:',
+              '',
+              '- Individual: `I have read and agree to the Kuunda Vibe Individual CLA.`',
+              '- Corporate: `We have read and agree to the Kuunda Vibe Corporate CLA.`',
+              '',
+              'Documents: [Individual CLA](https://github.com/Arowtech/Kuunda-vibe/blob/main/docs/legal/CLA-INDIVIDUAL.md) · [Corporate CLA](https://github.com/Arowtech/Kuunda-vibe/blob/main/docs/legal/CLA-CORPORATE.md)',
+              '',
+              'Arowtech maintainers do not need to sign.'
+            ].join('\n');
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            if (comments.some((c) => c.body && c.body.includes('CLA required before merge'))) {
+              return;
+            }
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body,
+            });
