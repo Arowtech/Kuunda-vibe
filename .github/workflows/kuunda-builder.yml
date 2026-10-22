@@ -85,7 +85,7 @@ jobs:
         shell: pwsh
         run: ./scripts/kuunda-builder/compile-windows.ps1 x64
       - name: Upload Windows installer
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: kuunda-vibe-win32-x64-unsigned
           path: artifacts/*.exe
@@ -114,7 +114,7 @@ jobs:
         shell: pwsh
         run: ./scripts/kuunda-builder/compile-windows.ps1 arm64
       - name: Upload Windows installer
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: kuunda-vibe-win32-arm64-unsigned
           path: artifacts/*.exe
@@ -141,7 +141,7 @@ jobs:
           chmod +x scripts/kuunda-builder/compile-darwin.sh
           ./scripts/kuunda-builder/compile-darwin.sh arm64
       - name: Upload macOS disk image
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: kuunda-vibe-darwin-arm64-unsigned
           path: artifacts/*.dmg
@@ -171,7 +171,7 @@ jobs:
           chmod +x scripts/kuunda-builder/compile-darwin.sh
           ./scripts/kuunda-builder/compile-darwin.sh x64
       - name: Upload macOS disk image
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: kuunda-vibe-darwin-x64-unsigned
           path: artifacts/*.dmg
