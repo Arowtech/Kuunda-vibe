@@ -469,6 +469,15 @@ function patchWin32DependenciesTask(destinationFolderName) {
 	};
 }
 
+/** The packaged exe otherwise keeps Electron's blue atom. Stamp the Kuunda mark after packaging. */
+function stampWin32AppIconTask(destinationFolderName) {
+	const exe = path.join(buildRoot, destinationFolderName, `${product.nameShort}.exe`);
+	const icon = path.join(root, 'resources', 'win32', 'code.ico');
+	return async () => {
+		await rcedit(exe, { icon });
+	};
+}
+
 const buildRoot = path.dirname(root);
 
 const BUILD_TARGETS = [
@@ -498,6 +507,7 @@ BUILD_TARGETS.forEach(buildTarget => {
 
 		if (platform === 'win32') {
 			tasks.push(patchWin32DependenciesTask(destinationFolderName));
+			tasks.push(stampWin32AppIconTask(destinationFolderName));
 		}
 
 		const vscodeTaskCI = task.define(`vscode${dashed(platform)}${dashed(arch)}${dashed(minified)}-ci`, task.series(...tasks));
