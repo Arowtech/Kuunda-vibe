@@ -305,8 +305,8 @@ export const KUUNDA_ACCOUNT_STRINGS = {
 		fr: "Ouvrir le Studio Kuunda",
 	},
 	"kuunda.account.home.cta.detail": {
-		en: "Account, credits and Cloud — same login as the web.",
-		fr: "Compte, crédits et Cloud — même connexion que le web.",
+		en: "Email or Google — the same account as the web.",
+		fr: "E-mail ou Google — le même compte que le web.",
 	},
 	"kuunda.account.busy": {
 		en: "Working…",
