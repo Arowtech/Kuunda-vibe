@@ -119,7 +119,7 @@ export function openKuundaAccountStudio(
 			renderSignedOut(dialog);
 			return;
 		}
-		renderSignedIn(dialog, profile);
+		renderSignedIn(dialog, profile, token);
 	}
 
 	function renderSignedOut(root: HTMLElement): void {
@@ -171,7 +171,7 @@ export function openKuundaAccountStudio(
 		}
 	}
 
-	function renderSignedIn(root: HTMLElement, profile: NonNullable<ReturnType<IKuundaAccountService['getSession']>>): void {
+	function renderSignedIn(root: HTMLElement, profile: NonNullable<ReturnType<IKuundaAccountService['getSession']>>, token: number): void {
 		const layoutEl = append(root, $('div.kuunda-account-layout'));
 		const rail = append(layoutEl, $('nav.kuunda-account-rail'));
 		for (const spec of TABS) {
@@ -305,7 +305,8 @@ export function openKuundaAccountStudio(
 			content.add(addDisposableListener(save, 'click', () => {
 				const values: Record<string, string> = {};
 				for (const input of Array.from(form.querySelectorAll('input, textarea'))) {
-					values[input.name] = input.value;
+					const field = input as HTMLInputElement | HTMLTextAreaElement;
+					values[field.name] = field.value;
 				}
 				void cloud.saveConsole(section.id, values, consoleProject || undefined).then((saved) => {
 					consoleFeedback = saved.notice || (saved.status === 'ready' || saved.status === 'empty' ? '' : 'platform_route_pending');
