@@ -373,7 +373,7 @@ export function cloudReadmeSection(input: { enabled?: boolean; url?: string; pla
 	const state = input.enabled === false ? 'disabled' : 'enabled by default';
 	const endpoint = sanitizeCloudUrl(input.url) || SECRET_PLACEHOLDER;
 	const plan = sanitizePlanId(input.plan);
-	return `\n## Kuunda Cloud\n\nProvisioning is **${state}** on the **${plan}** plan. REST URL: \`${endpoint}\`.\nThis project gets its own Kuunda Cloud space automatically — no account to create. Change or upgrade the plan from Kuunda Vibe settings (\`Kuunda Vibe: Manage Cloud Plan\`). The agent may manage the sandbox; you promote migrations to production from Kuunda Cloud.\nCopy \`.env.local\` from the scaffold (gitignored) and replace \`${SECRET_PLACEHOLDER}\` with the project anon key issued at runtime. Never commit operator or service_role keys.\nCRUD helper: \`${CLOUD_CLIENT_PATH}\` (\`${SEED_TABLE}\` table).\n`;
+	return `\n## Kuunda Cloud\n\nProvisioning is **${state}** on the **${plan}** plan. REST URL: \`${endpoint}\`.\nThis project gets its own Kuunda Cloud space automatically — no account to create. Change or upgrade the plan from Kuunda Vibe settings (\`Kuunda Vibe: Manage Cloud Plan\`). The agent may manage the sandbox; you promote migrations to production from Kuunda Studio.\nCopy \`.env.local\` from the scaffold (gitignored) and replace \`${SECRET_PLACEHOLDER}\` with the project anon key issued at runtime. Never commit operator or service_role keys.\nCRUD helper: \`${CLOUD_CLIENT_PATH}\` (\`${SEED_TABLE}\` table).\n`;
 }
 
 export function scaffoldCloudFiles(input: {
@@ -421,9 +421,9 @@ export function formatCloudContext(cloud: Partial<CloudRecord> | undefined): str
 	}
 	const env = publicCloud.env || 'sandbox';
 	if (env === 'production') {
-		return `Kuunda Cloud: enabled ref=${publicCloud.projectRef} env=production plan=${plan}. Treat production as user-owned. Do not apply schema or data migrations there. The user promotes sandbox work from the Kuunda Cloud dashboard.`;
+		return `Kuunda Cloud: enabled ref=${publicCloud.projectRef} env=production plan=${plan}. Treat production as user-owned. Do not apply schema or data migrations there. The user promotes sandbox work from Kuunda Studio in this IDE.`;
 	}
-	return `Kuunda Cloud: enabled ref=${publicCloud.projectRef} env=sandbox plan=${plan}. You may manage this sandbox autonomously (schema, migrations, seed data). Never push to production; tell the user to promote migrations in Kuunda Cloud (app.kuunda.cloud).`;
+	return `Kuunda Cloud: enabled ref=${publicCloud.projectRef} env=sandbox plan=${plan}. You may manage this sandbox autonomously (schema, migrations, seed data). Never push to production; tell the user to promote migrations from Kuunda Studio in this IDE.`;
 }
 
 /**
@@ -478,9 +478,9 @@ export function formatCloudPanel(input: { cloud?: Partial<CloudRecord>; tables?:
 	}
 	if (publicCloud.projectRef) {
 		if ((publicCloud.env || 'sandbox') === 'sandbox') {
-			lines.push('agent: sandbox (autonomous). production: you promote in Kuunda Cloud.');
+			lines.push('agent: sandbox (autonomous). production: promote from Kuunda Studio.');
 		} else {
-			lines.push('production is user-owned — promote from Kuunda Cloud, not the agent.');
+			lines.push('production is user-owned — promote from Kuunda Studio, not the agent.');
 		}
 	}
 	const routes = input.routes;

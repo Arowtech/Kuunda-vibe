@@ -388,11 +388,21 @@ export class KuundaAccountService extends Disposable implements IKuundaAccountSe
 			body: init.json !== undefined ? JSON.stringify(init.json) : undefined,
 		});
 		if (!response.ok) {
+			let detail = '';
+			try {
+				const data = await response.json() as { error?: unknown };
+				const code = String(data?.error || '').trim().toLowerCase();
+				if (/^[a-z0-9_]{1,64}$/.test(code)) {
+					detail = `:${code}`;
+				}
+			} catch {
+				detail = '';
+			}
 			const network = classifyNetworkError(new Error(`platform_http_${response.status}`), { status: response.status });
 			if (network === 'timeout') {
 				throw new Error('platform_timeout');
 			}
-			throw new Error(`platform_http_${response.status}`);
+			throw new Error(`platform_http_${response.status}${detail}`);
 		}
 		if (response.status === 204) {
 			return null;

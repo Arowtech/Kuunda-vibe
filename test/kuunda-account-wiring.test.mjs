@@ -41,7 +41,8 @@ describe('Phase 11 — branchement compte Studio', () => {
 		assert.match(studio, /activeStudio/);
 		assert.match(contrib, /options\?: unknown/);
 		assert.match(studio, /oauth\.\$\{provider\}/);
-		assert.match(studio, /\['google', 'github', 'apple'\]/);
+		assert.match(studio, /OAUTH_PROVIDERS/);
+		assert.doesNotMatch(studio, /github|apple/);
 		assert.match(studio, /IKuundaBillingService/);
 		const watermark = read('src/vs/workbench/browser/parts/editor/editorGroupWatermark.ts');
 		assert.match(watermark, /appendKuundaHomeAccountCta/);

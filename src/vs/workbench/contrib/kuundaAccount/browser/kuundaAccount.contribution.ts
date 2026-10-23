@@ -16,6 +16,7 @@ import { INotificationService } from '../../../../platform/notification/common/n
 import { kuundaAccountErrorMessage, kuundaAccountLocalize, kuundaAccountLocalize2 } from '../common/kuundaAccountNls.js';
 import { IKuundaAccountService } from '../common/kuundaAccountService.js';
 import { IKuundaBillingService } from '../../kuundaBilling/common/kuundaBillingService.js';
+import { IKuundaCloudService } from '../../kuundaCloud/common/kuundaCloudService.js';
 import { openKuundaAccountStudio } from './kuundaAccountStudio.js';
 
 class KuundaAccountContribution implements IWorkbenchContribution {
@@ -28,6 +29,7 @@ class KuundaAccountContribution implements IWorkbenchContribution {
 		@ILayoutService layout: ILayoutService,
 		@IKuundaBillingService billing: IKuundaBillingService,
 		@IOpenerService opener: IOpenerService,
+		@IKuundaCloudService cloud: IKuundaCloudService,
 	) {
 		kuundaAccountLocalize('kuunda.account.tagline');
 		urlService.registerHandler({
@@ -37,7 +39,7 @@ class KuundaAccountContribution implements IWorkbenchContribution {
 				}
 				const result = await account.completeOAuthCallback(uri.query);
 				if (result.ok) {
-					openKuundaAccountStudio(layout, account, billing, opener);
+					openKuundaAccountStudio(layout, account, billing, opener, cloud);
 				} else {
 					notification.error(kuundaAccountErrorMessage(result.error));
 				}
@@ -53,6 +55,7 @@ function openStudio(accessor: ServicesAccessor, options?: unknown): void {
 		accessor.get(IKuundaAccountService),
 		accessor.get(IKuundaBillingService),
 		accessor.get(IOpenerService),
+		accessor.get(IKuundaCloudService),
 		options,
 	);
 }

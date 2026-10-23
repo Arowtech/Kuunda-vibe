@@ -29,8 +29,8 @@ export const KUUNDA_ACCOUNT_STRINGS = {
 		fr: "Studio Kuunda",
 	},
 	"kuunda.account.studio.subtitle": {
-		en: "Identity, credits, usage and Cloud — the same account as app.kuunda.cloud.",
-		fr: "Identité, crédits, usage et Cloud — le même compte que app.kuunda.cloud.",
+		en: "Identity, credits, usage and Cloud — managed in the IDE and on the web.",
+		fr: "Identité, crédits, usage et Cloud — gérés dans l’IDE comme sur le web.",
 	},
 	"kuunda.account.studio.close": {
 		en: "Close",
@@ -49,8 +49,8 @@ export const KUUNDA_ACCOUNT_STRINGS = {
 		fr: "Lier cet IDE à Kuunda Cloud",
 	},
 	"kuunda.account.signedOut.cloud.body": {
-		en: "Create your Kuunda account here to attach a Cloud sandbox to this project. The IDE agent can then manage the sandbox on its own. You promote migrations to production from Kuunda Cloud.",
-		fr: "Créez votre compte Kuunda ici pour rattacher un sandbox Cloud à ce projet. L’agent de l’IDE pourra alors gérer le sandbox de façon autonome. Vous poussez les migrations en production depuis Kuunda Cloud.",
+		en: "Create your Kuunda account here. Its database is provisioned automatically through the Kuunda Cloud API, then managed in this Studio.",
+		fr: "Créez votre compte Kuunda ici. Sa base est provisionnée automatiquement via l’API Kuunda Cloud, puis gérée dans ce Studio.",
 	},
 	"kuunda.account.email": {
 		en: "Email",
@@ -88,17 +88,9 @@ export const KUUNDA_ACCOUNT_STRINGS = {
 		en: "Continue with Google",
 		fr: "Continuer avec Google",
 	},
-	"kuunda.account.oauth.github": {
-		en: "Continue with GitHub",
-		fr: "Continuer avec GitHub",
-	},
-	"kuunda.account.oauth.apple": {
-		en: "Continue with Apple",
-		fr: "Continuer avec Apple",
-	},
 	"kuunda.account.oauth.hint": {
-		en: "Providers are those enabled on Kuunda Cloud. The browser returns to this app via kuunda-vibe://",
-		fr: "Les fournisseurs sont ceux activés sur Kuunda Cloud. Le navigateur revient dans l’app via kuunda-vibe://",
+		en: "Google opens the browser, then returns to this app via kuunda-vibe://",
+		fr: "Google ouvre le navigateur, puis revient dans l’app via kuunda-vibe://",
 	},
 	"kuunda.account.device.title": {
 		en: "Pair from the web",
@@ -197,12 +189,52 @@ export const KUUNDA_ACCOUNT_STRINGS = {
 		fr: "Révoquer",
 	},
 	"kuunda.account.cloud.open": {
-		en: "Open Kuunda Cloud",
-		fr: "Ouvrir Kuunda Cloud",
+		en: "Refresh",
+		fr: "Actualiser",
 	},
 	"kuunda.account.cloud.body": {
-		en: "This IDE shares the same login as Kuunda Cloud. The agent manages the sandbox; you promote migrations to production on app.kuunda.cloud.",
-		fr: "Cet IDE partage la même connexion que Kuunda Cloud. L’agent gère le sandbox ; vous poussez les migrations en production sur app.kuunda.cloud.",
+		en: "This account’s database is created automatically through the Kuunda Cloud API. Analytics, Database, Users, Storage, AI, Payments, Emails, Connectors, Security, SEO, Usage and Settings stay in this Studio.",
+		fr: "La base de ce compte est créée automatiquement via l’API Kuunda Cloud. Analytique, base de données, utilisateurs, stockage, IA, paiements, e-mails, connecteurs, sécurité, SEO, usage et réglages restent dans ce Studio.",
+	},
+	"kuunda.account.cloud.empty": {
+		en: "Nothing to show for this section yet.",
+		fr: "Rien à afficher pour cette section pour le moment.",
+	},
+	"kuunda.account.cloud.save": {
+		en: "Save",
+		fr: "Enregistrer",
+	},
+	"kuunda.account.cloud.notice.pending": {
+		en: "This section is wired in the IDE. The Kuunda Cloud API does not serve it yet.",
+		fr: "Cette section est branchée dans l’IDE. L’API Kuunda Cloud ne la sert pas encore.",
+	},
+	"kuunda.account.cloud.notice.database": {
+		en: "The account database is still being created.",
+		fr: "La base du compte est encore en cours de création.",
+	},
+	"kuunda.account.cloud.notice.invalid": {
+		en: "Check the fields and try again.",
+		fr: "Vérifiez les champs et réessayez.",
+	},
+	"kuunda.account.cloud.notice.offline": {
+		en: "Kuunda Cloud is unreachable.",
+		fr: "Kuunda Cloud est injoignable.",
+	},
+	"kuunda.account.cloud.notice.refused": {
+		en: "Kuunda refused this call. The console project, another environment and another organization get the same answer.",
+		fr: "Kuunda a refusé cet appel. Le projet de la console, un autre environnement et une autre organisation reçoivent la même réponse.",
+	},
+	"kuunda.account.cloud.notice.rate": {
+		en: "Limit of 30 calls per minute. The call is logged.",
+		fr: "Limite de 30 appels par minute. L’appel est journalisé.",
+	},
+	"kuunda.account.cloud.notice.git": {
+		en: "Git tokens stay refused until the org key carries git_tokens.",
+		fr: "Les jetons Git restent refusés tant que la clé d’organisation ne porte pas git_tokens.",
+	},
+	"kuunda.account.cloud.notice.domains": {
+		en: "Client domains stay refused until the org key carries sites_domains.",
+		fr: "Les domaines clients restent refusés tant que la clé d’organisation ne porte pas sites_domains.",
 	},
 	"kuunda.account.security.providers": {
 		en: "Linked sign-in methods",
@@ -228,6 +260,18 @@ export const KUUNDA_ACCOUNT_STRINGS = {
 		en: "Use at least 10 characters.",
 		fr: "Utilisez au moins 10 caractères.",
 	},
+	"kuunda.account.error.invalid_account": {
+		en: "Kuunda Cloud refused this account. Check the email and use at least 10 characters.",
+		fr: "Kuunda Cloud a refusé ce compte. Vérifiez l’e-mail et utilisez au moins 10 caractères.",
+	},
+	"kuunda.account.error.email_taken": {
+		en: "An account already exists for this email. Sign in instead.",
+		fr: "Un compte existe déjà pour cet e-mail. Connectez-vous.",
+	},
+	"kuunda.account.error.provider_unavailable": {
+		en: "This provider is not available yet. Create the account with email and password.",
+		fr: "Ce fournisseur n’est pas encore disponible. Créez le compte avec l’e-mail et le mot de passe.",
+	},
 	"kuunda.account.error.offline": {
 		en: "Kuunda Cloud is unreachable. Try again when you are online.",
 		fr: "Kuunda Cloud est injoignable. Réessayez une fois en ligne.",
@@ -237,8 +281,8 @@ export const KUUNDA_ACCOUNT_STRINGS = {
 		fr: "La connexion a expiré.",
 	},
 	"kuunda.account.error.unavailable": {
-		en: "Account service is not ready yet. Email, Google, GitHub and Apple must be enabled on Kuunda Cloud.",
-		fr: "Le service de compte n’est pas encore prêt. E-mail, Google, GitHub et Apple doivent être activés sur Kuunda Cloud.",
+		en: "Account service is not ready yet. Email and Google must be enabled on Kuunda Cloud.",
+		fr: "Le service de compte n’est pas encore prêt. L’e-mail et Google doivent être activés sur Kuunda Cloud.",
 	},
 	"kuunda.account.error.strict_offline": {
 		en: "Strict offline mode blocks account sign-in.",
@@ -290,6 +334,9 @@ const AUTH_ERROR_KEYS: Record<AuthErrorCode, KuundaAccountStringKey> = {
 	invalid_credentials: 'kuunda.account.error.invalid_credentials',
 	invalid_email: 'kuunda.account.error.invalid_email',
 	weak_password: 'kuunda.account.error.weak_password',
+	invalid_account: 'kuunda.account.error.invalid_account',
+	email_taken: 'kuunda.account.error.email_taken',
+	provider_unavailable: 'kuunda.account.error.provider_unavailable',
 	offline: 'kuunda.account.error.offline',
 	timeout: 'kuunda.account.error.timeout',
 	unavailable: 'kuunda.account.error.unavailable',

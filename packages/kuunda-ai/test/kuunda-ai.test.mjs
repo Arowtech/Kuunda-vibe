@@ -1191,12 +1191,15 @@ describe('Phase 10 — itération post-lancement', () => {
 
 describe('Phase 11 — politique de compte Studio', () => {
 	it('valide e-mail / mot de passe et classe les erreurs sans secret', () => {
-		assert.deepEqual([...AUTH_PROVIDERS], ['email', 'google', 'github', 'apple']);
+		assert.deepEqual([...AUTH_PROVIDERS], ['email', 'google']);
 		assert.equal(isValidEmail('dev@kuunda.cloud'), true);
 		assert.equal(isValidEmail('nope'), false);
 		assert.equal(isStrongPassword('short'), false);
 		assert.equal(isStrongPassword('long-enough-pass'), true);
 		assert.equal(classifyAuthError(new Error('platform_http_401')), 'invalid_credentials');
+		assert.equal(classifyAuthError(new Error('platform_http_409:email_taken')), 'email_taken');
+		assert.equal(classifyAuthError(new Error('platform_http_422:invalid_account')), 'invalid_account');
+		assert.equal(classifyAuthError(new Error('platform_http_404')), 'provider_unavailable');
 		assert.equal(classifyAuthError(new Error('platform_http_501')), 'unavailable');
 		assert.equal(classifyAuthError(new Error('access_denied')), 'oauth_denied');
 		assert.equal(redirectUriForProtocol('kuunda-vibe'), 'kuunda-vibe://auth/callback');
@@ -1216,6 +1219,16 @@ describe('Phase 11 — politique de compte Studio', () => {
 		});
 		assert.equal(session?.profile.userId, 'u1');
 		assert.equal(session?.accessToken, 'runtime-session');
+		const kuunda = parseAuthTokens({
+			ok: true,
+			userId: 'u2',
+			email: 'dev@kuunda.cloud',
+			displayName: 'Dev',
+			accessToken: 'runtime-session-2',
+			expiresIn: 3600,
+		});
+		assert.equal(kuunda?.profile.providers[0], 'email');
+		assert.ok(kuunda && kuunda.expiresAt && kuunda.expiresAt > Date.now());
 		assert.equal(parseAccountProfile({ password: 'secret', userId: 'u1', email: 'dev@kuunda.cloud' }).userId, 'u1');
 		assert.equal(JSON.stringify(parseAccountProfile({ password: 'secret', userId: 'u1' })).includes('secret'), false);
 	});
