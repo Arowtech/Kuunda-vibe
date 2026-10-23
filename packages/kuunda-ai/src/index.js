@@ -236,6 +236,7 @@ export {
 	USAGE_FEATURES,
 	MIN_PASSWORD_LENGTH,
 	AUTH_CALLBACK_AUTHORITY,
+	WEB_OAUTH_REDIRECT_URI,
 	isValidEmail,
 	isStrongPassword,
 	normalizeAuthProvider,

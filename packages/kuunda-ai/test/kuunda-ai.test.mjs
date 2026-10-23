@@ -129,6 +129,7 @@ import {
 	parseAuthTokens,
 	parseAccountProfile,
 	redirectUriForProtocol,
+	WEB_OAUTH_REDIRECT_URI,
 	isAuthCallbackUri,
 	decideAccountGate,
 	parseStudioOpenIntent,
@@ -1203,6 +1204,7 @@ describe('Phase 11 — politique de compte Studio', () => {
 		assert.equal(classifyAuthError(new Error('platform_http_501')), 'unavailable');
 		assert.equal(classifyAuthError(new Error('access_denied')), 'oauth_denied');
 		assert.equal(redirectUriForProtocol('kuunda-vibe'), 'kuunda-vibe://auth/callback');
+		assert.equal(WEB_OAUTH_REDIRECT_URI, 'https://app.ide.kuunda-cloud.com/login/');
 		assert.equal(isAuthCallbackUri({ scheme: 'kuunda-vibe', authority: 'auth' }), true);
 		assert.equal(decideAccountGate({ hasSession: false, feature: 'kuunda_cloud' }).error, 'need_session');
 		assert.deepEqual(parseStudioOpenIntent({ reason: 'cloud' }), { intent: 'signUp', reason: 'cloud' });

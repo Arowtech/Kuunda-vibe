@@ -9,6 +9,7 @@ export const AUTH_ERROR_CODES = ['invalid_credentials', 'invalid_email', 'weak_p
 export const USAGE_FEATURES = ['agent', 'tab', 'publish', 'other'] as const;
 export const MIN_PASSWORD_LENGTH = 10;
 export const AUTH_CALLBACK_AUTHORITY = 'auth';
+export const WEB_OAUTH_REDIRECT_URI = 'https://app.ide.kuunda-cloud.com/login/';
 export const DEFAULT_API_BASE_URL = 'https://api.ide.kuunda-cloud.com';
 export const DEFAULT_ACCOUNT_URL = 'https://app.ide.kuunda-cloud.com/app/';
 export const DEFAULT_CLOUD_APP_URL = 'https://app.kuunda.cloud';

@@ -30,7 +30,7 @@ import {
 	parseAuthTokens,
 	parseDeviceStart,
 	parseUsageSnapshot,
-	redirectUriForProtocol,
+	WEB_OAUTH_REDIRECT_URI,
 } from './accountPolicy.js';
 
 const ACCESS_KEY = 'kuunda.account.accessToken';
@@ -123,7 +123,7 @@ export class KuundaAccountService extends Disposable implements IKuundaAccountSe
 				method: 'POST',
 				json: {
 					provider,
-					redirectUri: redirectUriForProtocol(this.productService.urlProtocol),
+					redirectUri: WEB_OAUTH_REDIRECT_URI,
 					codeChallenge: pkce.challenge,
 					state: pkce.state,
 				},
@@ -153,6 +153,7 @@ export class KuundaAccountService extends Disposable implements IKuundaAccountSe
 			provider: pending.provider,
 			code: parsed.code,
 			codeVerifier: pending.verifier,
+			redirectUri: WEB_OAUTH_REDIRECT_URI,
 			state: pending.state,
 		});
 	}

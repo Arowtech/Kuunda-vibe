@@ -22,6 +22,7 @@ export const AUTH_ERROR_CODES = Object.freeze([
 export const USAGE_FEATURES = Object.freeze(['agent', 'tab', 'publish', 'other']);
 export const MIN_PASSWORD_LENGTH = 10;
 export const AUTH_CALLBACK_AUTHORITY = 'auth';
+export const WEB_OAUTH_REDIRECT_URI = 'https://app.ide.kuunda-cloud.com/login/';
 
 /**
  * @param {unknown} email
