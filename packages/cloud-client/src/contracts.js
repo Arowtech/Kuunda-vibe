@@ -97,7 +97,7 @@
  * @typedef {object} IFeedbackClient
  * @property {(body: object) => Promise<{ ok: boolean, id: string }>} submitFeedback
  *
- * @typedef {'email' | 'google' | 'github' | 'apple'} AuthProvider
+ * @typedef {'email' | 'google'} AuthProvider
  *
  * @typedef {object} AccountProfile
  * @property {string} userId

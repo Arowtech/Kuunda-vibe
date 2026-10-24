@@ -25,7 +25,8 @@ export class DynamicEditorConfigurations extends Disposable implements IWorkbenc
 		'terminalEditor',
 		'mainThreadWebview-simpleBrowser.view',
 		'mainThreadWebview-browserPreview',
-		'workbench.editor.chatSession'
+		'workbench.editor.chatSession',
+		'kuunda.preview'
 	]);
 
 	private static readonly AUTO_LOCK_EXTRA_EDITORS: RegisteredEditorInfo[] = [
@@ -51,6 +52,11 @@ export class DynamicEditorConfigurations extends Disposable implements IWorkbenc
 		{
 			id: 'mainThreadWebview-browserPreview',
 			label: localize('livePreview', "Live Preview"),
+			priority: RegisteredEditorPriority.builtin
+		},
+		{
+			id: 'kuunda.preview',
+			label: localize('kuundaBrowserPreview', "Browser"),
 			priority: RegisteredEditorPriority.builtin
 		}
 	];

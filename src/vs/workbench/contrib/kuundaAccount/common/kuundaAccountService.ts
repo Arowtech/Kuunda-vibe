@@ -30,7 +30,7 @@ import {
 	parseAuthTokens,
 	parseDeviceStart,
 	parseUsageSnapshot,
-	redirectUriForProtocol,
+	WEB_OAUTH_REDIRECT_URI,
 } from './accountPolicy.js';
 
 const ACCESS_KEY = 'kuunda.account.accessToken';
@@ -123,7 +123,7 @@ export class KuundaAccountService extends Disposable implements IKuundaAccountSe
 				method: 'POST',
 				json: {
 					provider,
-					redirectUri: redirectUriForProtocol(this.productService.urlProtocol),
+					redirectUri: WEB_OAUTH_REDIRECT_URI,
 					codeChallenge: pkce.challenge,
 					state: pkce.state,
 				},
@@ -153,6 +153,7 @@ export class KuundaAccountService extends Disposable implements IKuundaAccountSe
 			provider: pending.provider,
 			code: parsed.code,
 			codeVerifier: pending.verifier,
+			redirectUri: WEB_OAUTH_REDIRECT_URI,
 			state: pending.state,
 		});
 	}
@@ -388,11 +389,21 @@ export class KuundaAccountService extends Disposable implements IKuundaAccountSe
 			body: init.json !== undefined ? JSON.stringify(init.json) : undefined,
 		});
 		if (!response.ok) {
+			let detail = '';
+			try {
+				const data = await response.json() as { error?: unknown };
+				const code = String(data?.error || '').trim().toLowerCase();
+				if (/^[a-z0-9_]{1,64}$/.test(code)) {
+					detail = `:${code}`;
+				}
+			} catch {
+				detail = '';
+			}
 			const network = classifyNetworkError(new Error(`platform_http_${response.status}`), { status: response.status });
 			if (network === 'timeout') {
 				throw new Error('platform_timeout');
 			}
-			throw new Error(`platform_http_${response.status}`);
+			throw new Error(`platform_http_${response.status}${detail}`);
 		}
 		if (response.status === 204) {
 			return null;

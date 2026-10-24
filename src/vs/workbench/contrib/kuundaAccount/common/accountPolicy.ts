@@ -3,12 +3,13 @@
  *  SPDX-License-Identifier: Apache-2.0
  *--------------------------------------------------------------------------------------------*/
 
-export const AUTH_PROVIDERS = ['email', 'google', 'github', 'apple'] as const;
-export const OAUTH_PROVIDERS = ['google', 'github', 'apple'] as const;
-export const AUTH_ERROR_CODES = ['invalid_credentials', 'invalid_email', 'weak_password', 'offline', 'timeout', 'unavailable', 'strict_offline', 'oauth_denied', 'expired'] as const;
+export const AUTH_PROVIDERS = ['email', 'google'] as const;
+export const OAUTH_PROVIDERS = ['google'] as const;
+export const AUTH_ERROR_CODES = ['invalid_credentials', 'invalid_email', 'weak_password', 'invalid_account', 'email_taken', 'provider_unavailable', 'offline', 'timeout', 'unavailable', 'strict_offline', 'oauth_denied', 'expired'] as const;
 export const USAGE_FEATURES = ['agent', 'tab', 'publish', 'other'] as const;
 export const MIN_PASSWORD_LENGTH = 10;
 export const AUTH_CALLBACK_AUTHORITY = 'auth';
+export const WEB_OAUTH_REDIRECT_URI = 'https://app.ide.kuunda-cloud.com/login/';
 export const DEFAULT_API_BASE_URL = 'https://api.ide.kuunda-cloud.com';
 export const DEFAULT_ACCOUNT_URL = 'https://app.ide.kuunda-cloud.com/app/';
 export const DEFAULT_CLOUD_APP_URL = 'https://app.kuunda.cloud';
@@ -87,14 +88,23 @@ export function classifyAuthError(error: unknown): AuthErrorCode {
 	if (msg.includes('access_denied') || msg.includes('oauth_denied')) {
 		return 'oauth_denied';
 	}
+	if (msg.includes('email_taken') || msg.includes('platform_http_409')) {
+		return 'email_taken';
+	}
 	if (msg.includes('platform_http_401') || msg.includes('invalid_credentials') || msg.includes('unauthorized')) {
 		return 'invalid_credentials';
 	}
 	if (msg.includes('invalid_email') || msg.includes('platform_http_400')) {
 		return 'invalid_email';
 	}
-	if (msg.includes('weak_password') || msg.includes('platform_http_422')) {
+	if (msg.includes('weak_password')) {
 		return 'weak_password';
+	}
+	if (msg.includes('invalid_account') || msg.includes('platform_http_422')) {
+		return 'invalid_account';
+	}
+	if (msg.includes('platform_http_404')) {
+		return 'provider_unavailable';
 	}
 	if (msg.includes('expired') || msg.includes('platform_http_410')) {
 		return 'expired';
@@ -109,9 +119,10 @@ export function parseAccountProfile(raw: unknown): AccountProfile {
 	const providers = Array.isArray(data.providers)
 		? data.providers.map(normalizeAuthProvider).filter((item): item is AuthProvider => Boolean(item))
 		: [];
+	const email = String(data.email || '').trim();
 	return {
 		userId: String(data.userId || data.id || '').trim(),
-		email: String(data.email || '').trim(),
+		email,
 		displayName: String(data.displayName || data.fullName || data.name || '').trim() || undefined,
 		emailVerified: data.emailVerified === true,
 		planId: String(data.planId || org.plan || 'free').trim() || 'free',
@@ -119,8 +130,24 @@ export function parseAccountProfile(raw: unknown): AccountProfile {
 		orgName: String(org.name || cloud.orgName || '').trim() || undefined,
 		orgPlan: String(org.plan || cloud.plan || '').trim() || undefined,
 		projectCount: Number.isFinite(Number(cloud.projectCount)) ? Number(cloud.projectCount) : undefined,
-		providers,
+		providers: providers.length ? providers : (email ? ['email'] : []),
 	};
+}
+
+/** Kuunda sends `expiresIn` in seconds. Absolute `expiresAt` stays as given. */
+export function sessionExpiresAt(data: Record<string, unknown>, now = Date.now()): number | undefined {
+	const absolute = Number(data.expiresAt ?? data.expires_at);
+	if (Number.isFinite(absolute) && absolute > 0) {
+		return absolute;
+	}
+	const span = Number(data.expiresIn ?? data.expires_in);
+	if (!Number.isFinite(span) || span <= 0) {
+		return undefined;
+	}
+	if (span > 1e12) {
+		return span;
+	}
+	return now + span * 1000;
 }
 
 export function parseAuthTokens(raw: unknown): AuthSession | undefined {
@@ -134,7 +161,7 @@ export function parseAuthTokens(raw: unknown): AuthSession | undefined {
 	return {
 		accessToken,
 		refreshToken: refreshToken || undefined,
-		expiresAt: Number.isFinite(Number(data.expiresAt || data.expires_at)) ? Number(data.expiresAt || data.expires_at) : undefined,
+		expiresAt: sessionExpiresAt(data),
 		profile,
 	};
 }
@@ -237,6 +264,6 @@ export function parseStudioOpenIntent(raw: unknown = {}): StudioOpenIntent {
 	}
 	const data = raw as Record<string, unknown>;
 	const reason: StudioOpenIntent['reason'] = data.reason === 'cloud' || data.reason === 'credits' ? data.reason : 'account';
-	const intent: StudioOpenIntent['intent'] = reason === 'cloud' || data.intent === 'signUp' ? 'signUp' : 'signIn';
+	const intent: StudioOpenIntent['intent'] = data.intent === 'signIn' ? 'signIn' : 'signUp';
 	return { intent, reason };
 }

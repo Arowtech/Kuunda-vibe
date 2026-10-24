@@ -4,6 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 // Modified 2026-09-17 by Arowtech: register isolated Kuunda branding, AI, billing, extensions, project picker, cloud, publishing, legal and feedback.
 // Modified 2026-09-18 by Arowtech: register isolated Kuunda account Studio before billing.
+// Modified 2026-10-23 by Arowtech: register the local browser preview in the center editor.
 
 //#region --- editor/workbench core
 
@@ -25,6 +26,7 @@ import './contrib/kuundaAccount/browser/kuundaAccount.contribution.js';
 import './contrib/kuundaBilling/browser/kuundaBilling.contribution.js';
 import './contrib/kuundaExt/browser/kuundaExt.contribution.js';
 import './contrib/kuundaProject/browser/kuundaProject.contribution.js';
+import './contrib/kuundaPreview/browser/kuundaPreview.contribution.js';
 import './contrib/kuundaCloud/browser/kuundaCloud.contribution.js';
 import './contrib/kuundaPublish/browser/kuundaPublish.contribution.js';
 import './contrib/kuundaLegal/browser/kuundaLegal.contribution.js';

@@ -596,11 +596,16 @@ export const messageOfSelection = async (
 		const { val } = await readFile(opts.fileService, s.uri, DEFAULT_FILE_SIZE_LIMIT)
 
 		const innerVal = val
+		const looksBinary = !!innerVal && innerVal.slice(0, 8000).includes('\u0000')
 		const content = val === null ? ''
+			: looksBinary ? '(binary file, content omitted)'
 			: `${tripleTick[0]}${s.language}\n${innerVal}\n${tripleTick[1]}`
 
 		const str = `${s.uri.fsPath}:\n${content}`
 		return str
+	}
+	else if (s.type === 'Image') {
+		return `[Image attached: ${s.uri.fsPath} (${s.mimeType}). The image is included with this message.]`
 	}
 	else if (s.type === 'Folder') {
 		const dirStr: string = await opts.directoryStrService.getDirectoryStrTool(s.uri)

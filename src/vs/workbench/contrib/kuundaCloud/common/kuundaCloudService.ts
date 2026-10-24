@@ -34,6 +34,7 @@ import {
 	parseCloudSettings,
 	parseGitRemote,
 	persistableAnonKey,
+	SECRET_PLACEHOLDER,
 	publicCloudRecord,
 	redactCloudPayload,
 	resolveCloudRecordAfterDecision,
@@ -52,6 +53,18 @@ import {
 	type CloudTable,
 } from './cloudProvision.js';
 import { classifyNetworkError, fetchWithTimeout } from '../../kuundaAi/common/networkPolicy.js';
+import {
+	ACCOUNT_DATABASE_EXTERNAL_ID,
+	CLOUD_ACCOUNT_DATABASE_KEY,
+	CLOUD_AUTH_PROVIDERS,
+	buildConsoleWrite,
+	classifyConsoleStatus,
+	cloudConsoleSection,
+	isOperatorCredential,
+	presentConsolePayload,
+	sanitizeAccountDisplayName,
+	type CloudConsoleSnapshot,
+} from './cloudConsole.js';
 import { IKuundaLegalService } from '../../kuundaLegal/common/kuundaLegalService.js';
 
 export type CloudProvisionInput = {
@@ -87,6 +100,8 @@ export type CloudPlan = {
 };
 
 /** One project in the account inventory held by Kuunda Cloud. */
+export type { CloudConsoleSnapshot } from './cloudConsole.js';
+
 export type CloudProjectRow = {
 	projectRef: string;
 	name?: string;
@@ -161,6 +176,15 @@ export interface IKuundaCloudService {
 	/** Anonymous, install-scoped owner id used when the user is not signed in. */
 	ownerId(): Promise<string>;
 	/**
+	 * Creates the account database through the Kuunda Cloud API when the signed-in
+	 * account does not have one yet. A later call reuses the same project.
+	 */
+	ensureAccountDatabase(displayName?: string): Promise<CloudProvisionResult>;
+	/** Reads one Cloud console section (analytics, database, settings, …) for a project. */
+	loadConsole(sectionId: string, projectRef?: string): Promise<CloudConsoleSnapshot>;
+	/** Writes the validated fields of a console section. Secret values are not returned. */
+	saveConsole(sectionId: string, values: Record<string, unknown>, projectRef?: string): Promise<CloudConsoleSnapshot>;
+	/**
 	 * Which route family is served by the spec, counted per profile across restarts.
 	 * `legacyRemovable` is the evidence needed to delete the legacy fallback.
 	 */
@@ -208,6 +232,7 @@ export class KuundaCloudService extends Disposable implements IKuundaCloudServic
 	private readonly specFamilies = new Set<string>();
 	private readonly routeEvidence = new Map<string, RouteEvidence>();
 	private routeEvidenceSince: number | undefined;
+	private accountDbTask: Promise<CloudProvisionResult> | undefined;
 	private readonly _onDidChange = this._register(new Emitter<void>());
 	readonly onDidChange = this._onDidChange.event;
 
@@ -222,8 +247,11 @@ export class KuundaCloudService extends Disposable implements IKuundaCloudServic
 		super();
 		this.loadRouteEvidence();
 		void this.refreshSnapshot();
-		this._register(this.accountService.onDidChangeSession(() => {
+		this._register(this.accountService.onDidChangeSession((profile) => {
 			void this.refreshSnapshot();
+			if (profile) {
+				void this.ensureAccountDatabase(profile.displayName || profile.email);
+			}
 		}));
 	}
 
@@ -817,6 +845,9 @@ export class KuundaCloudService extends Disposable implements IKuundaCloudServic
 					} else {
 						api = { ...api, kuundaProjectRef: ref, projectId: ref };
 						tables = this.safeTables(api.tables);
+						if (persistableAnonKey(api.anonKey) === SECRET_PLACEHOLDER) {
+							decision = { ok: true, action: 'pending_api', enabled: true };
+						}
 					}
 				} catch (error) {
 					const code = classifyNetworkError(error);
@@ -963,7 +994,262 @@ export class KuundaCloudService extends Disposable implements IKuundaCloudServic
 		}
 	}
 
-	private async callProvision(body: { ownerId: string; displayName: string; projectType: string; planId: string; repoUrl?: string; replace?: boolean }): Promise<ProvisionApiResult> {
+	async ensureAccountDatabase(displayName?: string): Promise<CloudProvisionResult> {
+		if (this.accountDbTask) {
+			return this.accountDbTask;
+		}
+		const task = this.ensureAccountDatabaseNow(displayName).finally(() => {
+			if (this.accountDbTask === task) {
+				this.accountDbTask = undefined;
+			}
+		});
+		this.accountDbTask = task;
+		return task;
+	}
+
+	async loadConsole(sectionId: string, projectRef?: string): Promise<CloudConsoleSnapshot> {
+		const section = cloudConsoleSection(sectionId);
+		if (!section) {
+			return { section: sectionId, status: 'unavailable', rows: [], notice: 'unknown_section' };
+		}
+		if (section.scope) {
+			return { section: section.id, status: 'unavailable', rows: [], notice: section.scope };
+		}
+		const ref = await this.resolveConsoleProject(projectRef);
+		if (!ref) {
+			return { section: section.id, status: 'empty', rows: [], notice: 'account_database_pending' };
+		}
+		if (section.id === 'security') {
+			const providers = await this.readAuthProviders(ref);
+			return { section: section.id, projectRef: ref, ...providers };
+		}
+		if (section.read) {
+			const loaded = await this.readConsole(section.read, ref);
+			return { ...loaded, section: section.id, projectRef: ref };
+		}
+		if (section.id === 'database') {
+			const tables = await this.fetchTables(ref);
+			if (tables?.length) {
+				return {
+					section: section.id,
+					projectRef: ref,
+					status: 'ready',
+					rows: tables.map((table) => ({ label: table.name, value: String(table.rowCount ?? 0) })),
+				};
+			}
+			return { section: section.id, projectRef: ref, status: 'empty', rows: [] };
+		}
+		return { section: section.id, projectRef: ref, status: 'unavailable', rows: [], notice: 'platform_route_pending' };
+	}
+
+	async saveConsole(sectionId: string, values: Record<string, unknown>, projectRef?: string): Promise<CloudConsoleSnapshot> {
+		const section = cloudConsoleSection(sectionId);
+		if (!section) {
+			return { section: sectionId, status: 'unavailable', rows: [], notice: 'unknown_section' };
+		}
+		if (section.scope) {
+			return { section: section.id, status: 'unavailable', rows: [], notice: section.scope };
+		}
+		const write = buildConsoleWrite(section, values);
+		if (!write) {
+			return { section: section.id, status: 'unavailable', rows: [], notice: 'invalid_input' };
+		}
+		const ref = await this.resolveConsoleProject(projectRef);
+		if (!ref) {
+			return { section: section.id, status: 'empty', rows: [], notice: 'account_database_pending' };
+		}
+		const written = await this.readConsole(write.path, ref, write.method, write.body);
+		return { ...written, section: section.id, projectRef: ref };
+	}
+
+	private async ensureAccountDatabaseNow(displayName?: string): Promise<CloudProvisionResult> {
+		if (!this.legalService.decideSend('kuunda_cloud').ok) {
+			return { ok: false, error: 'strict_offline' };
+		}
+		const folder = await this.primaryFolder();
+		if (folder) {
+			const state = await this.readState(folder.folder);
+			if (state.cloud.projectRef) {
+				this.rememberAccountRef(state.cloud.projectRef);
+				return { ok: true, action: 'reuse', cloud: state.cloud, tables: this.tables };
+			}
+			if (state.cloud.enabled !== false) {
+				return this.provisionFolder(folder.folder, { enabled: true, name: sanitizeAccountDisplayName(displayName || folder.manifest.name) });
+			}
+		}
+		const stored = this.storedAccountRef();
+		if (stored) {
+			return { ok: true, action: 'reuse', cloud: publicCloudRecord({ enabled: true, projectRef: stored }), tables: [] };
+		}
+		const label = sanitizeAccountDisplayName(displayName);
+		try {
+			const listed = await this.fetchAccountProjects();
+			const active = listed.find((row) => row.status === 'active' && (row.name === label || row.name === 'Account'));
+			if (active) {
+				this.rememberAccountRef(active.projectRef);
+				return {
+					ok: true,
+					action: 'reuse',
+					cloud: publicCloudRecord({
+						enabled: true,
+						projectRef: active.projectRef,
+						plan: active.plan,
+						url: active.url,
+						env: active.env === 'production' ? 'production' : 'sandbox',
+						repo: active.repo,
+					}),
+					tables: [],
+				};
+			}
+		} catch (error) {
+			const code = classifyNetworkError(error);
+			return {
+				ok: true,
+				action: 'pending_api',
+				cloud: publicCloudRecord({ enabled: true }),
+				tables: [],
+				network: code === 'timeout' || code === 'offline' ? code : undefined,
+			};
+		}
+		try {
+			const api = await this.callProvision({
+				ownerId: this.cloudAccountId(),
+				displayName: sanitizeAccountDisplayName(displayName),
+				projectType: 'other',
+				planId: sanitizePlanId(this.configurationService.getValue<string>('kuunda.cloud.defaultPlan') || DEFAULT_CLOUD_PLAN),
+				externalProjectId: this.accountDatabaseExternalId(),
+			});
+			const ref = sanitizeProjectRef(api.kuundaProjectRef || api.projectId);
+			if (!ref) {
+				return { ok: true, action: 'pending_api', cloud: publicCloudRecord({ enabled: true }), tables: [] };
+			}
+			this.rememberAccountRef(ref);
+			const cloud = publicCloudRecord({ enabled: true, projectRef: ref, env: 'sandbox', url: api.url, plan: api.planId });
+			const issued = persistableAnonKey(api.anonKey) !== SECRET_PLACEHOLDER;
+			this.remember(cloud, issued ? 'provision' : 'pending_api', this.safeTables(api.tables));
+			return { ok: true, action: issued ? 'provision' : 'pending_api', cloud, tables: this.tables };
+		} catch (error) {
+			const code = classifyNetworkError(error);
+			return {
+				ok: true,
+				action: 'pending_api',
+				cloud: publicCloudRecord({ enabled: true }),
+				tables: [],
+				network: code === 'timeout' || code === 'offline' ? code : undefined,
+			};
+		}
+	}
+
+	private rememberAccountRef(projectRef: string): void {
+		const ref = sanitizeProjectRef(projectRef);
+		if (!ref) {
+			return;
+		}
+		this.storageService.store(this.accountDatabaseStorageKey(), ref, StorageScope.APPLICATION, StorageTarget.USER);
+	}
+
+	private storedAccountRef(): string | undefined {
+		return sanitizeProjectRef(this.storageService.get(this.accountDatabaseStorageKey(), StorageScope.APPLICATION));
+	}
+
+	private accountDatabaseStorageKey(): string {
+		const userId = this.accountService.getSession()?.userId?.replace(/[^A-Za-z0-9_-]/g, '').slice(0, 80);
+		return userId ? `${CLOUD_ACCOUNT_DATABASE_KEY}.${userId}` : CLOUD_ACCOUNT_DATABASE_KEY;
+	}
+
+	private accountDatabaseExternalId(): string {
+		const userId = this.accountService.getSession()?.userId?.replace(/[^A-Za-z0-9_-]/g, '').slice(0, 64);
+		return userId ? `${ACCOUNT_DATABASE_EXTERNAL_ID}-${userId}` : ACCOUNT_DATABASE_EXTERNAL_ID;
+	}
+
+	private async resolveConsoleProject(projectRef?: string): Promise<string | undefined> {
+		const explicit = sanitizeProjectRef(projectRef);
+		if (explicit) {
+			this.rememberAccountRef(explicit);
+			return explicit;
+		}
+		const folder = await this.primaryFolder();
+		if (folder) {
+			const state = await this.readState(folder.folder);
+			if (state.cloud.projectRef) {
+				this.rememberAccountRef(state.cloud.projectRef);
+				return state.cloud.projectRef;
+			}
+		}
+		const stored = this.storedAccountRef();
+		if (stored) {
+			return stored;
+		}
+		if (!this.accountService.getSession()) {
+			return undefined;
+		}
+		const created = await this.ensureAccountDatabase(this.accountService.getSession()?.displayName || this.accountService.getSession()?.email);
+		return created.ok ? created.cloud.projectRef : undefined;
+	}
+
+	private async readAuthProviders(projectRef: string): Promise<Pick<CloudConsoleSnapshot, 'status' | 'rows' | 'notice'>> {
+		const rows: { label: string; value: string }[] = [];
+		let missing = 0;
+		for (const provider of CLOUD_AUTH_PROVIDERS) {
+			const loaded = await this.readConsole(`auth/providers/${provider}`, projectRef);
+			if (loaded.notice === 'project_refused' || loaded.notice === 'rate_limited' || loaded.notice === 'strict_offline' || loaded.status === 'offline') {
+				if (loaded.notice === 'project_refused' && loaded.status === 'unavailable') {
+					missing += 1;
+					continue;
+				}
+				return loaded;
+			}
+			if (loaded.notice === 'project_refused') {
+				missing += 1;
+				continue;
+			}
+			rows.push({ label: provider, value: loaded.rows.length ? loaded.rows.map((row) => `${row.label}=${row.value}`).join(', ') : 'configured' });
+		}
+		if (missing === CLOUD_AUTH_PROVIDERS.length) {
+			return { status: 'unavailable', rows: [], notice: 'project_refused' };
+		}
+		return { status: rows.length ? 'ready' : 'empty', rows };
+	}
+
+	private async readConsole(path: string, projectRef: string, method = 'GET', json?: unknown): Promise<Pick<CloudConsoleSnapshot, 'status' | 'rows' | 'notice'>> {
+		if (!this.legalService.decideSend('kuunda_cloud').ok) {
+			return { status: 'offline', rows: [], notice: 'strict_offline' };
+		}
+		try {
+			const response = await this.requestProjectConsole(projectRef, path, method, json);
+			const verdict = classifyConsoleStatus(response.status);
+			if (verdict === 'rate_limited') {
+				return { status: 'unavailable', rows: [], notice: 'rate_limited' };
+			}
+			if (verdict === 'project_refused') {
+				return { status: 'unavailable', rows: [], notice: 'project_refused' };
+			}
+			if (verdict !== 'ready') {
+				return { status: 'unavailable', rows: [], notice: 'platform_route_pending' };
+			}
+			const parsed = presentConsolePayload(await response.json().catch(() => ({})));
+			return { status: parsed.rows.length ? 'ready' : 'empty', rows: parsed.rows, notice: parsed.notice };
+		} catch (error) {
+			return { status: 'offline', rows: [], notice: classifyNetworkError(error) };
+		}
+	}
+
+	private async requestProjectConsole(projectRef: string, path: string, method: string, json?: unknown): Promise<Response> {
+		const ref = encodeURIComponent(projectRef);
+		const safePath = path.split('/').map((part) => encodeURIComponent(part)).join('/');
+		const headers = await this.platformHeaders(json !== undefined);
+		return this.platformFetch(`/v1/projects/${ref}/${safePath}`, {
+			method,
+			headers,
+			body: json !== undefined ? JSON.stringify(json) : undefined,
+		});
+	}
+
+	private platformFetch(path: string, init: { method: string; headers: Record<string, string>; body?: string }): Promise<Response> {
+		return fetchWithTimeout(`${DEFAULT_API_BASE_URL}${path}`, init);
+	}
+
+	private async callProvision(body: { ownerId: string; displayName: string; projectType: string; planId: string; repoUrl?: string; replace?: boolean; externalProjectId?: string }): Promise<ProvisionApiResult> {
 		const accountId = sanitizeOwnerId(body.ownerId) || this.cloudAccountId();
 		const response = await this.requestSpecOrLegacy(
 			'projects.create',
@@ -1046,7 +1332,7 @@ export class KuundaCloudService extends Disposable implements IKuundaCloudServic
 		const hasJson = init.json !== undefined;
 		const headers = await this.platformHeaders(hasJson);
 		const body = hasJson ? JSON.stringify(init.json) : undefined;
-		const attempt = (path: string, method: string) => fetchWithTimeout(`${DEFAULT_API_BASE_URL}${path}`, { method, headers, body });
+		const attempt = (path: string, method: string) => this.platformFetch(path, { method, headers, body });
 		const unimplemented = (response: Response) => response.status === 404 || response.status === 501;
 
 		if (this.routeMode() === 'off') {
@@ -1097,7 +1383,7 @@ export class KuundaCloudService extends Disposable implements IKuundaCloudServic
 			headers['Content-Type'] = 'application/json';
 		}
 		const token = await this.accountService.getAccessToken();
-		if (token) {
+		if (token && !isOperatorCredential(token)) {
 			headers.Authorization = `Bearer ${token}`;
 		}
 		return headers;
