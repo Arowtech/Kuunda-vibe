@@ -120,11 +120,119 @@ export function buildPreviewHtml(options: {
 	});
 	html = stampNonce(html, 'script', options.nonce);
 	html = stampNonce(html, 'style', options.nonce);
-	const injection = `<base href="${escapeAttr(options.baseHref)}"><style nonce="${options.nonce}">html.kuunda-select-mode, html.kuunda-select-mode *{cursor:crosshair !important}.kuunda-preview-hover{outline:2px solid #7c6af7 !important;outline-offset:1px}</style>`;
+	const injection = `<base href="${escapeAttr(options.baseHref)}"><style nonce="${options.nonce}">${PREVIEW_PAGE_STYLE}</style>`;
 	if (/<head[^>]*>/i.test(html)) {
 		return html.replace(/<head[^>]*>/i, head => head + injection);
 	}
 	return `<!DOCTYPE html><html><head>${injection}</head><body>${html}</body></html>`;
+}
+
+const PREVIEW_PAGE_STYLE = [
+	'html.kuunda-select-mode,html.kuunda-select-mode *{cursor:crosshair !important}',
+	'.kuunda-preview-hover{outline:2px solid #7c6af7 !important;outline-offset:1px}',
+	'*{scrollbar-width:thin;scrollbar-color:rgba(128,128,128,.55) transparent}',
+	'*::-webkit-scrollbar{width:10px;height:10px}',
+	'*::-webkit-scrollbar-thumb{background-color:rgba(128,128,128,.55);border-radius:999px;border:3px solid transparent;background-clip:content-box}',
+	'*::-webkit-scrollbar-track,*::-webkit-scrollbar-corner{background:transparent}',
+].join('');
+
+const VOID_HTML_TAGS = new Set(['area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'param', 'source', 'track', 'wbr']);
+
+export function findElementRange(source: string, hint: { id?: string; tag?: string; classes?: string; text?: string; marker?: string }): [number, number] | undefined {
+	const lines = source.split(/\r?\n/);
+	const index = findOpeningLine(lines, hint);
+	if (index < 0) {
+		return undefined;
+	}
+	const tag = sanitizeTag(hint.tag) || readTagAt(lines[index]);
+	const end = tag ? findClosingLine(lines, index, tag) : index;
+	return [index + 1, end + 1];
+}
+
+function findOpeningLine(lines: readonly string[], hint: { id?: string; tag?: string; classes?: string; text?: string; marker?: string }): number {
+	const id = hint.id?.trim();
+	if (id) {
+		const re = new RegExp(String.raw`\bid\s*=\s*(['"])${escapeRegExp(id)}\1`, 'i');
+		const found = lines.findIndex(line => re.test(line));
+		if (found >= 0) {
+			return found;
+		}
+	}
+	const tag = sanitizeTag(hint.tag);
+	const classes = (hint.classes ?? '').split(/\s+/).map(name => name.trim()).filter(name => name && name !== 'kuunda-preview-hover');
+	if (tag && classes.length) {
+		const open = new RegExp(String.raw`<${tag}\b`, 'i');
+		const found = lines.findIndex(line => open.test(line) && classes.every(name => classOnLine(line, name)));
+		if (found >= 0) {
+			return found;
+		}
+	}
+	const marker = hint.marker?.split('?')[0].split('#')[0].trim() ?? '';
+	if (marker.length >= 2) {
+		const found = lines.findIndex(line => line.includes(marker));
+		if (found >= 0) {
+			return found;
+		}
+	}
+	const needle = hint.text?.replace(/\s+/g, ' ').trim().slice(0, 48) ?? '';
+	if (needle.length < 2) {
+		return -1;
+	}
+	const found = lines.findIndex(line => line.replace(/\s+/g, ' ').includes(needle));
+	if (found < 0) {
+		return -1;
+	}
+	if (!tag) {
+		return found;
+	}
+	const open = new RegExp(String.raw`<${tag}\b`, 'i');
+	for (let line = found; line >= Math.max(0, found - 30); line--) {
+		if (open.test(lines[line])) {
+			return line;
+		}
+	}
+	return found;
+}
+
+function findClosingLine(lines: readonly string[], start: number, tag: string): number {
+	if (VOID_HTML_TAGS.has(tag)) {
+		return start;
+	}
+	const token = new RegExp(String.raw`<\/?${tag}\b[^>]*>`, 'gi');
+	let depth = 0;
+	let seen = false;
+	for (let line = start; line < lines.length; line++) {
+		for (const match of lines[line].match(token) ?? []) {
+			seen = true;
+			if (match.startsWith('</')) {
+				depth -= 1;
+			} else if (!match.endsWith('/>')) {
+				depth += 1;
+			}
+			if (seen && depth <= 0) {
+				return line;
+			}
+		}
+	}
+	return start;
+}
+
+function classOnLine(line: string, name: string): boolean {
+	return new RegExp(String.raw`(?:^|[\s"'=])${escapeRegExp(name)}(?=$|[\s"'])`).test(line);
+}
+
+function readTagAt(line: string): string {
+	const found = /<([a-zA-Z][\w-]*)\b/.exec(line);
+	return found ? found[1].toLowerCase() : '';
+}
+
+function sanitizeTag(tag: string | undefined): string {
+	const value = tag?.trim().toLowerCase() ?? '';
+	return /^[a-z][\w-]*$/.test(value) ? value : '';
+}
+
+function escapeRegExp(value: string): string {
+	return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 function isStylesheetLink(tag: string): boolean {

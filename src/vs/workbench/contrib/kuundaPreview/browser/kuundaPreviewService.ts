@@ -16,11 +16,14 @@ import { INotificationService } from '../../../../platform/notification/common/n
 import { IWorkspaceContextService } from '../../../../platform/workspace/common/workspace.js';
 import { IEditorGroupsService } from '../../../services/editor/common/editorGroupsService.js';
 import { SIDE_GROUP } from '../../../services/editor/common/editorService.js';
+import { IViewsService } from '../../../services/views/common/viewsService.js';
 import { asWebviewUri, webviewGenericCspSource } from '../../webview/common/webview.js';
 import { IWebviewWorkbenchService } from '../../webviewPanel/browser/webviewWorkbenchService.js';
 import { WebviewInput } from '../../webviewPanel/browser/webviewEditorInput.js';
+import { IChatThreadService } from '../../void/browser/chatThreadService.js';
+import { VOID_VIEW_CONTAINER_ID } from '../../void/browser/sidebarPane.js';
 import { kuundaPreviewLocalize } from '../common/kuundaPreviewNls.js';
-import { buildPreviewHtml, collectLocalAssets, isLivePreviewPath, isLocalPreviewUrl, pickPreviewEntry, PREVIEW_ENTRY_CANDIDATES } from '../common/previewDocument.js';
+import { buildPreviewHtml, collectLocalAssets, findElementRange, isLivePreviewPath, isLocalPreviewUrl, pickPreviewEntry, PREVIEW_ENTRY_CANDIDATES } from '../common/previewDocument.js';
 import { previewShellHtml } from './previewShell.js';
 
 export interface IKuundaPreviewService {
@@ -46,7 +49,8 @@ export class KuundaPreviewService extends Disposable implements IKuundaPreviewSe
 	private nonce = generateUuid();
 	private renderToken = 0;
 	private timer: ReturnType<typeof setTimeout> | undefined;
-	private mode: 'select' | 'navigate' = 'select';
+	private history: URI[] = [];
+	private historyIndex = -1;
 
 	constructor(
 		@IFileService private readonly fileService: IFileService,
@@ -55,6 +59,8 @@ export class KuundaPreviewService extends Disposable implements IKuundaPreviewSe
 		@IWebviewWorkbenchService private readonly webviewWorkbenchService: IWebviewWorkbenchService,
 		@IEditorGroupsService private readonly editorGroupsService: IEditorGroupsService,
 		@INotificationService private readonly notificationService: INotificationService,
+		@IChatThreadService private readonly chatThreadService: IChatThreadService,
+		@IViewsService private readonly viewsService: IViewsService,
 	) {
 		super();
 	}
@@ -77,7 +83,7 @@ export class KuundaPreviewService extends Disposable implements IKuundaPreviewSe
 			await this.render();
 			return;
 		}
-		const title = this.titleFor(this.mode);
+		const title = kuundaPreviewLocalize('kuunda.preview.title');
 		this.ready = false;
 		this.nonce = generateUuid();
 		this.input = this.webviewWorkbenchService.openWebview({
@@ -103,14 +109,16 @@ export class KuundaPreviewService extends Disposable implements IKuundaPreviewSe
 			void this.onMessage(event.message);
 		}));
 		input.webview.setHtml(previewShellHtml({
-			menu: kuundaPreviewLocalize('kuunda.preview.menu'),
-			selectElement: kuundaPreviewLocalize('kuunda.preview.selectElement'),
-			navigate: kuundaPreviewLocalize('kuunda.preview.navigate'),
+			back: kuundaPreviewLocalize('kuunda.preview.back'),
+			forward: kuundaPreviewLocalize('kuunda.preview.forward'),
 			reload: kuundaPreviewLocalize('kuunda.preview.reload'),
-			live: kuundaPreviewLocalize('kuunda.preview.live'),
-			selected: kuundaPreviewLocalize('kuunda.preview.selected'),
+			address: kuundaPreviewLocalize('kuunda.preview.address'),
+			selectElement: kuundaPreviewLocalize('kuunda.preview.selectElement'),
+			selectHint: kuundaPreviewLocalize('kuunda.preview.selectHint'),
+			picked: kuundaPreviewLocalize('kuunda.preview.picked'),
+			pickFailed: kuundaPreviewLocalize('kuunda.preview.pickFailed'),
 			empty: kuundaPreviewLocalize('kuunda.preview.empty'),
-			frameTitle: kuundaPreviewLocalize('kuunda.preview.selectElement'),
+			frameTitle: kuundaPreviewLocalize('kuunda.preview.title'),
 		}, this.nonce, webviewGenericCspSource));
 	}
 
@@ -175,11 +183,9 @@ export class KuundaPreviewService extends Disposable implements IKuundaPreviewSe
 		}, 200);
 	}
 
-	private async onMessage(message: { type?: string; href?: string; mode?: string }): Promise<void> {
+	private async onMessage(message: { type?: string; href?: string; tag?: string; id?: string; classes?: string; text?: string; marker?: string }): Promise<void> {
 		if (message?.type === 'ready') {
 			this.ready = true;
-			this.mode = 'select';
-			this.applyTitle();
 			await this.render();
 			return;
 		}
@@ -187,30 +193,71 @@ export class KuundaPreviewService extends Disposable implements IKuundaPreviewSe
 			await this.render();
 			return;
 		}
-		if (message?.type === 'mode' && (message.mode === 'select' || message.mode === 'navigate')) {
-			this.mode = message.mode;
-			this.applyTitle();
+		if (message?.type === 'back') {
+			await this.go(-1);
+			return;
+		}
+		if (message?.type === 'forward') {
+			await this.go(1);
+			return;
+		}
+		if (message?.type === 'element') {
+			await this.addElementToChat(message);
 			return;
 		}
 		if (message?.type === 'open' && typeof message.href === 'string') {
 			const next = this.resolveLocal(message.href, true);
 			if (next) {
-				this.current = next;
+				this.note(next);
 				await this.render();
+			} else {
+				await this.postNav();
 			}
 		}
 	}
 
-	private applyTitle(): void {
-		const title = this.titleFor(this.mode);
-		this.input?.setName(title);
+	private async go(step: -1 | 1): Promise<void> {
+		const next = this.historyIndex + step;
+		if (next < 0 || next >= this.history.length) {
+			return;
+		}
+		this.historyIndex = next;
+		this.current = this.history[next];
+		await this.render();
 	}
 
-	private titleFor(mode: 'select' | 'navigate'): string {
-		const tool = mode === 'select'
-			? kuundaPreviewLocalize('kuunda.preview.selectElement')
-			: kuundaPreviewLocalize('kuunda.preview.navigate');
-		return kuundaPreviewLocalize('kuunda.preview.titleMode', tool);
+	private async addElementToChat(message: { tag?: string; id?: string; classes?: string; text?: string; marker?: string }): Promise<void> {
+		const file = this.current;
+		const raw = file ? await this.readText(file) : undefined;
+		const range = file && raw ? findElementRange(raw, {
+			id: typeof message.id === 'string' ? message.id.slice(0, 200) : '',
+			tag: typeof message.tag === 'string' ? message.tag : '',
+			classes: typeof message.classes === 'string' ? message.classes.slice(0, 400) : '',
+			text: typeof message.text === 'string' ? message.text.slice(0, 80) : '',
+			marker: typeof message.marker === 'string' ? message.marker.slice(0, 160) : '',
+		}) : undefined;
+		if (!file || !range) {
+			await this.postPicked(false);
+			return;
+		}
+		try {
+			const threadId = this.chatThreadService.state.currentThreadId;
+			if (!threadId || !this.chatThreadService.state.allThreads[threadId]) {
+				this.chatThreadService.openNewThread();
+			}
+			this.chatThreadService.addNewStagingSelection({
+				type: 'CodeSelection',
+				uri: file,
+				language: this.modelService.getModel(file)?.getLanguageId() || 'html',
+				range,
+				state: { wasAddedAsCurrentFile: false },
+			});
+			await this.viewsService.openViewContainer(VOID_VIEW_CONTAINER_ID, true);
+			await this.chatThreadService.focusCurrentChat();
+			await this.postPicked(true);
+		} catch {
+			await this.postPicked(false);
+		}
 	}
 
 	private reveal(preserveFocus: boolean): void {
@@ -233,7 +280,7 @@ export class KuundaPreviewService extends Disposable implements IKuundaPreviewSe
 		}
 		if (!current) {
 			this.assetUris = [];
-			await this.input.webview.postMessage({ type: 'render', html: null, file: '' });
+			await this.input.webview.postMessage({ type: 'render', html: null, ...this.navState() });
 			return;
 		}
 		const raw = await this.readText(current);
@@ -242,7 +289,7 @@ export class KuundaPreviewService extends Disposable implements IKuundaPreviewSe
 		}
 		if (raw === undefined) {
 			this.assetUris = [];
-			await this.input.webview.postMessage({ type: 'render', html: null, file: '' });
+			await this.input.webview.postMessage({ type: 'render', html: null, ...this.navState() });
 			return;
 		}
 		const assets = collectLocalAssets(raw);
@@ -286,18 +333,66 @@ export class KuundaPreviewService extends Disposable implements IKuundaPreviewSe
 		await this.input.webview.postMessage({
 			type: 'render',
 			html,
-			file: current.path.split('/').pop() ?? '',
+			...this.navState(),
 		});
+	}
+
+	private navState(): { canBack: boolean; canForward: boolean; file: string } {
+		return {
+			canBack: this.historyIndex > 0,
+			canForward: this.historyIndex >= 0 && this.historyIndex < this.history.length - 1,
+			file: this.current ? this.displayPath(this.current) : '',
+		};
+	}
+
+	private async postNav(): Promise<void> {
+		await this.input?.webview.postMessage({ type: 'nav', ...this.navState() });
+	}
+
+	private async postPicked(ok: boolean): Promise<void> {
+		await this.input?.webview.postMessage({ type: 'picked', ok });
+	}
+
+	private seed(uri: URI): void {
+		if (this.historyIndex < 0) {
+			this.history = [uri];
+			this.historyIndex = 0;
+		} else if (this.history[this.historyIndex]?.toString() !== uri.toString()) {
+			this.history[this.historyIndex] = uri;
+		}
+		this.current = uri;
+	}
+
+	private note(uri: URI): void {
+		const current = this.history[this.historyIndex];
+		if (current?.toString() === uri.toString()) {
+			this.current = uri;
+			return;
+		}
+		this.history = this.history.slice(0, Math.max(this.historyIndex, -1) + 1);
+		this.history.push(uri);
+		this.historyIndex = this.history.length - 1;
+		this.current = uri;
+	}
+
+	private displayPath(uri: URI): string {
+		const folder = this.workspaceContextService.getWorkspaceFolder(uri);
+		if (!folder) {
+			return uri.path;
+		}
+		const relative = uri.path.slice(folder.uri.path.length) || '/';
+		return relative.startsWith('/') ? relative : `/${relative}`;
 	}
 
 	private async ensureCurrent(): Promise<URI | undefined> {
 		if (this.current && await this.stillThere(this.current)) {
+			this.seed(this.current);
 			return this.current;
 		}
 		for (const folder of this.workspaceContextService.getWorkspace().folders) {
 			const entry = await this.findEntry(folder.uri);
 			if (entry) {
-				this.current = entry;
+				this.seed(entry);
 				return entry;
 			}
 		}

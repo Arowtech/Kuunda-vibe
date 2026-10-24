@@ -4,12 +4,14 @@
  *--------------------------------------------------------------------------------------------*/
 
 export interface PreviewShellText {
-	readonly menu: string;
-	readonly selectElement: string;
-	readonly navigate: string;
+	readonly back: string;
+	readonly forward: string;
 	readonly reload: string;
-	readonly live: string;
-	readonly selected: string;
+	readonly address: string;
+	readonly selectElement: string;
+	readonly selectHint: string;
+	readonly picked: string;
+	readonly pickFailed: string;
 	readonly empty: string;
 	readonly frameTitle: string;
 }
@@ -21,61 +23,61 @@ export function previewShellHtml(text: PreviewShellText, nonce: string, cspSourc
 	<meta charset="utf-8">
 	<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src ${cspSource} https: data: blob:; media-src ${cspSource} https: data: blob:; font-src ${cspSource} https: data:; style-src 'nonce-${nonce}' 'unsafe-inline' ${cspSource} https:; script-src 'nonce-${nonce}' ${cspSource} https:; frame-src 'self' about: ${cspSource} https: data: blob:;">
 	<style nonce="${nonce}">
-		html, body { height: 100%; margin: 0; }
-		body { display: grid; grid-template-rows: auto 1fr; background: var(--vscode-editor-background); color: var(--vscode-foreground); font-family: var(--vscode-font-family); font-size: 13px; }
-		.toolbar { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-bottom: 1px solid var(--vscode-panel-border); position: relative; }
-		.menu-wrap { position: relative; }
-		button { font: inherit; color: var(--vscode-foreground); background: var(--vscode-button-secondaryBackground, transparent); border: 1px solid var(--vscode-button-border, transparent); border-radius: 4px; padding: 3px 8px; cursor: pointer; }
-		button:hover { background: var(--vscode-toolbar-hoverBackground); }
-		.menu-panel { display: none; position: absolute; top: calc(100% + 4px); left: 0; z-index: 2; min-width: 196px; padding: 4px; background: var(--vscode-menu-background); color: var(--vscode-menu-foreground); border: 1px solid var(--vscode-menu-border, var(--vscode-panel-border)); border-radius: 4px; box-shadow: 0 4px 16px rgba(0,0,0,.24); }
-		.menu-panel.open { display: flex; flex-direction: column; }
-		.menu-panel button { text-align: left; background: transparent; border-color: transparent; }
-		.menu-panel button[aria-checked="true"]::before { content: "✓ "; }
-		.mode { font-weight: 600; }
-		.file, .selection { opacity: .8; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-		.live { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; }
-		.live i { width: 8px; height: 8px; border-radius: 50%; background: #3dd68c; display: inline-block; }
-		.stage { position: relative; min-height: 0; }
-		iframe { width: 100%; height: 100%; border: 0; background: #fff; }
-		.empty { margin: 0; padding: 24px; }
+		html, body { height: 100%; margin: 0; overflow: hidden; }
+		body { display: grid; grid-template-rows: auto auto minmax(0, 1fr); background: var(--vscode-editor-background); color: var(--vscode-foreground); font-family: var(--vscode-font-family); font-size: 13px; }
+		[hidden] { display: none !important; }
+		.chrome { display: flex; align-items: center; gap: 2px; height: 40px; padding: 0 8px; background: var(--vscode-editorGroupHeader-tabsBackground, var(--vscode-sideBar-background)); border-bottom: 1px solid var(--vscode-widget-border, var(--vscode-panel-border)); }
+		.icon-btn { width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center; padding: 0; border: 0; border-radius: 6px; background: transparent; color: var(--vscode-icon-foreground, var(--vscode-foreground)); cursor: pointer; }
+		.icon-btn svg { width: 16px; height: 16px; display: block; }
+		.icon-btn:hover:not(:disabled) { background: var(--vscode-toolbar-hoverBackground); }
+		.icon-btn:disabled { opacity: .35; cursor: default; }
+		.icon-btn:focus-visible, .address:focus-visible { outline: 1px solid var(--vscode-focusBorder); outline-offset: 1px; }
+		.icon-btn.on { background: var(--vscode-toolbar-activeBackground, var(--vscode-toolbar-hoverBackground)); color: var(--vscode-button-background, var(--vscode-foreground)); }
+		.address-form { flex: 1; min-width: 0; display: flex; margin: 0 6px; }
+		.address { width: 100%; height: 26px; box-sizing: border-box; border: 1px solid var(--vscode-input-border, transparent); border-radius: 6px; background: var(--vscode-input-background); color: var(--vscode-input-foreground); padding: 0 10px; font: 12px/26px var(--vscode-font-family); }
+		.hint { margin: 0; padding: 5px 12px; font-size: 12px; line-height: 16px; color: var(--vscode-descriptionForeground); background: var(--vscode-editorWidget-background); border-bottom: 1px solid var(--vscode-widget-border, var(--vscode-panel-border)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+		.stage { position: relative; min-width: 0; min-height: 0; overflow: hidden; }
+		iframe { width: 100%; height: 100%; border: 0; display: block; background: #fff; }
+		.empty { margin: 0; padding: 24px; color: var(--vscode-descriptionForeground); }
+		*{scrollbar-width:thin;scrollbar-color:rgba(128,128,128,.55) transparent}
+		*::-webkit-scrollbar{width:10px;height:10px}
+		*::-webkit-scrollbar-thumb{background-color:rgba(128,128,128,.55);border-radius:999px;border:3px solid transparent;background-clip:content-box}
+		*::-webkit-scrollbar-track,*::-webkit-scrollbar-corner{background:transparent}
 	</style>
 </head>
 <body
-	data-select="${escapeAttr(text.selectElement)}"
-	data-navigate="${escapeAttr(text.navigate)}"
-	data-selected="${escapeAttr(text.selected)}">
-	<header class="toolbar">
-		<div class="menu-wrap">
-			<button type="button" id="browser-menu" aria-haspopup="menu" aria-expanded="false">${escapeText(text.menu)}</button>
-			<div id="browser-menu-panel" class="menu-panel" role="menu">
-				<button type="button" role="menuitemradio" data-mode="select" aria-checked="true">${escapeText(text.selectElement)}</button>
-				<button type="button" role="menuitemradio" data-mode="navigate" aria-checked="false">${escapeText(text.navigate)}</button>
-				<button type="button" role="menuitem" data-action="reload">${escapeText(text.reload)}</button>
-			</div>
-		</div>
-		<span class="mode" id="mode">${escapeText(text.selectElement)}</span>
-		<span class="file" id="file"></span>
-		<span class="selection" id="selection"></span>
-		<span class="live"><i></i>${escapeText(text.live)}</span>
+	data-hint="${escapeAttr(text.selectHint)}"
+	data-picked="${escapeAttr(text.picked)}"
+	data-failed="${escapeAttr(text.pickFailed)}">
+	<header class="chrome">
+		<button type="button" class="icon-btn" id="back" title="${escapeAttr(text.back)}" aria-label="${escapeAttr(text.back)}" disabled>${iconBack()}</button>
+		<button type="button" class="icon-btn" id="forward" title="${escapeAttr(text.forward)}" aria-label="${escapeAttr(text.forward)}" disabled>${iconForward()}</button>
+		<button type="button" class="icon-btn" id="reload" title="${escapeAttr(text.reload)}" aria-label="${escapeAttr(text.reload)}">${iconReload()}</button>
+		<form id="address-form" class="address-form">
+			<input id="address" class="address" type="text" spellcheck="false" autocomplete="off" aria-label="${escapeAttr(text.address)}">
+		</form>
+		<button type="button" class="icon-btn" id="select-element" title="${escapeAttr(text.selectElement)}" aria-label="${escapeAttr(text.selectElement)}" aria-pressed="false">${iconSelect()}</button>
 	</header>
+	<p class="hint" id="hint" hidden></p>
 	<div class="stage">
 		<p class="empty" id="empty">${escapeText(text.empty)}</p>
 		<iframe id="preview" title="${escapeAttr(text.frameTitle)}" hidden></iframe>
 	</div>
 	<script nonce="${nonce}">
 		const vscode = acquireVsCodeApi();
-		const body = document.body;
-		const selectLabel = body.dataset.select;
-		const navigateLabel = body.dataset.navigate;
-		const selectedLabel = body.dataset.selected;
-		const menuButton = document.getElementById('browser-menu');
-		const panel = document.getElementById('browser-menu-panel');
-		const modeLabel = document.getElementById('mode');
-		const fileLabel = document.getElementById('file');
-		const selection = document.getElementById('selection');
+		const hintLabel = document.body.dataset.hint;
+		const pickedLabel = document.body.dataset.picked;
+		const failedLabel = document.body.dataset.failed;
+		const back = document.getElementById('back');
+		const forward = document.getElementById('forward');
+		const reload = document.getElementById('reload');
+		const selectButton = document.getElementById('select-element');
+		const addressForm = document.getElementById('address-form');
+		const address = document.getElementById('address');
+		const hint = document.getElementById('hint');
 		const empty = document.getElementById('empty');
 		const iframe = document.getElementById('preview');
-		let mode = 'select';
+		let mode = 'navigate';
 		let hovered = null;
 		let scrollX = 0;
 		let scrollY = 0;
@@ -90,22 +92,53 @@ export function previewShellHtml(text: PreviewShellText, nonce: string, cspSourc
 			}
 		}
 
-		function closeMenu() {
-			panel.classList.remove('open');
-			menuButton.setAttribute('aria-expanded', 'false');
-		}
-
 		function describe(el) {
 			if (!el || !el.tagName) return '';
 			const tag = el.tagName.toLowerCase();
 			if (tag === 'html' || tag === 'body') return tag;
 			const id = el.id ? '#' + el.id : '';
-			const classes = Array.from(el.classList || []).filter(name => name !== 'kuunda-preview-hover').map(name => '.' + name).join('');
+			const classes = classNames(el).map(name => '.' + name).join('');
 			return tag + id + classes;
+		}
+
+		function markerOf(el) {
+			if (!el || !el.getAttribute) return '';
+			const names = ['src', 'href', 'alt', 'aria-label', 'name', 'placeholder'];
+			for (const name of names) {
+				const value = el.getAttribute(name);
+				if (!value || value.length < 2 || value.length > 160) continue;
+				const clean = value.split('?')[0].split('#')[0];
+				if (clean && clean.indexOf('kuundaPreview') < 0) return clean.slice(0, 120);
+			}
+			return '';
+		}
+
+		function classNames(el) {
+			const raw = el.getAttribute ? (el.getAttribute('class') || '') : '';
+			return raw.split(/\\s+/).filter(name => name && name !== 'kuunda-preview-hover');
 		}
 
 		function applyMode(doc) {
 			doc.documentElement.classList.toggle('kuunda-select-mode', mode === 'select');
+		}
+
+		function showHint(text) {
+			hint.hidden = !text;
+			hint.textContent = text || '';
+		}
+
+		function setMode(next) {
+			mode = next;
+			const on = next === 'select';
+			selectButton.setAttribute('aria-pressed', on ? 'true' : 'false');
+			selectButton.classList.toggle('on', on);
+			showHint(on ? hintLabel : '');
+			const doc = iframe.contentDocument;
+			if (doc) applyMode(doc);
+			if (hovered) {
+				hovered.classList.remove('kuunda-preview-hover');
+				hovered = null;
+			}
 		}
 
 		function arm() {
@@ -113,6 +146,12 @@ export function previewShellHtml(text: PreviewShellText, nonce: string, cspSourc
 			if (!doc || !doc.documentElement || doc.documentElement.dataset.kuundaArmed === '1') return;
 			doc.documentElement.dataset.kuundaArmed = '1';
 			applyMode(doc);
+			doc.addEventListener('keydown', event => {
+				if (event.key === 'Escape' && mode === 'select') {
+					event.preventDefault();
+					setMode('navigate');
+				}
+			}, true);
 			doc.addEventListener('mouseover', event => {
 				if (mode !== 'select') return;
 				const target = event.target;
@@ -125,9 +164,18 @@ export function previewShellHtml(text: PreviewShellText, nonce: string, cspSourc
 				const target = event.target && event.target.nodeType === 1 ? event.target : (event.target && event.target.parentElement);
 				const anchor = target && target.closest ? target.closest('a[href]') : null;
 				if (mode === 'select') {
+					if (!target || target === doc.documentElement || target === doc.body) return;
 					event.preventDefault();
 					event.stopPropagation();
-					selection.textContent = target ? (selectedLabel + ' ' + describe(target)) : '';
+					showHint(describe(target));
+					vscode.postMessage({
+						type: 'element',
+						tag: target.tagName.toLowerCase(),
+						id: target.id || '',
+						classes: classNames(target).join(' '),
+						text: (target.innerText || target.textContent || '').replace(/\\s+/g, ' ').trim().slice(0, 80),
+						marker: markerOf(target)
+					});
 					return;
 				}
 				if (!anchor) return;
@@ -138,43 +186,38 @@ export function previewShellHtml(text: PreviewShellText, nonce: string, cspSourc
 			}, true);
 		}
 
-		function setMode(next) {
-			mode = next;
-			modeLabel.textContent = next === 'select' ? selectLabel : navigateLabel;
-			panel.querySelector('[data-mode="select"]').setAttribute('aria-checked', next === 'select' ? 'true' : 'false');
-			panel.querySelector('[data-mode="navigate"]').setAttribute('aria-checked', next === 'navigate' ? 'true' : 'false');
-			const doc = iframe.contentDocument;
-			if (doc) applyMode(doc);
-			vscode.postMessage({ type: 'mode', mode: next });
-			closeMenu();
+		function applyNav(message) {
+			back.disabled = !message.canBack;
+			forward.disabled = !message.canForward;
+			if (document.activeElement !== address && typeof message.file === 'string') address.value = message.file;
 		}
 
-		menuButton.addEventListener('click', event => {
-			event.stopPropagation();
-			panel.classList.toggle('open');
-			menuButton.setAttribute('aria-expanded', panel.classList.contains('open') ? 'true' : 'false');
-		});
-		panel.addEventListener('click', event => {
-			const item = event.target.closest('button');
-			if (!item) return;
-			if (item.dataset.mode) setMode(item.dataset.mode);
-			if (item.dataset.action === 'reload') {
-				closeMenu();
-				vscode.postMessage({ type: 'reload' });
-			}
-		});
-		document.addEventListener('click', event => {
-			if (!menuButton.parentElement.contains(event.target)) closeMenu();
+		back.addEventListener('click', () => vscode.postMessage({ type: 'back' }));
+		forward.addEventListener('click', () => vscode.postMessage({ type: 'forward' }));
+		reload.addEventListener('click', () => vscode.postMessage({ type: 'reload' }));
+		selectButton.addEventListener('click', () => setMode(mode === 'select' ? 'navigate' : 'select'));
+		addressForm.addEventListener('submit', event => {
+			event.preventDefault();
+			const href = address.value.trim();
+			if (href) vscode.postMessage({ type: 'open', href });
 		});
 		document.addEventListener('keydown', event => {
-			if (event.key === 'Escape') closeMenu();
+			if (event.key === 'Escape' && mode === 'select') setMode('navigate');
 		});
 		window.addEventListener('message', event => {
 			const message = event.data;
-			if (!message || message.type !== 'render') return;
-			fileLabel.textContent = message.file || '';
-			selection.textContent = '';
-			hovered = null;
+			if (!message) return;
+			if (message.type === 'nav') {
+				applyNav(message);
+				return;
+			}
+			if (message.type === 'picked') {
+				showHint(message.ok ? pickedLabel : failedLabel);
+				return;
+			}
+			if (message.type !== 'render') return;
+			applyNav(message);
+			if (hovered) hovered = null;
 			if (!message.html) {
 				iframe.hidden = true;
 				iframe.removeAttribute('srcdoc');
@@ -194,10 +237,26 @@ export function previewShellHtml(text: PreviewShellText, nonce: string, cspSourc
 			};
 			iframe.srcdoc = message.html;
 		});
-		vscode.postMessage({ type: 'ready', mode });
+		vscode.postMessage({ type: 'ready' });
 	</script>
 </body>
 </html>`;
+}
+
+function iconBack(): string {
+	return '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3.5 5.5 8 10 12.5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+}
+
+function iconForward(): string {
+	return '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3.5 10.5 8 6 12.5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+}
+
+function iconReload(): string {
+	return '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M13 8a5 5 0 1 1-1.4-3.4" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M12.8 2.2v3.1H9.7" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+}
+
+function iconSelect(): string {
+	return '<svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M3.2 1.6 13 7.4l-4.1.8 2.5 4.6-1.7.9-2.5-4.6-3.4 2.8z"/></svg>';
 }
 
 function escapeText(value: string): string {

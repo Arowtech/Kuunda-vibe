@@ -31,6 +31,13 @@ function textFromUnknown(value: unknown): string {
 	return ''
 }
 
+function messageHasImage(message: Record<string, unknown>): boolean {
+	const content = message.content
+	if (Array.isArray(content) && content.some(part => part && typeof part === 'object' && ((part as { type?: string }).type === 'image_url' || (part as { type?: string }).type === 'image'))) return true
+	if (Array.isArray(message.parts) && message.parts.some(part => part && typeof part === 'object' && 'inlineData' in (part as object))) return true
+	return false
+}
+
 function isToolMessage(message: Record<string, unknown>): boolean {
 	if (message.role === 'tool') return true
 	if (Array.isArray(message.tool_calls) && message.tool_calls.length > 0) return true
@@ -61,6 +68,11 @@ export function resolveKuundaAutoModel(chatMode: string | null | undefined, mess
 	if (DEBUG_TASK.test(latest)) complexity += 2
 	if (chatMode === 'debug' && chars > 80) complexity += 1
 	if ((chatMode === 'agent' || chatMode === 'debug') && toolTurns >= 1) complexity += 1
+
+	// DeepSeek and the long-context route are text-first. Image turns stay on Claude, which accepts image parts.
+	if (records.some(messageHasImage)) {
+		return complexity >= 5 ? FRONTIER_MODEL : EFFICIENT_MODEL
+	}
 
 	const simpleTurn = complexity <= 1 && chars < 240 && toolTurns === 0 && !ACTION_TASK.test(latest) && !HARD_TASK.test(latest) && !DEBUG_TASK.test(latest) && !LONG_CONTEXT_TASK.test(latest)
 	if (simpleTurn) return EFFICIENT_MODEL

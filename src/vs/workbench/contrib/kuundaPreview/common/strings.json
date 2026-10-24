@@ -1,39 +1,47 @@
 {
 	"kuunda.preview.tagline": {
-		"en": "Live local preview. Select Element is the default browser tool.",
-		"fr": "Aperçu local en direct. Sélectionner l'élément est l'outil par défaut du navigateur."
+		"en": "Live local preview. Turn on Select Element to send it to the chat.",
+		"fr": "Aperçu local en direct. Activez Sélectionner l'élément pour l'envoyer au chat."
 	},
 	"kuunda.preview.open": {
 		"en": "Kuunda Vibe: Open Browser Preview",
 		"fr": "Kuunda Vibe : ouvrir l'aperçu navigateur"
 	},
-	"kuunda.preview.titleMode": {
-		"en": "Browser — {0}",
-		"fr": "Navigateur — {0}"
-	},
-	"kuunda.preview.menu": {
-		"en": "Browser Menu",
-		"fr": "Menu du navigateur"
+	"kuunda.preview.title": {
+		"en": "Browser",
+		"fr": "Navigateur"
 	},
 	"kuunda.preview.selectElement": {
 		"en": "Select Element",
 		"fr": "Sélectionner l'élément"
 	},
-	"kuunda.preview.navigate": {
-		"en": "Navigate",
-		"fr": "Naviguer"
-	},
 	"kuunda.preview.reload": {
 		"en": "Reload",
 		"fr": "Recharger"
 	},
-	"kuunda.preview.live": {
-		"en": "Live",
-		"fr": "Direct"
+	"kuunda.preview.back": {
+		"en": "Back",
+		"fr": "Retour"
 	},
-	"kuunda.preview.selected": {
-		"en": "Selected",
-		"fr": "Sélection"
+	"kuunda.preview.forward": {
+		"en": "Forward",
+		"fr": "Avancer"
+	},
+	"kuunda.preview.address": {
+		"en": "Address",
+		"fr": "Adresse"
+	},
+	"kuunda.preview.selectHint": {
+		"en": "Click an element to add it to the chat.",
+		"fr": "Cliquez un élément pour l'ajouter au chat."
+	},
+	"kuunda.preview.picked": {
+		"en": "Added to chat",
+		"fr": "Ajouté au chat"
+	},
+	"kuunda.preview.pickFailed": {
+		"en": "Element not found in the source",
+		"fr": "Élément introuvable dans la source"
 	},
 	"kuunda.preview.empty": {
 		"en": "No local HTML page in this folder yet.",
