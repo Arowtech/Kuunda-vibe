@@ -11,7 +11,7 @@ import { IFileService } from '../../../../platform/files/common/files.js';
 import { ChatMessage, StagingSelectionItem } from '../common/chatThreadServiceTypes.js';
 import { getIsReasoningEnabledState, getReservedOutputTokenSpace, getModelCapabilities } from '../common/modelCapabilities.js';
 import { reParsedToolXMLString, chat_systemMessage } from '../common/prompt/prompts.js';
-import { AnthropicLLMChatMessage, AnthropicReasoning, GeminiLLMChatMessage, LLMChatMessage, LLMFIMMessage, OpenAILLMChatMessage, RawToolParamsObj } from '../common/sendLLMMessageTypes.js';
+import { AnthropicLLMChatMessage, AnthropicReasoning, anthropicImageMediaType, GeminiLLMChatMessage, LLMChatMessage, LLMFIMMessage, OpenAILLMChatMessage, RawToolParamsObj } from '../common/sendLLMMessageTypes.js';
 import { IVoidSettingsService } from '../common/voidSettingsService.js';
 import { ChatMode, FeatureName, ModelSelection, ProviderName } from '../common/voidSettingsTypes.js';
 import { IDirectoryStrService } from '../common/directoryStrService.js';
@@ -194,10 +194,14 @@ const prepareMessages_anthropic_tools = (messages: SimpleLLMMessage[], supportsA
 					role: 'user',
 					content: [
 						{ type: 'text', text: currMsg.content },
-						...currMsg.images.map(image => ({
-							type: 'image' as const,
-							source: { type: 'base64' as const, media_type: image.mimeType, data: image.dataBase64 },
-						})),
+						...currMsg.images.flatMap(image => {
+							const mediaType = anthropicImageMediaType(image.mimeType)
+							if (!mediaType) return []
+							return [{
+								type: 'image' as const,
+								source: { type: 'base64' as const, media_type: mediaType, data: image.dataBase64 },
+							}]
+						}),
 					],
 				}
 				: {
