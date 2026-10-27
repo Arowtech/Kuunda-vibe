@@ -23,10 +23,12 @@ export function previewShellHtml(text: PreviewShellText, nonce: string, cspSourc
 	<meta charset="utf-8">
 	<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src ${cspSource} https: data: blob:; media-src ${cspSource} https: data: blob:; font-src ${cspSource} https: data:; style-src 'nonce-${nonce}' 'unsafe-inline' ${cspSource} https:; script-src 'nonce-${nonce}' ${cspSource} https:; frame-src 'self' about: ${cspSource} https: data: blob:;">
 	<style nonce="${nonce}">
-		html, body { height: 100%; margin: 0; overflow: hidden; }
-		body { display: grid; grid-template-rows: auto auto minmax(0, 1fr); background: var(--vscode-editor-background); color: var(--vscode-foreground); font-family: var(--vscode-font-family); font-size: 13px; }
+		html, body { position: fixed; inset: 0; width: 100%; height: 100%; margin: 0; padding: 0 !important; overflow: hidden; box-sizing: border-box; scrollbar-width: none; }
+		html::-webkit-scrollbar, body::-webkit-scrollbar { width: 0; height: 0; display: none; }
+		body { display: flex; flex-direction: column; background: var(--vscode-editor-background); color: var(--vscode-foreground); font-family: var(--vscode-font-family); font-size: 13px; }
+		img, video { max-width: none; max-height: none; }
 		[hidden] { display: none !important; }
-		.chrome { display: flex; align-items: center; gap: 2px; height: 40px; padding: 0 8px; background: var(--vscode-editorGroupHeader-tabsBackground, var(--vscode-sideBar-background)); border-bottom: 1px solid var(--vscode-widget-border, var(--vscode-panel-border)); }
+		.chrome { flex: 0 0 40px; display: flex; align-items: center; gap: 2px; height: 40px; padding: 0 8px; background: var(--vscode-editorGroupHeader-tabsBackground, var(--vscode-sideBar-background)); border-bottom: 1px solid var(--vscode-widget-border, var(--vscode-panel-border)); }
 		.icon-btn { width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center; padding: 0; border: 0; border-radius: 6px; background: transparent; color: var(--vscode-icon-foreground, var(--vscode-foreground)); cursor: pointer; }
 		.icon-btn svg { width: 16px; height: 16px; display: block; }
 		.icon-btn:hover:not(:disabled) { background: var(--vscode-toolbar-hoverBackground); }
@@ -36,13 +38,9 @@ export function previewShellHtml(text: PreviewShellText, nonce: string, cspSourc
 		.address-form { flex: 1; min-width: 0; display: flex; margin: 0 6px; }
 		.address { width: 100%; height: 26px; box-sizing: border-box; border: 1px solid var(--vscode-input-border, transparent); border-radius: 6px; background: var(--vscode-input-background); color: var(--vscode-input-foreground); padding: 0 10px; font: 12px/26px var(--vscode-font-family); }
 		.hint { margin: 0; padding: 5px 12px; font-size: 12px; line-height: 16px; color: var(--vscode-descriptionForeground); background: var(--vscode-editorWidget-background); border-bottom: 1px solid var(--vscode-widget-border, var(--vscode-panel-border)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-		.stage { position: relative; min-width: 0; min-height: 0; overflow: hidden; }
-		iframe { width: 100%; height: 100%; border: 0; display: block; background: #fff; }
+		.stage { position: relative; flex: 1 1 auto; min-width: 0; min-height: 0; overflow: hidden; background: #fff; }
+		iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; display: block; background: #fff; }
 		.empty { margin: 0; padding: 24px; color: var(--vscode-descriptionForeground); }
-		*{scrollbar-width:thin;scrollbar-color:rgba(128,128,128,.55) transparent}
-		*::-webkit-scrollbar{width:10px;height:10px}
-		*::-webkit-scrollbar-thumb{background-color:rgba(128,128,128,.55);border-radius:999px;border:3px solid transparent;background-clip:content-box}
-		*::-webkit-scrollbar-track,*::-webkit-scrollbar-corner{background:transparent}
 	</style>
 </head>
 <body

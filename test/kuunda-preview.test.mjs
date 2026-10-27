@@ -34,7 +34,9 @@ describe('aperçu navigateur local', () => {
 		assert.match(shell, /aria-pressed="false"/);
 		assert.match(shell, /id="back"/);
 		assert.match(shell, /id="address"/);
-		assert.match(shell, /scrollbar-width:thin/);
+		assert.match(shell, /scrollbar-width: none/);
+		assert.match(shell, /position: fixed/);
+		assert.match(shell, /position: absolute; inset: 0/);
 		assert.match(shell, /overflow: hidden/);
 		assert.doesNotMatch(shell, /data-mode="select" aria-checked="true"/);
 		const editor = read('src/vs/workbench/browser/parts/editor/editorConfiguration.ts');
@@ -74,7 +76,7 @@ describe('aperçu navigateur local', () => {
 			if (!html.includes('a.png?kuundaPreview=5')) throw new Error('cache ' + html);
 			if (!html.includes('https://example.test/proj/')) throw new Error('base');
 			if (!html.includes('kuunda-select-mode')) throw new Error('select style');
-			if (!html.includes('scrollbar-width:thin')) throw new Error('scrollbar');
+			if (!html.includes('scrollbar-width:none')) throw new Error('scrollbar');
 			const page = '<div id="app">\\n  <button class="go">Enregistrer</button>\\n  <img src="a.png">\\n</div>';
 			const button = findElementRange(page, { tag: 'button', classes: 'go', text: 'Enregistrer' });
 			if (!button || button[0] !== 2 || button[1] !== 2) throw new Error('button ' + JSON.stringify(button));

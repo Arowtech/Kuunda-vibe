@@ -54,6 +54,7 @@ import { IExtensionManagementService } from '../../../../../../../platform/exten
 import { IMCPService } from '../../../../common/mcpService.js';
 import { ISpeechService } from '../../../../../speech/common/speechService.js';
 import { IStorageService, StorageScope } from '../../../../../../../platform/storage/common/storage.js'
+import { IMainProcessService } from '../../../../../../../platform/ipc/common/mainProcessService.js'
 import { OPT_OUT_KEY } from '../../../../common/storageKeys.js'
 
 
@@ -229,6 +230,7 @@ const getReactAccessor = (accessor: ServicesAccessor) => {
 		IExtensionTransferService: accessor.get(IExtensionTransferService),
 		IMCPService: accessor.get(IMCPService),
 		ISpeechService: accessor.get(ISpeechService),
+		IMainProcessService: accessor.get(IMainProcessService),
 
 		IStorageService: accessor.get(IStorageService),
 

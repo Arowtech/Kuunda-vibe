@@ -130,10 +130,8 @@ export function buildPreviewHtml(options: {
 const PREVIEW_PAGE_STYLE = [
 	'html.kuunda-select-mode,html.kuunda-select-mode *{cursor:crosshair !important}',
 	'.kuunda-preview-hover{outline:2px solid #7c6af7 !important;outline-offset:1px}',
-	'*{scrollbar-width:thin;scrollbar-color:rgba(128,128,128,.55) transparent}',
-	'*::-webkit-scrollbar{width:10px;height:10px}',
-	'*::-webkit-scrollbar-thumb{background-color:rgba(128,128,128,.55);border-radius:999px;border:3px solid transparent;background-clip:content-box}',
-	'*::-webkit-scrollbar-track,*::-webkit-scrollbar-corner{background:transparent}',
+	'html,body{scrollbar-width:none}',
+	'html::-webkit-scrollbar,body::-webkit-scrollbar{width:0;height:0;display:none}',
 ].join('');
 
 const VOID_HTML_TAGS = new Set(['area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'param', 'source', 'track', 'wbr']);

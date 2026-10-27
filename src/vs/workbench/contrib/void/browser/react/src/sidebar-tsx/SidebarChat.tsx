@@ -42,6 +42,7 @@ import { ToolApprovalTypeSwitch } from '../void-settings-tsx/Settings.js';
 
 import { persistentTerminalNameOfId } from '../../../terminalToolService.js';
 import { removeMCPToolNamePrefix } from '../../../../common/mcpServiceTypes.js';
+import { isWindows } from '../../../../../../../base/common/platform.js';
 
 
 
@@ -3213,6 +3214,47 @@ const ChatComposerActions = ({
 
 	const warn = (message: string) => accessor.get('INotificationService').warn(message)
 
+	const dictationFailure = (code: string) => {
+		if (!code || code.includes('aborted')) return
+		if (code.includes('no-audio') || code.includes('audio-capture')) warn('Aucun microphone détecté.')
+		else if (code.includes('no-recognizer')) warn('Installe la reconnaissance vocale Windows pour ta langue : Paramètres > Langue > Options > Reconnaissance vocale.')
+		else if (code.includes('not-allowed') || code.includes('service-not-allowed')) warn('Micro refusé. Autorise le microphone pour Kuunda Vibe.')
+		else if (code.includes('network')) warn('La reconnaissance du navigateur ne répond pas dans Kuunda Vibe : cette version n’inclut pas le service vocal Google.')
+		else warn('Impossible de démarrer la dictée vocale.')
+	}
+
+	const startWindowsDictation = async () => {
+		const session = ++sessionRef.current
+		const channel = accessor.get('IMainProcessService').getChannel('void-channel-dictation')
+		let listener: IDisposable | null = null
+		speechStopRef.current = () => {
+			listener?.dispose()
+			listener = null
+			void channel.call('stop').catch(() => { /* already stopped */ })
+		}
+		setListening(true)
+		listener = channel.listen<{ type?: string; text?: string; code?: string }>('onDictation')(event => {
+			if (sessionRef.current !== session) return
+			if (event.type === 'recognized' && event.text?.trim()) {
+				onDictationRef.current(event.text)
+				setInterim('')
+			} else if (event.type === 'error') {
+				dictationFailure(event.code || 'recognizer')
+				stopListening()
+			}
+		})
+		try {
+			await channel.call('start', { language: navigator.language || 'fr-FR' })
+			if (sessionRef.current !== session) return
+		} catch (error) {
+			if (sessionRef.current !== session) return
+			const code = error instanceof Error ? error.message : 'recognizer'
+			if (code.includes('aborted')) return
+			dictationFailure(code)
+			stopListening()
+		}
+	}
+
 	const startWebSpeech = (Ctor: new () => any) => {
 		const session = ++sessionRef.current
 		const rec = new Ctor()
@@ -3235,10 +3277,8 @@ const ChatComposerActions = ({
 			if (sessionRef.current !== session) return
 			const code = event?.error
 			if (code === 'aborted' || code === 'no-speech') return
-			if (code === 'not-allowed' || code === 'service-not-allowed') warn('Micro refusé. Autorise le microphone pour Kuunda Vibe.')
-			else if (code === 'network') warn('La dictée a besoin d’une connexion pour reconnaître la voix.')
-			else if (code === 'audio-capture') warn('Aucun microphone détecté.')
-			else warn('La dictée vocale a été interrompue.')
+			if (code === 'audio-capture') dictationFailure('no-audio')
+			else dictationFailure(code || 'recognizer')
 			stopListening()
 		}
 		rec.onend = () => {
@@ -3302,6 +3342,12 @@ const ChatComposerActions = ({
 	const toggleVoice = () => {
 		if (listening || recognitionRef.current || speechStopRef.current) {
 			stopListening()
+			return
+		}
+		// webkitSpeechRecognition exists here but fails at once with "network":
+		// this Electron build has no Google speech key. Windows dictation stays on the machine.
+		if (isWindows) {
+			void startWindowsDictation()
 			return
 		}
 		const host = window as Window & { SpeechRecognition?: new () => any; webkitSpeechRecognition?: new () => any }
