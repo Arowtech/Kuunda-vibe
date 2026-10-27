@@ -6,7 +6,11 @@
 import { Registry } from '../../../../platform/registry/common/platform.js';
 import { IWorkbenchContribution, IWorkbenchContributionsRegistry, Extensions as WorkbenchExtensions } from '../../../common/contributions.js';
 import { LifecyclePhase } from '../../../services/lifecycle/common/lifecycle.js';
-import { Action2, registerAction2 } from '../../../../platform/actions/common/actions.js';
+import { Action2, MenuId, registerAction2 } from '../../../../platform/actions/common/actions.js';
+import { Categories } from '../../../../platform/action/common/actionCommonCategories.js';
+import { IOpenerService } from '../../../../platform/opener/common/opener.js';
+import { URI } from '../../../../base/common/uri.js';
+import { getNLSLanguage } from '../../../../nls.js';
 import { ServicesAccessor } from '../../../../platform/instantiation/common/instantiation.js';
 import { INotificationService } from '../../../../platform/notification/common/notification.js';
 import { IQuickInputService } from '../../../../platform/quickinput/common/quickInput.js';
@@ -15,6 +19,7 @@ import { IKuundaCodebaseService } from '../common/kuundaCodebaseService.js';
 import { IKuundaAgentService } from '../common/kuundaAgentService.js';
 import { BackgroundJob } from '../common/backgroundJob.js';
 import { IKuundaWorkspaceService } from '../common/kuundaWorkspaceService.js';
+import { IKuundaSkillService } from '../common/kuundaSkillService.js';
 import { IChatThreadService } from '../../void/browser/chatThreadService.js';
 import { PERMISSION_LEVELS, type PermissionLevel } from '../common/permissionPolicy.js';
 
@@ -225,6 +230,45 @@ registerAction2(class extends Action2 {
 			return;
 		}
 		notify.info(kuundaAiLocalize('kuunda.dev.reloadRules.ok'));
+	}
+});
+
+registerAction2(class extends Action2 {
+	constructor() {
+		super({
+			id: 'kuunda.skills.open',
+			f1: true,
+			title: kuundaAiLocalize2('kuunda.skills.open'),
+		});
+	}
+
+	async run(accessor: ServicesAccessor): Promise<void> {
+		await accessor.get(IKuundaSkillService).revealUserFolder();
+	}
+});
+
+registerAction2(class extends Action2 {
+	constructor() {
+		super({
+			id: 'kuunda.help.userGuide',
+			title: kuundaAiLocalize2('kuunda.help.userGuide'),
+			category: Categories.Help,
+			f1: true,
+			menu: {
+				id: MenuId.MenubarHelpMenu,
+				group: '1_welcome',
+				order: 2,
+			},
+		});
+	}
+
+	async run(accessor: ServicesAccessor): Promise<void> {
+		const language = getNLSLanguage() || '';
+		const french = language === 'fr' || language.startsWith('fr-') || language.startsWith('fr_');
+		const url = french
+			? 'https://docs.kuunda-cloud.com/fr/guides/kuunda-vibe'
+			: 'https://docs.kuunda-cloud.com/guides/kuunda-vibe';
+		await accessor.get(IOpenerService).open(URI.parse(url));
 	}
 });
 

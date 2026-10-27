@@ -20,6 +20,7 @@ import { IMCPService } from '../common/mcpService.js';
 import { ToolName } from '../common/toolsServiceTypes.js';
 import { IKuundaCodebaseService } from '../../kuundaAi/common/kuundaCodebaseService.js';
 import { IKuundaWorkspaceService } from '../../kuundaAi/common/kuundaWorkspaceService.js';
+import { IKuundaSkillService } from '../../kuundaAi/common/kuundaSkillService.js';
 import { IKuundaProjectService } from '../../kuundaProject/common/kuundaProjectService.js';
 import { IKuundaCloudService } from '../../kuundaCloud/common/kuundaCloudService.js';
 import { IKuundaPublishService } from '../../kuundaPublish/common/kuundaPublishService.js';
@@ -592,6 +593,7 @@ class ConvertToLLMMessageService extends Disposable implements IConvertToLLMMess
 		@IMCPService private readonly mcpService: IMCPService,
 		@IKuundaCodebaseService private readonly kuundaCodebaseService: IKuundaCodebaseService,
 		@IKuundaWorkspaceService private readonly kuundaWorkspaceService: IKuundaWorkspaceService,
+		@IKuundaSkillService private readonly kuundaSkillService: IKuundaSkillService,
 		@IKuundaProjectService private readonly kuundaProjectService: IKuundaProjectService,
 		@IKuundaCloudService private readonly kuundaCloudService: IKuundaCloudService,
 		@IKuundaPublishService private readonly kuundaPublishService: IKuundaPublishService,
@@ -634,6 +636,7 @@ class ConvertToLLMMessageService extends Disposable implements IConvertToLLMMess
 		try {
 			const extra = [
 				await this.kuundaWorkspaceService.formatDevContext(),
+				await this.kuundaSkillService.formatContext(),
 				await this.kuundaProjectService.formatContext(),
 				await this.kuundaCloudService.formatContext(),
 				await this.kuundaPublishService.formatContext(),

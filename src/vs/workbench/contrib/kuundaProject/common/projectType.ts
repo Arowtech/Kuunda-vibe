@@ -254,32 +254,17 @@ export function formatProjectContext(entries: Array<{ folderName?: string; manif
 }
 
 function rulesFor(type: ProjectType, name: string): string {
-	return `# ${name}\nProject type: ${type}. Stay inside this workspace. Do not commit .env.local or .kuunda/cloud.local.json. Never commit operator or privileged database keys. Store publishing is Phase 7.\n`;
+	const stack = 'Choose the language and a current, maintained frontend framework for the need (React, Next.js, Vue, Svelte, Solid, Angular, Expo, or another fit on its latest stable major). The files here are a starter, not a lock. Do not ship jQuery, Create React App, AngularJS, or a single HTML page unless the user explicitly asks for a static page.';
+	return `# ${name}\nProject type: ${type}. ${stack} If package.json already chooses a framework, keep it.\nBefore a new application or a stack change, propose two or three options, mark one recommended, and wait for the user's choice. Do not switch frameworks in silence.\nData: Kuunda Cloud is the default database. Read and write through src/kuunda/client.js. Credentials stay in gitignored .env.local. Do not add SQLite, localStorage as a database, Supabase, Firebase, or another backend unless the user asks.\nCode hosting: Kuunda Git is the default remote (https://git.kuunda-cloud.com/<projectRef>/<repo>.git, remote name kuunda). Do not create a GitHub or GitLab repository unless the user asks. Do not push until a write token exists in Services → Kuunda Git. Never commit the token, .env.local, or .kuunda/cloud.local.json. Never commit operator or privileged database keys.\nFrontend hosting: Kuunda Frontend (https://<slug>.kuunda-cloud.com) is the default. A push to Kuunda Git publishes the site. Do not add Vercel, Netlify, or GitHub Pages unless the user asks.\nAccount: a user created through the Kuunda Cloud API already has Kuunda Cloud, Kuunda Git, Kuunda Frontend, and the auth providers in that same account. Do not create a separate account per service.\nStay inside this workspace.\n`;
 }
 
 function readmeFor(type: ProjectType, name: string, publishTargets: MobilePublishTarget[]): string {
 	const publish = type === 'mobile' ? `\n\nMobile publishing target: ${publishOptionFromTargets(publishTargets)}. Store credentials and AAB/IPA builds are Phase 7.` : '';
-	return `# ${name}\n\nScaffolded by Kuunda Vibe as a **${type}** project.${publish}\n\nKuunda Cloud is enabled by default: this project gets its own Cloud space (standard plan) automatically — no Kuunda Cloud account to create. Change or upgrade the plan from Kuunda Vibe settings (\`Kuunda Vibe: Manage Cloud Plan\`). The agent manages the sandbox; you promote migrations to production from Kuunda Studio. Project credentials live in gitignored \`.env.local\`. Disable or replace it from the Kuunda Cloud commands.\n`;
+	return `# ${name}\n\nScaffolded by Kuunda Vibe as a **${type}** project. The starter UI is React (Vite); replace it with another current frontend framework when that fits the product better.${publish}\n\nKuunda Cloud is enabled by default and is the database for this project: this project gets its own Cloud space (standard plan) automatically — no Kuunda Cloud account to create. Change or upgrade the plan from Kuunda Vibe settings (\`Kuunda Vibe: Manage Cloud Plan\`). The agent manages the sandbox; you promote migrations to production from Kuunda Studio. Project credentials live in gitignored \`.env.local\`. Disable or replace it from the Kuunda Cloud commands.\n\nSource code is hosted on Kuunda Git (\`https://git.kuunda-cloud.com/<projectRef>/<repo>.git\`), not on GitHub, unless you choose another remote. The published site is hosted on Kuunda Frontend (\`https://<slug>.kuunda-cloud.com\`). A push to Kuunda Git publishes it.\n\nA user account created through the Kuunda Cloud API already includes Kuunda Cloud, Kuunda Git, Kuunda Frontend, and the auth providers. No separate signup per service.\n`;
 }
 
-function websiteFiles(name: string): ScaffoldFile[] {
-	return [
-		{
-			path: 'index.html',
-			content: `<!doctype html>\n<html lang="en">\n<head>\n\t<meta charset="utf-8">\n\t<meta name="viewport" content="width=device-width, initial-scale=1">\n\t<title>${name}</title>\n\t<link rel="stylesheet" href="styles.css">\n</head>\n<body>\n\t<main>\n\t\t<h1>${name}</h1>\n\t\t<p>Static website scaffolded by Kuunda Vibe.</p>\n\t</main>\n\t<script src="script.js"></script>\n</body>\n</html>\n`,
-		},
-		{
-			path: 'styles.css',
-			content: `html, body { margin: 0; font-family: system-ui, sans-serif; }\nmain { max-width: 40rem; margin: 4rem auto; padding: 0 1rem; }\n`,
-		},
-		{
-			path: 'script.js',
-			content: `document.documentElement.dataset.kuundaProject = ${JSON.stringify(name)};\n`,
-		},
-	];
-}
-
-function webappFiles(name: string): ScaffoldFile[] {
+function reactAppFiles(name: string): ScaffoldFile[] {
+	const label = JSON.stringify(name);
 	return [
 		{
 			path: 'package.json',
@@ -287,18 +272,40 @@ function webappFiles(name: string): ScaffoldFile[] {
 				name,
 				private: true,
 				type: 'module',
-				scripts: { start: 'node src/server.js' },
+				scripts: { dev: 'vite', build: 'vite build', preview: 'vite preview' },
+				dependencies: { react: '^19.0.0', 'react-dom': '^19.0.0' },
+				devDependencies: { '@vitejs/plugin-react': '^4.3.4', vite: '^6.0.0' },
 			}, null, '\t')}\n`,
 		},
 		{
-			path: 'src/server.js',
-			content: `import { createServer } from 'node:http';\nimport { readFile } from 'node:fs/promises';\nimport { dirname, join } from 'node:path';\nimport { fileURLToPath } from 'node:url';\n\nconst root = join(dirname(fileURLToPath(import.meta.url)), 'public');\nconst server = createServer(async (_req, res) => {\n\ttry {\n\t\tconst html = await readFile(join(root, 'index.html'));\n\t\tres.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });\n\t\tres.end(html);\n\t} catch {\n\t\tres.writeHead(500);\n\t\tres.end('unavailable');\n\t}\n});\nserver.listen(3000, () => console.log('http://127.0.0.1:3000'));\n`,
+			path: 'vite.config.js',
+			content: `import { defineConfig } from 'vite';\nimport react from '@vitejs/plugin-react';\n\nexport default defineConfig({ plugins: [react()] });\n`,
 		},
 		{
-			path: 'src/public/index.html',
-			content: `<!doctype html>\n<html lang="en">\n<head>\n\t<meta charset="utf-8">\n\t<title>${name}</title>\n</head>\n<body>\n\t<h1>${name}</h1>\n\t<p>Web application scaffold. Run <code>npm start</code>.</p>\n</body>\n</html>\n`,
+			path: 'index.html',
+			content: `<!doctype html>\n<html lang="en">\n<head>\n\t<meta charset="utf-8">\n\t<meta name="viewport" content="width=device-width, initial-scale=1">\n\t<title>${name}</title>\n</head>\n<body>\n\t<div id="root"></div>\n\t<script type="module" src="/src/main.jsx"></script>\n</body>\n</html>\n`,
+		},
+		{
+			path: 'src/main.jsx',
+			content: `import { createRoot } from 'react-dom/client';\nimport { App } from './App.jsx';\n\ncreateRoot(document.getElementById('root')).render(<App />);\n`,
+		},
+		{
+			path: 'src/App.jsx',
+			content: `import { useEffect, useState } from 'react';\nimport { listItems } from './kuunda/client.js';\n\nexport function App() {\n\tconst [items, setItems] = useState([]);\n\tconst [error, setError] = useState('');\n\tuseEffect(() => {\n\t\tlistItems().then(setItems).catch(() => setError('Kuunda Cloud is not ready yet.'));\n\t}, []);\n\treturn (\n\t\t<main>\n\t\t\t<h1>{${label}}</h1>\n\t\t\t<p>React application. Data comes from Kuunda Cloud.</p>\n\t\t\t{error ? <p>{error}</p> : <ul>{items.map((item) => <li key={item.id ?? item.title}>{item.title}</li>)}</ul>}\n\t\t</main>\n\t);\n}\n`,
+		},
+		{
+			path: '.gitignore',
+			content: `node_modules\ndist\n.env.local\n.kuunda/cloud.local.json\n`,
 		},
 	];
+}
+
+function websiteFiles(name: string): ScaffoldFile[] {
+	return reactAppFiles(name);
+}
+
+function webappFiles(name: string): ScaffoldFile[] {
+	return reactAppFiles(name);
 }
 
 function mobileFiles(name: string, publishTargets: MobilePublishTarget[]): ScaffoldFile[] {
@@ -311,10 +318,7 @@ function mobileFiles(name: string, publishTargets: MobilePublishTarget[]): Scaff
 				platforms: publishTargets,
 			}, null, '\t')}\n`,
 		},
-		{
-			path: 'src/index.html',
-			content: `<!doctype html>\n<html lang="en">\n<head>\n\t<meta charset="utf-8">\n\t<meta name="viewport" content="width=device-width, initial-scale=1">\n\t<title>${name}</title>\n</head>\n<body>\n\t<h1>${name}</h1>\n\t<p>Mobile application shell. Publishing is Phase 7.</p>\n</body>\n</html>\n`,
-		},
+		...reactAppFiles(name),
 	];
 	if (publishTargets.includes('google_play')) {
 		files.push({

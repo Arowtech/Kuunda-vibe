@@ -111,6 +111,14 @@ export const KUUNDA_AI_STRINGS = {
 		en: 'Project rules reloaded.',
 		fr: 'Règles de projet rechargées.',
 	},
+	'kuunda.skills.open': {
+		en: 'Kuunda Vibe: Open Skills Folder',
+		fr: 'Kuunda Vibe : ouvrir le dossier des skills',
+	},
+	'kuunda.help.userGuide': {
+		en: 'Kuunda Vibe Guide',
+		fr: 'Guide Kuunda Vibe',
+	},
 	'kuunda.git.showStatus': {
 		en: 'Kuunda Vibe: Show Workspace Git Status',
 		fr: 'Kuunda Vibe : afficher le statut Git des dossiers',

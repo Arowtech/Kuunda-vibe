@@ -381,14 +381,29 @@ export function formatCloudContext(cloud) {
 		return 'Kuunda Cloud: disabled (replaceable in project settings).';
 	}
 	const plan = sanitizePlanId(publicCloud.plan);
+	const hosting = gitHostingLine(publicCloud) + accountServicesLine();
 	if (!publicCloud.projectRef) {
-		return `Kuunda Cloud: enabled but not provisioned yet (plan=${plan}). The IDE creates the project space automatically; retry provisioning from the Cloud panel. No Kuunda Cloud account is required and the user must not be asked to sign up. Do not invent credentials or a production URL.`;
+		return `Kuunda Cloud: enabled but not provisioned yet (plan=${plan}). This space is the default database for application data. The IDE creates the project space automatically; retry provisioning from the Cloud panel. No Kuunda Cloud account is required and the user must not be asked to sign up. Do not invent credentials or a production URL.${hosting}`;
 	}
 	const env = publicCloud.env || 'sandbox';
 	if (env === 'production') {
-		return `Kuunda Cloud: enabled ref=${publicCloud.projectRef} env=production plan=${plan}. Treat production as user-owned. Do not apply schema or data migrations there. The user promotes sandbox work from Kuunda Studio in this IDE.`;
+		return `Kuunda Cloud: enabled ref=${publicCloud.projectRef} env=production plan=${plan}. This space is the project database. Treat production as user-owned. Do not apply schema or data migrations there. The user promotes sandbox work from Kuunda Studio in this IDE.${hosting}`;
 	}
-	return `Kuunda Cloud: enabled ref=${publicCloud.projectRef} env=sandbox plan=${plan}. You may manage this sandbox autonomously (schema, migrations, seed data). Never push to production; tell the user to promote migrations from Kuunda Studio in this IDE.`;
+	return `Kuunda Cloud: enabled ref=${publicCloud.projectRef} env=sandbox plan=${plan}. This space is the default database for application data. You may manage this sandbox autonomously (schema, migrations, seed data). Never push to production; tell the user to promote migrations from Kuunda Studio in this IDE.${hosting}`;
+}
+
+function gitHostingLine(cloud) {
+	if (cloud.repo) {
+		return ` Source remote: ${cloud.repo}.`;
+	}
+	if (cloud.projectRef) {
+		return ` Default source host is Kuunda Git: https://git.kuunda-cloud.com/${cloud.projectRef}/<repo>.git (remote name kuunda). Do not create a GitHub repository.`;
+	}
+	return ' Default source host is Kuunda Git (https://git.kuunda-cloud.com), not GitHub.';
+}
+
+function accountServicesLine() {
+	return ' The same Kuunda Cloud account includes Kuunda Cloud, Kuunda Git, Kuunda Frontend (https://<slug>.kuunda-cloud.com), and the auth providers. Do not create a separate account per service. Do not host the frontend on Vercel, Netlify, or GitHub Pages.';
 }
 
 export function formatCloudPanel({ cloud, tables, routes } = {}) {

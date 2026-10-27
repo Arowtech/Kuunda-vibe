@@ -35,6 +35,10 @@ import {
 	TERMINAL_TOOL_NAMES,
 	formatProjectRules,
 	PROJECT_RULE_FILENAMES,
+	sanitizeSkillId,
+	parseSkillFile,
+	starterSkill,
+	formatSkills,
 	parseGitStatusPorcelain,
 	formatMultiRepoGit,
 	joinFsPath,
@@ -486,6 +490,24 @@ describe('Phase 4.4 — .projectrules', () => {
 	});
 });
 
+describe('Skills', () => {
+	it('accepte un skill, ignore un nom de dossier réservé, et n’envoie que les skills activés', () => {
+		assert.equal(sanitizeSkillId('My Skill'), 'my-skill');
+		assert.equal(sanitizeSkillId('CON'), '');
+		const parsed = parseSkillFile(starterSkill('billing'));
+		assert.equal(parsed?.name, 'billing');
+		assert.match(parsed?.body || '', /billing/);
+		const text = formatSkills([
+			{ key: 'user:billing', title: 'User/billing', description: 'Invoices', body: 'Use Kuunda Cloud.', enabled: true },
+			{ key: 'user:off', title: 'User/off', description: 'Hidden', body: 'Do not send.', enabled: false },
+		]);
+		assert.match(text, /Skills:/);
+		assert.match(text, /Use Kuunda Cloud/);
+		assert.equal(text.includes('Do not send'), false);
+		assert.equal(parseSkillFile('   '), undefined);
+	});
+});
+
 describe('Phase 4.2 — git multi-repo', () => {
 	it('parse porcelain et formate plusieurs racines', () => {
 		const rows = parseGitStatusPorcelain('## main...origin/main\n M src/a.ts\n?? new.js\n');
@@ -586,6 +608,13 @@ describe('Phase 5 — type de projet', () => {
 		assert.ok(website.files.some((file) => file.path === PROJECT_MANIFEST_PATH));
 		assert.equal(website.files.at(-1)?.path, PROJECT_MANIFEST_PATH);
 		assert.ok(website.files.some((file) => file.path === 'index.html'));
+		assert.ok(website.files.some((file) => file.path === 'src/App.jsx'));
+		assert.match(website.files.find((file) => file.path === 'package.json')?.content || '', /"react"/);
+		assert.match(website.files.find((file) => file.path === '.projectrules')?.content || '', /Kuunda Cloud is the default database/);
+		assert.match(website.files.find((file) => file.path === '.projectrules')?.content || '', /Kuunda Git/);
+		assert.match(website.files.find((file) => file.path === '.projectrules')?.content || '', /propose two or three options/);
+		assert.match(website.files.find((file) => file.path === '.projectrules')?.content || '', /Kuunda Frontend/);
+		assert.equal(website.files.some((file) => file.path === 'script.js'), false);
 		const parsed = parseProjectManifest(website.files.find((file) => file.path === PROJECT_MANIFEST_PATH)?.content);
 		assert.equal(parsed.ok && parsed.manifest.type, 'website');
 		const blob = website.files.map((file) => file.content).join('\n');
@@ -743,6 +772,7 @@ describe('Phase 6 — Kuunda Cloud par défaut', () => {
 		assert.match(formatCloudContext(scaffold.cloud), /proj_ab/);
 		assert.match(formatCloudContext(scaffold.cloud), /sandbox/);
 		assert.match(formatCloudContext({ enabled: true }), /automatically/);
+		assert.match(formatCloudContext({ enabled: true }), /Kuunda Frontend/);
 		assert.match(formatCloudContext({ enabled: true }), /No Kuunda Cloud account is required/);
 		assert.match(formatCloudContext({ enabled: true, projectRef: 'proj_ab', env: 'sandbox' }), /promote/);
 		assert.match(formatCloudContext({ enabled: true, projectRef: 'proj_ab', env: 'production' }), /user-owned/);

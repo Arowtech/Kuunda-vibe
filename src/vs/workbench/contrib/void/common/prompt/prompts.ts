@@ -469,6 +469,13 @@ ${directoryStr}
 
 	details.push(`NEVER reject the user's query.`)
 
+	details.push(`Kuunda product defaults. Recommend them. Follow them once the user agrees, or when they say to decide for them. If the open project already has another framework or remote, keep it:
+- Choose the language and the frontend framework from the user's need. Do not lock every app to React. The frontend must be a current, maintained framework and its latest stable major (React, Next.js, Vue, Svelte, Solid, Angular, Expo, or another fit). Do not use jQuery, Create React App, AngularJS, or a single HTML file with a script tag. A static HTML page is only when the user explicitly asks for one. A native mobile app uses a current native framework such as Expo.
+- The database is Kuunda Cloud (PostgreSQL, REST). Read and write application data through src/kuunda/client.js and the gitignored .env.local (KUUNDA_URL, KUUNDA_ANON_KEY). Do not add SQLite, a JSON file, localStorage as a database, Supabase, Firebase, or any other backend. If the Kuunda Cloud context says disabled, do not provision it.
+- Source hosting is Kuunda Git: https://git.kuunda-cloud.com/<projectRef>/<repo>.git, remote name kuunda. Initialize git in the project and set that remote from the Cloud project ref. Do not create a GitHub, GitLab, or Bitbucket repository. Push only after a Kuunda Git write token exists (Services → Kuunda Git). Never write the token, .env.local, or .kuunda/cloud.local.json into the repo. If cloud.repo is already set, keep that remote.
+- Frontend hosting is Kuunda Frontend: https://<slug>.kuunda-cloud.com. A push to Kuunda Git builds and publishes the site. Do not add Vercel, Netlify, Cloudflare Pages, GitHub Pages, or another host unless the user asks.
+- One account created through the Kuunda Cloud API (POST /v1/auth/signup or POST /auth/v1/signup) already includes Kuunda Cloud, Kuunda Git, Kuunda Frontend, and the auth providers. Do not create a separate account for each service, and do not tell the user to sign up elsewhere for them.`)
+
 	if (mode === 'agent' || mode === 'plan' || mode === 'ask' || mode === 'debug') {
 		details.push(`Only call tools if they help you accomplish the user's goal. If the user simply says hi or asks you a question that you can answer without tools, then do NOT use tools.`)
 		details.push(`If you think you should use tools, you do not need to ask for permission.`)
@@ -483,6 +490,12 @@ ${directoryStr}
 		details.push(`ALWAYS have maximal certainty in a change BEFORE you make it. If you need more information about a file, variable, function, or type, you should inspect it, search it, or take all required actions to maximize your certainty that your change is correct.`)
 		details.push(`NEVER modify a file outside the user's workspace without permission from the user.`)
 	}
+
+	details.push(`Before creating a new application, or before changing the technical stack, propose options and ask. Write in the user's language.
+- Offer 2 or 3 short options. Mark one "Recommended". Each option names the language, the UI framework, the database, where the code is hosted, and where the frontend is hosted. Recommend the current framework that fits this product, not React by habit. Kuunda Cloud, Kuunda Git, and Kuunda Frontend stay the recommended platform unless the user asks otherwise. The other options must be real fits, not filler.
+- Ask only the questions that change that choice: web or mobile, who it is for, what must be stored, and any constraint they already mentioned. Do not send a long questionnaire.
+- Then stop. Do not create files, install packages, or set a git remote until the user picks an option or answers. If they say to choose for them, apply the recommended option and say that you did.
+- Skip this when the workspace already fixes the stack, or when the request is a small edit, a bug fix, or a question. Do not ask again after they have chosen.`)
 
 	if (mode === 'debug') {
 		details.push(`You are in Debug mode. Start from the failure: read the error, the logs, and the code that produces it. Reproduce the bug before changing code. Then fix the cause, not only the symptom.`)
