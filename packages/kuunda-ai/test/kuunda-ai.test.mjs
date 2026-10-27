@@ -614,6 +614,8 @@ describe('Phase 5 — type de projet', () => {
 		assert.match(website.files.find((file) => file.path === '.projectrules')?.content || '', /Kuunda Git/);
 		assert.match(website.files.find((file) => file.path === '.projectrules')?.content || '', /propose two or three options/);
 		assert.match(website.files.find((file) => file.path === '.projectrules')?.content || '', /Kuunda Frontend/);
+		assert.match(website.files.find((file) => file.path === '.projectrules')?.content || '', /database and Kuunda Git together/);
+		assert.match(website.files.find((file) => file.path === '.projectrules')?.content || '', /only when the user asks to publish/);
 		assert.equal(website.files.some((file) => file.path === 'script.js'), false);
 		const parsed = parseProjectManifest(website.files.find((file) => file.path === PROJECT_MANIFEST_PATH)?.content);
 		assert.equal(parsed.ok && parsed.manifest.type, 'website');
@@ -774,6 +776,10 @@ describe('Phase 6 — Kuunda Cloud par défaut', () => {
 		assert.match(formatCloudContext({ enabled: true }), /automatically/);
 		assert.match(formatCloudContext({ enabled: true }), /Kuunda Frontend/);
 		assert.match(formatCloudContext({ enabled: true }), /No Kuunda Cloud account is required/);
+		assert.match(formatCloudContext({ enabled: true }), /POST \/v1\/accounts\/\{accountId\}\/projects/);
+		assert.match(formatCloudContext({ enabled: true }), /database and Kuunda Git together/);
+		assert.match(formatCloudContext({ enabled: true, projectRef: 'proj_ab', env: 'sandbox' }), /Connect Kuunda Git now/);
+		assert.match(formatCloudContext({ enabled: true, projectRef: 'proj_ab', repo: 'https://git.kuunda-cloud.com/proj_ab/app.git' }), /already connected/);
 		assert.match(formatCloudContext({ enabled: true, projectRef: 'proj_ab', env: 'sandbox' }), /promote/);
 		assert.match(formatCloudContext({ enabled: true, projectRef: 'proj_ab', env: 'production' }), /user-owned/);
 		assert.match(formatCloudPanel({ cloud: scaffold.cloud, tables: [{ name: 'items', rowCount: 0 }] }), /items \(0\)/);

@@ -383,7 +383,7 @@ export function formatCloudContext(cloud) {
 	const plan = sanitizePlanId(publicCloud.plan);
 	const hosting = gitHostingLine(publicCloud) + accountServicesLine();
 	if (!publicCloud.projectRef) {
-		return `Kuunda Cloud: enabled but not provisioned yet (plan=${plan}). This space is the default database for application data. The IDE creates the project space automatically; retry provisioning from the Cloud panel. No Kuunda Cloud account is required and the user must not be asked to sign up. Do not invent credentials or a production URL.${hosting}`;
+		return `Kuunda Cloud: enabled but not provisioned yet (plan=${plan}). To connect this application, create one project for it. The IDE creates that project automatically with "Kuunda Vibe: Provision Kuunda Cloud" (POST /v1/accounts/{accountId}/projects). That call connects the database and Kuunda Git together. No Kuunda Cloud account is required and the user must not be asked to sign up. Do not invent credentials, a project ref, or a production URL. Do not call the API from the terminal.${hosting}`;
 	}
 	const env = publicCloud.env || 'sandbox';
 	if (env === 'production') {
@@ -394,16 +394,16 @@ export function formatCloudContext(cloud) {
 
 function gitHostingLine(cloud) {
 	if (cloud.repo) {
-		return ` Source remote: ${cloud.repo}.`;
+		return ` Kuunda Git is already connected for this project. Source remote: ${cloud.repo}. Keep it.`;
 	}
 	if (cloud.projectRef) {
-		return ` Default source host is Kuunda Git: https://git.kuunda-cloud.com/${cloud.projectRef}/<repo>.git (remote name kuunda). Do not create a GitHub repository.`;
+		return ` Connect Kuunda Git now, with the database: https://git.kuunda-cloud.com/${cloud.projectRef}/<repo>.git (remote name kuunda). Do not create a GitHub repository.`;
 	}
-	return ' Default source host is Kuunda Git (https://git.kuunda-cloud.com), not GitHub.';
+	return ' Kuunda Git is connected in the same step as the database, after the project exists. Do not create a GitHub repository.';
 }
 
 function accountServicesLine() {
-	return ' The same Kuunda Cloud account includes Kuunda Cloud, Kuunda Git, Kuunda Frontend (https://<slug>.kuunda-cloud.com), and the auth providers. Do not create a separate account per service. Do not host the frontend on Vercel, Netlify, or GitHub Pages.';
+	return ' One project per application (POST /v1/accounts/{accountId}/projects). Creating it connects the database and Kuunda Git together. Other features of that project (users, storage, auth, analytics, security) are connected only if the user asks. Do not create a second project or a separate account per feature. Deployment is Kuunda Frontend (https://<slug>.kuunda-cloud.com), only when the user asks to publish. Do not host the frontend on Vercel, Netlify, or GitHub Pages.';
 }
 
 export function formatCloudPanel({ cloud, tables, routes } = {}) {

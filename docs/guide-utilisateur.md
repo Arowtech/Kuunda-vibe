@@ -115,6 +115,13 @@ Pour une première idée, **Plan** puis **Agent** est un bon rythme : d’abord 
 
 ## 5. Où vont les informations, le code et le site
 
+Quand vous demandez de **connecter** une application ou un site à Kuunda Cloud, l’assistant suit cet ordre :
+
+1. **Créer un projet** pour cette application, via l’API Kuunda. Dans Kuunda Vibe, c’est la commande **Kuunda Vibe : Provision Kuunda Cloud**. Un projet par application. Pas un nouveau compte, et pas un projet par fonction.
+2. Cette création branche **en même temps** la base de données et **Kuunda Git** (la copie en ligne du code).
+3. Les autres fonctions (utilisateurs, stockage, connexion Google, analytique, e-mails, paiements) sont **dans ce même projet**. On ne les branche que si vous le demandez.
+4. **Publier**, c’est **Kuunda Frontend**. On ne le fait que si vous demandez de mettre le site en ligne. Un envoi vers Kuunda Git construit et publie le site.
+
 ### Les informations (Kuunda Cloud)
 
 C’est la mémoire de l’application : clients, produits, messages. Kuunda la prépare pour chaque nouveau projet, sur l’offre **standard**, sans vous demander de créer un deuxième compte Cloud.
