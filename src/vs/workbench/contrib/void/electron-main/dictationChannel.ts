@@ -113,7 +113,7 @@ export class DictationChannel implements IServerChannel {
 		return this.emitter.event as Event<T>;
 	}
 
-	call(_context: unknown, command: string, arg?: { language?: string }): Promise<void> {
+	call(_context: unknown, command: string, arg?: { language?: string }): Promise<any> {
 		if (command === 'start') {
 			return this.start(arg?.language);
 		}
