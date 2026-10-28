@@ -159,7 +159,7 @@ export const CLOUD_CONSOLE_SECTIONS: readonly CloudConsoleSection[] = [
 		id: 'settings.secrets',
 		group: 'settings',
 		label: { en: 'Secrets', fr: 'Secrets' },
-		summary: { en: 'Not covered by the org key yet. Provider secrets are set under Security.', fr: 'Pas encore couvert par la clé d’organisation. Les secrets des fournisseurs se règlent dans Sécurité.' },
+		summary: { en: 'Names of secrets in .env.local. Values stay on disk and are not shown.', fr: 'Noms des secrets dans .env.local. Les valeurs restent sur le disque et ne sont pas affichées.' },
 		fields: [],
 	},
 	{
@@ -388,6 +388,31 @@ function presentValue(key: string, value: unknown): string | undefined {
 		return value.trim() ? 'configured' : undefined;
 	}
 	return presentPlain(value, 240);
+}
+
+/** Names only. A value never leaves this function. */
+export function envSecretNames(text: string): CloudConsoleRow[] {
+	const rows: CloudConsoleRow[] = [];
+	for (const line of String(text || '').split(/\r?\n/)) {
+		const trimmed = line.trim();
+		if (!trimmed || trimmed.startsWith('#')) {
+			continue;
+		}
+		const eq = trimmed.indexOf('=');
+		if (eq <= 0) {
+			continue;
+		}
+		const key = trimmed.slice(0, eq).trim();
+		const value = trimmed.slice(eq + 1).trim();
+		if (!value || !SECRET_KEY.test(key)) {
+			continue;
+		}
+		rows.push({ label: key.slice(0, 80), value: 'configured' });
+		if (rows.length >= 40) {
+			break;
+		}
+	}
+	return rows;
 }
 
 function presentPlain(value: string, max: number): string | undefined {

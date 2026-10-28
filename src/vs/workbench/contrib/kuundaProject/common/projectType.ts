@@ -255,7 +255,7 @@ export function formatProjectContext(entries: Array<{ folderName?: string; manif
 
 function rulesFor(type: ProjectType, name: string): string {
 	const stack = 'Choose the language and a current, maintained frontend framework for the need (React, Next.js, Vue, Svelte, Solid, Angular, Expo, or another fit on its latest stable major). The files here are a starter, not a lock. Do not ship jQuery, Create React App, AngularJS, or a single HTML page unless the user explicitly asks for a static page.';
-	return `# ${name}\nProject type: ${type}. ${stack} If package.json already chooses a framework, keep it.\nBefore a new application or a stack change, propose two or three options, mark one recommended, and wait for the user's choice. Do not switch frameworks in silence.\nData: Kuunda Cloud is the default database. Read and write through src/kuunda/client.js. Credentials stay in gitignored .env.local. Do not add SQLite, localStorage as a database, Supabase, Firebase, or another backend unless the user asks.\nConnect: when the user asks to connect this application or site to Kuunda Cloud, call connect_kuunda_cloud. Kuunda Cloud is hosted at https://api.ide.kuunda-cloud.com, never on localhost. That tool creates one project (POST /v1/accounts/{accountId}/projects) and connects the database and Kuunda Git together. Do not invent a project ref and do not start a local database. Other features of that project (users, storage, auth, analytics, security) are connected only if the user asks. Do not create a second project per feature.\nCode hosting: Kuunda Git is the default remote (https://git.kuunda-cloud.com/<projectRef>/<repo>.git, remote name kuunda). Set it in the same step as the database. Do not create a GitHub or GitLab repository unless the user asks. Do not push until a write token exists in Services → Kuunda Git. Never commit the token, .env.local, or .kuunda/cloud.local.json. Never commit operator or privileged database keys.\nFrontend hosting: Kuunda Frontend (https://<slug>.kuunda-cloud.com) is the deploy step, only when the user asks to publish. A push to Kuunda Git publishes the site. Do not add Vercel, Netlify, or GitHub Pages unless the user asks.\nAccount: the install already has one Kuunda account. Do not create a separate account per service.\nStay inside this workspace.\n`;
+	return `# ${name}\nProject type: ${type}. ${stack} If package.json already chooses a framework, keep it.\nBefore a new application or a stack change, propose two or three options, mark one recommended, and wait for the user's choice. Do not switch frameworks in silence.\nData: Kuunda Cloud is the default database. Read and write through src/kuunda/client.js. Credentials stay in gitignored .env.local. Do not add SQLite, localStorage as a database, Supabase, Firebase, or another backend unless the user asks.\nConnect: when the user asks to connect this application or site to Kuunda Cloud, call connect_kuunda_cloud. Kuunda Cloud is hosted at https://api.ide.kuunda-cloud.com, never on localhost. That tool creates one project (POST /v1/accounts/{accountId}/projects) and connects the database and Kuunda Git together. Do not invent a project ref and do not start a local database. Other features of that project (users, storage, auth, analytics, security) are connected only if the user asks. Do not create a second project per feature.\nCode hosting: Kuunda Git is the default remote (https://git.kuunda-cloud.com/<projectRef>/<repo>.git, remote name kuunda). Set it in the same step as the database. Do not create a GitHub or GitLab repository unless the user asks. Do not push until a write token exists in Services → Kuunda Git. Never commit the token, .env.local, or .kuunda/cloud.local.json. Never commit operator or privileged database keys.\nFrontend hosting: Kuunda Frontend (https://<slug>.kuunda-cloud.com) is the deploy step, only when the user asks to publish. A push to Kuunda Git publishes the site. Do not add Vercel, Netlify, or GitHub Pages unless the user asks.\nAccount: the install already has one Kuunda account. Do not create a separate account per service.\nLayout: keep source in src/. Components belong in src/components, styles in src/styles.css, and the Cloud client in src/kuunda/client.js. Do not add new source files at the repository root.\nStay inside this workspace.\n`;
 }
 
 function readmeFor(type: ProjectType, name: string, publishTargets: MobilePublishTarget[]): string {
@@ -287,11 +287,15 @@ function reactAppFiles(name: string): ScaffoldFile[] {
 		},
 		{
 			path: 'src/main.jsx',
-			content: `import { createRoot } from 'react-dom/client';\nimport { App } from './App.jsx';\n\ncreateRoot(document.getElementById('root')).render(<App />);\n`,
+			content: `import { createRoot } from 'react-dom/client';\nimport { App } from './components/App.jsx';\nimport './styles.css';\n\ncreateRoot(document.getElementById('root')).render(<App />);\n`,
 		},
 		{
-			path: 'src/App.jsx',
-			content: `import { useEffect, useState } from 'react';\nimport { listItems } from './kuunda/client.js';\n\nexport function App() {\n\tconst [items, setItems] = useState([]);\n\tconst [error, setError] = useState('');\n\tuseEffect(() => {\n\t\tlistItems().then(setItems).catch(() => setError('Kuunda Cloud is not ready yet.'));\n\t}, []);\n\treturn (\n\t\t<main>\n\t\t\t<h1>{${label}}</h1>\n\t\t\t<p>React application. Data comes from Kuunda Cloud.</p>\n\t\t\t{error ? <p>{error}</p> : <ul>{items.map((item) => <li key={item.id ?? item.title}>{item.title}</li>)}</ul>}\n\t\t</main>\n\t);\n}\n`,
+			path: 'src/components/App.jsx',
+			content: `import { useEffect, useState } from 'react';\nimport { listItems } from '../kuunda/client.js';\n\nexport function App() {\n\tconst [items, setItems] = useState([]);\n\tconst [error, setError] = useState('');\n\tuseEffect(() => {\n\t\tlistItems().then(setItems).catch(() => setError('Kuunda Cloud is not ready yet.'));\n\t}, []);\n\treturn (\n\t\t<main>\n\t\t\t<h1>{${label}}</h1>\n\t\t\t<p>React application. Data comes from Kuunda Cloud.</p>\n\t\t\t{error ? <p>{error}</p> : <ul>{items.map((item) => <li key={item.id ?? item.title}>{item.title}</li>)}</ul>}\n\t\t</main>\n\t);\n}\n`,
+		},
+		{
+			path: 'src/styles.css',
+			content: `html, body { margin: 0; font-family: system-ui, sans-serif; }\nmain { max-width: 40rem; margin: 4rem auto; padding: 0 1rem; }\n`,
 		},
 		{
 			path: '.gitignore',
@@ -358,6 +362,8 @@ export function scaffoldProjectFiles({ type, name, publishTargets = [] }: {
 		files.push(...webappFiles(decided.name));
 	} else if (decided.type === 'mobile') {
 		files.push(...mobileFiles(decided.name, decided.publishTargets));
+	} else {
+		files.push({ path: 'src/main.js', content: `// ${decided.name}\n` });
 	}
 	files.push({ path: PROJECT_MANIFEST_PATH, content: serializeProjectManifest(decided) });
 	return { ok: true, manifest: decided, files };

@@ -389,7 +389,10 @@ export function openKuundaAccountStudio(
 		}
 		for (const session of sessions) {
 			const row = append(card, $('div.kuunda-account-row'));
-			append(row, $('span', {}, session.current ? `${session.label} · ${kuundaAccountLocalize('kuunda.account.devices.thisDevice')}` : session.label));
+			const name = session.current
+				? kuundaAccountLocalize('kuunda.account.devices.thisDevice')
+				: (session.label || 'IDE');
+			append(row, $('span', {}, name));
 			if (!session.current) {
 				const revoke = append(row, $('button.kuunda-account-btn.ghost')) as HTMLButtonElement;
 				revoke.type = 'button';

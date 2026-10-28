@@ -215,7 +215,7 @@ export function parseAccountSessions(raw: unknown): AccountDeviceSession[] {
 		const item = row as Record<string, unknown>;
 		return {
 			id: String(item?.id || '').trim(),
-			label: String(item?.label || item?.device || 'IDE').trim() || 'IDE',
+			label: String(item?.label || item?.device || '').trim() || (item?.current === true ? '' : 'IDE'),
 			current: item?.current === true,
 			createdAt: String(item?.createdAt || item?.created_at || ''),
 			lastSeenAt: String(item?.lastSeenAt || item?.last_seen_at || ''),

@@ -60,6 +60,7 @@ import {
 	buildConsoleWrite,
 	classifyConsoleStatus,
 	cloudConsoleSection,
+	envSecretNames,
 	isOperatorCredential,
 	presentConsolePayload,
 	sanitizeAccountDisplayName,
@@ -1015,6 +1016,9 @@ export class KuundaCloudService extends Disposable implements IKuundaCloudServic
 		if (section.scope) {
 			return { section: section.id, status: 'unavailable', rows: [], notice: section.scope };
 		}
+		if (section.id === 'settings.secrets') {
+			return this.localSecretNames(section.id);
+		}
 		const ref = await this.resolveConsoleProject(projectRef);
 		if (!ref) {
 			return { section: section.id, status: 'empty', rows: [], notice: 'account_database_pending' };
@@ -1185,6 +1189,21 @@ export class KuundaCloudService extends Disposable implements IKuundaCloudServic
 		}
 		const created = await this.ensureAccountDatabase(this.accountService.getSession()?.displayName || this.accountService.getSession()?.email);
 		return created.ok ? created.cloud.projectRef : undefined;
+	}
+
+	private async localSecretNames(sectionId: string): Promise<CloudConsoleSnapshot> {
+		const folder = await this.primaryFolder();
+		if (!folder) {
+			return { section: sectionId, status: 'empty', rows: [] };
+		}
+		let text = '';
+		try {
+			text = await this.readText(folder.folder, CLOUD_ENV_PATH);
+		} catch {
+			text = '';
+		}
+		const rows = envSecretNames(text);
+		return { section: sectionId, status: rows.length ? 'ready' : 'empty', rows };
 	}
 
 	private async readAuthProviders(projectRef: string): Promise<Pick<CloudConsoleSnapshot, 'status' | 'rows' | 'notice'>> {

@@ -609,7 +609,9 @@ describe('Phase 5 — type de projet', () => {
 		assert.ok(website.files.some((file) => file.path === PROJECT_MANIFEST_PATH));
 		assert.equal(website.files.at(-1)?.path, PROJECT_MANIFEST_PATH);
 		assert.ok(website.files.some((file) => file.path === 'index.html'));
-		assert.ok(website.files.some((file) => file.path === 'src/App.jsx'));
+		assert.ok(website.files.some((file) => file.path === 'src/components/App.jsx'));
+		assert.ok(website.files.some((file) => file.path === 'src/styles.css'));
+		assert.match(website.files.find((file) => file.path === '.projectrules')?.content || '', /src\/components/);
 		assert.match(website.files.find((file) => file.path === 'package.json')?.content || '', /"react"/);
 		assert.match(website.files.find((file) => file.path === '.projectrules')?.content || '', /Kuunda Cloud is the default database/);
 		assert.match(website.files.find((file) => file.path === '.projectrules')?.content || '', /Kuunda Git/);

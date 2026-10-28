@@ -11,6 +11,7 @@
 	"privacyStatementUrl": "https://github.com/Arowtech/Kuunda-vibe/blob/main/docs/legal/PRIVACY-POLICY.md",
 	"quality": "internal",
 	"updateUrl": "https://updates.ide.kuunda-cloud.com",
+	"kuundaUpdatePublicKey": "TlLmDFWS9ttug7Q4Ty2eSuvc5NzfyTClYwyRL1WHCjM=",
 	"serverLicenseUrl": "https://github.com/Arowtech/Kuunda-vibe/blob/main/LICENSE",
 	"serverGreeting": [],
 	"serverLicense": [],
