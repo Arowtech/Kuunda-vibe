@@ -106,6 +106,10 @@ export class KuundaBillingService extends Disposable implements IKuundaBillingSe
 			const raw = await response.json() as CreditsBalance;
 			const alert = raw.alert ?? creditAlertLevel(raw.remaining, raw.includedQuota);
 			this.balance = { ...raw, alert };
+			if (raw.userId && raw.userId !== userId) {
+				this.accountService.relinkUserId(raw.userId);
+				this.storageService.store(USER_KEY, raw.userId, StorageScope.APPLICATION, StorageTarget.USER);
+			}
 			this._onDidChangeBalance.fire(this.balance);
 			this.notifyAlertOnce(alert);
 			await this.notifyLatestPaymentFailure();
@@ -267,11 +271,14 @@ export class KuundaBillingService extends Disposable implements IKuundaBillingSe
 				body: JSON.stringify({ userId, amount, reason: 'agent_usage' }),
 			});
 			if (response.status === 402) {
-				this.notifyAlertOnce('empty');
+				const denied = await response.json().catch(() => ({})) as { remaining?: unknown };
+				const remaining = Number(denied.remaining);
+				const next = Number.isFinite(remaining) ? remaining : 0;
 				if (this.balance) {
-					this.balance = { ...this.balance, remaining: 0, alert: 'empty' };
+					this.balance = { ...this.balance, remaining: next, alert: creditAlertLevel(next, this.balance.includedQuota) };
 					this._onDidChangeBalance.fire(this.balance);
 				}
+				this.notifyAlertOnce(next <= 0 ? 'empty' : 'low');
 				return;
 			}
 			if (!response.ok) {

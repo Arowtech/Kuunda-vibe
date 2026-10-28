@@ -43,6 +43,8 @@ export interface IKuundaAccountService {
 	readonly _serviceBrand: undefined;
 	readonly onDidChangeSession: Event<AccountProfile | undefined>;
 	getSession(): AccountProfile | undefined;
+	/** The server resolved this session to the same user id as the web account. */
+	relinkUserId(userId: string): void;
 	getAccessToken(): Promise<string | undefined>;
 	signInEmail(email: string, password: string): Promise<AccountAuthResult>;
 	signUpEmail(email: string, password: string, displayName?: string): Promise<AccountAuthResult>;
@@ -84,6 +86,16 @@ export class KuundaAccountService extends Disposable implements IKuundaAccountSe
 
 	getSession(): AccountProfile | undefined {
 		return this.profile;
+	}
+
+	relinkUserId(userId: string): void {
+		const next = userId.trim();
+		if (!this.profile || !next || this.profile.userId === next) {
+			return;
+		}
+		this.profile = { ...this.profile, userId: next };
+		this.storageService.store(PROFILE_KEY, JSON.stringify(this.profile), StorageScope.APPLICATION, StorageTarget.USER);
+		this._onDidChangeSession.fire(this.profile);
 	}
 
 	async getAccessToken(): Promise<string | undefined> {

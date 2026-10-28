@@ -347,7 +347,7 @@ export function openKuundaAccountStudio(
 
 	async function renderCredits(pane: HTMLElement): Promise<void> {
 		const card = append(pane, $('div.kuunda-account-card'));
-		const balance = billing.lastBalance() ?? await billing.getBalance();
+		const balance = await billing.getBalance();
 		if (!balance) {
 			append(card, $('p', {}, kuundaAccountLocalize('kuunda.account.credits.empty')));
 			return;
