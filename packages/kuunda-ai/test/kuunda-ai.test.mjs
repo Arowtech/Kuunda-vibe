@@ -84,6 +84,7 @@ import {
 	persistableAnonKey,
 	scaffoldCloudFiles,
 	formatCloudContext,
+	kuundaGitRemoteUrl,
 	formatCloudPanel,
 	serializeManifestWithCloud,
 	isPublishPanelVisible,
@@ -778,6 +779,10 @@ describe('Phase 6 — Kuunda Cloud par défaut', () => {
 		assert.match(formatCloudContext({ enabled: true }), /No Kuunda Cloud account is required/);
 		assert.match(formatCloudContext({ enabled: true }), /POST \/v1\/accounts\/\{accountId\}\/projects/);
 		assert.match(formatCloudContext({ enabled: true }), /database and Kuunda Git together/);
+		assert.match(formatCloudContext({ enabled: true }), /connect_kuunda_cloud/);
+		assert.match(formatCloudContext({ enabled: true }), /never on localhost/);
+		assert.equal(kuundaGitRemoteUrl('proj_ab', 'My App'), 'https://git.kuunda-cloud.com/proj_ab/my-app.git');
+		assert.equal(kuundaGitRemoteUrl('not-a-ref', 'app'), undefined);
 		assert.match(formatCloudContext({ enabled: true, projectRef: 'proj_ab', env: 'sandbox' }), /Connect Kuunda Git now/);
 		assert.match(formatCloudContext({ enabled: true, projectRef: 'proj_ab', repo: 'https://git.kuunda-cloud.com/proj_ab/app.git' }), /already connected/);
 		assert.match(formatCloudContext({ enabled: true, projectRef: 'proj_ab', env: 'sandbox' }), /promote/);

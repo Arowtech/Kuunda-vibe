@@ -126,6 +126,7 @@ export {
 	formatCloudPanel,
 	serializeManifestWithCloud,
 	sanitizeProjectRef,
+	kuundaGitRemoteUrl,
 	sanitizeOwnerId,
 	sanitizePlanId,
 	sanitizeLinkCode,

@@ -27,6 +27,7 @@ export const approvalTypeOfBuiltinToolName: Partial<{ [T in BuiltinToolName]?: '
 	'run_persistent_command': 'terminal',
 	'open_persistent_terminal': 'terminal',
 	'kill_persistent_terminal': 'terminal',
+	'connect_kuunda_cloud': 'edits',
 }
 
 
@@ -60,6 +61,7 @@ export type BuiltinToolCallParams = {
 	'open_persistent_terminal': { cwd: string | null },
 	'run_persistent_command': { command: string; persistentTerminalId: string },
 	'kill_persistent_terminal': { persistentTerminalId: string },
+	'connect_kuunda_cloud': { uri: URI | null },
 }
 
 // RESULT OF TOOL CALL
@@ -81,6 +83,7 @@ export type BuiltinToolResultType = {
 	'run_persistent_command': { result: string; resolveReason: TerminalResolveReason; },
 	'open_persistent_terminal': { persistentTerminalId: string },
 	'kill_persistent_terminal': {},
+	'connect_kuunda_cloud': { status: string; projectRef: string; url: string; gitRemote: string; git: string; detail: string },
 }
 
 

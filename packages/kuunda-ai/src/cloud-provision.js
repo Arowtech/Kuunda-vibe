@@ -159,6 +159,16 @@ export function sanitizePlanId(value) {
 	return PLAN_ID_PATTERN.test(planId) ? planId : DEFAULT_CLOUD_PLAN;
 }
 
+/** Hosted Git remote for a Cloud project. Never a localhost URL. */
+export function kuundaGitRemoteUrl(projectRef, repoName) {
+	const ref = sanitizeProjectRef(projectRef);
+	const repo = String(repoName || '').trim().toLowerCase().replace(/[^a-z0-9._-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 48);
+	if (!ref || !repo || !sanitizeRepoUrl(`https://git.kuunda-cloud.com/${ref}/${repo}`)) {
+		return undefined;
+	}
+	return `https://git.kuunda-cloud.com/${ref}/${repo}.git`;
+}
+
 export function sanitizeProjectRef(value) {
 	const ref = String(value || '').trim();
 	if (!/^proj_[a-z0-9]+$/i.test(ref) || ref.length > 64) {
@@ -383,7 +393,7 @@ export function formatCloudContext(cloud) {
 	const plan = sanitizePlanId(publicCloud.plan);
 	const hosting = gitHostingLine(publicCloud) + accountServicesLine();
 	if (!publicCloud.projectRef) {
-		return `Kuunda Cloud: enabled but not provisioned yet (plan=${plan}). To connect this application, create one project for it. The IDE creates that project automatically with "Kuunda Vibe: Provision Kuunda Cloud" (POST /v1/accounts/{accountId}/projects). That call connects the database and Kuunda Git together. No Kuunda Cloud account is required and the user must not be asked to sign up. Do not invent credentials, a project ref, or a production URL. Do not call the API from the terminal.${hosting}`;
+		return `Kuunda Cloud is hosted at https://api.ide.kuunda-cloud.com, never on localhost. Enabled but not provisioned yet (plan=${plan}). Call connect_kuunda_cloud. That tool creates one project for this application on the Kuunda API (POST /v1/accounts/{accountId}/projects) and connects the database and Kuunda Git together. The IDE creates that project automatically through this tool. No Kuunda Cloud account is required and the user must not be asked to sign up. Do not invent credentials, a project ref, or a production URL. Do not start a local database, Docker, or a dev server in place of this tool.${hosting}`;
 	}
 	const env = publicCloud.env || 'sandbox';
 	if (env === 'production') {
@@ -403,7 +413,7 @@ function gitHostingLine(cloud) {
 }
 
 function accountServicesLine() {
-	return ' One project per application (POST /v1/accounts/{accountId}/projects). Creating it connects the database and Kuunda Git together. Other features of that project (users, storage, auth, analytics, security) are connected only if the user asks. Do not create a second project or a separate account per feature. Deployment is Kuunda Frontend (https://<slug>.kuunda-cloud.com), only when the user asks to publish. Do not host the frontend on Vercel, Netlify, or GitHub Pages.';
+	return ' One project per application (POST /v1/accounts/{accountId}/projects) on https://api.ide.kuunda-cloud.com. Creating it connects the database and Kuunda Git together. Never point KUUNDA_URL at localhost. Other features of that project (users, storage, auth, analytics, security) are connected only if the user asks. Do not create a second project or a separate account per feature. Deployment is Kuunda Frontend (https://<slug>.kuunda-cloud.com), only when the user asks to publish. Do not host the frontend on Vercel, Netlify, or GitHub Pages.';
 }
 
 export function formatCloudPanel({ cloud, tables, routes } = {}) {

@@ -25,6 +25,7 @@ export const DEFAULT_TOOL_PERMISSIONS = Object.freeze({
 	open_persistent_terminal: 'confirm',
 	run_persistent_command: 'confirm',
 	kill_persistent_terminal: 'confirm',
+	connect_kuunda_cloud: 'confirm',
 });
 
 const KIND_OF_TOOL = Object.freeze({
@@ -36,6 +37,7 @@ const KIND_OF_TOOL = Object.freeze({
 	run_persistent_command: 'terminal',
 	open_persistent_terminal: 'terminal',
 	kill_persistent_terminal: 'terminal',
+	connect_kuunda_cloud: 'edits',
 });
 
 /**

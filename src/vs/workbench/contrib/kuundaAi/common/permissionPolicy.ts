@@ -26,6 +26,7 @@ export const DEFAULT_TOOL_PERMISSIONS: Readonly<Record<string, PermissionLevel>>
 	open_persistent_terminal: 'confirm',
 	run_persistent_command: 'confirm',
 	kill_persistent_terminal: 'confirm',
+	connect_kuunda_cloud: 'confirm',
 };
 
 const KIND_OF_TOOL: Record<string, ApprovalKind> = {
@@ -37,6 +38,7 @@ const KIND_OF_TOOL: Record<string, ApprovalKind> = {
 	run_persistent_command: 'terminal',
 	open_persistent_terminal: 'terminal',
 	kill_persistent_terminal: 'terminal',
+	connect_kuunda_cloud: 'edits',
 };
 
 export function approvalKindOfTool(toolName: string): ApprovalKind {
