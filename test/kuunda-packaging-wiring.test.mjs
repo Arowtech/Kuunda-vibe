@@ -15,7 +15,7 @@ describe('Phase 9 — branchement packaging / updates', () => {
 		const product = JSON.parse(read('product.json'));
 		assert.equal(product.quality, 'internal');
 		assert.equal(product.updateUrl, 'https://updates.ide.kuunda-cloud.com');
-		assert.equal(product.kuundaUpdatePublicKey, undefined);
+		assert.match(product.kuundaUpdatePublicKey, /^[A-Za-z0-9+/]{43}=$/);
 	});
 
 	it('kuunda-builder est le pipeline Windows/macOS et refuse une update sans signature', () => {
