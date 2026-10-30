@@ -115,13 +115,6 @@
 	color: var(--vscode-foreground);
 }
 
-.kuunda-account-btn.oauth {
-	width: 100%;
-	background: color-mix(in srgb, var(--vscode-editor-background) 88%, var(--vscode-foreground) 12%);
-	border-color: var(--vscode-widget-border, #1C1D28);
-	color: var(--vscode-foreground);
-	font-weight: 600;
-}
 
 .kuunda-account-layout {
 	display: grid;
@@ -224,12 +217,6 @@
 	margin-top: 8px;
 }
 
-.kuunda-account-oauth {
-	display: flex;
-	flex-direction: column;
-	gap: 8px;
-	margin: 12px 0;
-}
 
 .kuunda-account-code {
 	font-size: 28px;

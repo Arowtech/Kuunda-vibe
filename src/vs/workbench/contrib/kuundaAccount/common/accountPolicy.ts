@@ -3,19 +3,15 @@
  *  SPDX-License-Identifier: Apache-2.0
  *--------------------------------------------------------------------------------------------*/
 
-export const AUTH_PROVIDERS = ['email', 'google'] as const;
-export const OAUTH_PROVIDERS = ['google'] as const;
+export const AUTH_PROVIDERS = ['email', 'google', 'github', 'apple'] as const;
 export const AUTH_ERROR_CODES = ['invalid_credentials', 'invalid_email', 'weak_password', 'invalid_account', 'email_taken', 'provider_unavailable', 'offline', 'timeout', 'unavailable', 'strict_offline', 'oauth_denied', 'expired'] as const;
 export const USAGE_FEATURES = ['agent', 'tab', 'publish', 'other'] as const;
-export const MIN_PASSWORD_LENGTH = 10;
 export const AUTH_CALLBACK_AUTHORITY = 'auth';
-export const WEB_OAUTH_REDIRECT_URI = 'https://app.ide.kuunda-cloud.com/login/';
 export const DEFAULT_API_BASE_URL = 'https://api.ide.kuunda-cloud.com';
 export const DEFAULT_ACCOUNT_URL = 'https://app.ide.kuunda-cloud.com/app/';
 export const DEFAULT_CLOUD_APP_URL = 'https://app.kuunda.cloud';
 
 export type AuthProvider = typeof AUTH_PROVIDERS[number];
-export type OAuthProvider = typeof OAUTH_PROVIDERS[number];
 export type AuthErrorCode = typeof AUTH_ERROR_CODES[number];
 
 export type AccountProfile = {
@@ -39,7 +35,7 @@ export type AuthSession = {
 };
 
 export type DeviceAuthStart = {
-	deviceCode: string;
+	pairingId: string;
 	userCode: string;
 	verificationUrl: string;
 	expiresIn: number;
@@ -60,14 +56,6 @@ export type AccountDeviceSession = {
 	createdAt?: string;
 	lastSeenAt?: string;
 };
-
-export function isValidEmail(email: unknown): boolean {
-	return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email || '').trim());
-}
-
-export function isStrongPassword(password: unknown): boolean {
-	return String(password || '').length >= MIN_PASSWORD_LENGTH;
-}
 
 export function normalizeAuthProvider(provider: unknown): AuthProvider | undefined {
 	const key = String(provider || '').trim().toLowerCase();
@@ -168,18 +156,19 @@ export function parseAuthTokens(raw: unknown): AuthSession | undefined {
 
 export function parseDeviceStart(raw: unknown): DeviceAuthStart | undefined {
 	const data = raw && typeof raw === 'object' ? raw as Record<string, unknown> : {};
-	const deviceCode = String(data.deviceCode || data.device_code || '').trim();
-	const userCode = String(data.userCode || data.user_code || '').trim();
-	const verificationUrl = String(data.verificationUrl || data.verification_uri || '').trim();
-	if (!deviceCode || !userCode || !verificationUrl) {
+	const pairingId = String(data.pairingId || data.deviceCode || data.device_code || '').trim();
+	const userCode = String(data.code || data.userCode || data.user_code || '').trim();
+	if (!pairingId || !userCode) {
 		return undefined;
 	}
+	const verificationUrl = String(data.verificationUrl || data.verification_uri || '').trim()
+		|| `${DEFAULT_ACCOUNT_URL}device/?code=${encodeURIComponent(userCode)}`;
 	return {
-		deviceCode,
+		pairingId,
 		userCode,
 		verificationUrl,
-		expiresIn: Number(data.expiresIn || data.expires_in) || 900,
-		interval: Math.max(3, Number(data.interval) || 5),
+		expiresIn: Number(data.expiresIn || data.expires_in) || 300,
+		interval: Math.max(2, Number(data.interval || data.pollInterval) || 2),
 	};
 }
 
@@ -236,10 +225,11 @@ export function isAuthCallbackUri(uri: { scheme?: string; authority?: string }, 
 		&& String(uri.authority || '') === AUTH_CALLBACK_AUTHORITY;
 }
 
-export function parseAuthCallbackQuery(query: string | undefined): { code?: string; state?: string; error?: string } {
+export function parseAuthCallbackQuery(query: string | undefined): { code?: string; deviceCode?: string; state?: string; error?: string } {
 	const params = new URLSearchParams(String(query || '').replace(/^\?/, ''));
 	return {
 		code: params.get('code') || undefined,
+		deviceCode: params.get('deviceCode') || params.get('device_code') || undefined,
 		state: params.get('state') || undefined,
 		error: params.get('error') || undefined,
 	};
@@ -254,16 +244,14 @@ export function decideAccountGate(input: { hasSession?: boolean; feature?: strin
 }
 
 export type StudioOpenIntent = {
-	intent: 'signIn' | 'signUp';
 	reason: 'account' | 'credits' | 'cloud';
 };
 
 export function parseStudioOpenIntent(raw: unknown = {}): StudioOpenIntent {
 	if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
-		return { intent: 'signIn', reason: 'account' };
+		return { reason: 'account' };
 	}
 	const data = raw as Record<string, unknown>;
 	const reason: StudioOpenIntent['reason'] = data.reason === 'cloud' || data.reason === 'credits' ? data.reason : 'account';
-	const intent: StudioOpenIntent['intent'] = data.intent === 'signIn' ? 'signIn' : 'signUp';
-	return { intent, reason };
+	return { reason };
 }

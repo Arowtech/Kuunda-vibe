@@ -13,7 +13,7 @@ import { IKuundaBillingService } from '../../kuundaBilling/common/kuundaBillingS
 import { IKuundaCloudService } from '../../kuundaCloud/common/kuundaCloudService.js';
 import { CLOUD_CONSOLE_SECTIONS, cloudConsoleSection, cloudConsoleText } from '../../kuundaCloud/common/cloudConsole.js';
 import { kuundaAccountErrorMessage, kuundaAccountLocalize, type KuundaAccountStringKey } from '../common/kuundaAccountNls.js';
-import { OAUTH_PROVIDERS, parseStudioOpenIntent, type OAuthProvider, type StudioOpenIntent } from '../common/accountPolicy.js';
+import { parseStudioOpenIntent, type StudioOpenIntent } from '../common/accountPolicy.js';
 import { IKuundaAccountService } from '../common/kuundaAccountService.js';
 
 type StudioTab = 'identity' | 'credits' | 'usage' | 'devices' | 'cloud' | 'security';
@@ -61,11 +61,12 @@ export function openKuundaAccountStudio(
 
 	const openIntent: StudioOpenIntent = parseStudioOpenIntent(options);
 	let tab: StudioTab = openIntent.reason === 'cloud' ? 'cloud' : 'identity';
-	let signingUp = openIntent.intent === 'signUp';
 	let busy = false;
 	let error = '';
-	let deviceCode = '';
+	let pairingId = '';
 	let userCode = '';
+	let verificationUrl = '';
+	let deviceExpiresAt = 0;
 	let pollTimer: ReturnType<typeof setInterval> | undefined;
 	let consoleSection = 'database';
 	let consoleProject = '';
@@ -127,47 +128,32 @@ export function openKuundaAccountStudio(
 		const story = append(grid, $('div'));
 		append(story, $('h2', {}, kuundaAccountLocalize(openIntent.reason === 'cloud' ? 'kuunda.account.signedOut.cloud.title' : 'kuunda.account.signedOut.title')));
 		append(story, $('p', {}, kuundaAccountLocalize(openIntent.reason === 'cloud' ? 'kuunda.account.signedOut.cloud.body' : 'kuunda.account.signedOut.body')));
-		append(story, $('div.kuunda-account-hint', {}, kuundaAccountLocalize('kuunda.account.device.body')));
-		const pair = append(story, $('button.kuunda-account-btn.ghost')) as HTMLButtonElement;
-		pair.type = 'button';
-		pair.textContent = userCode ? `${kuundaAccountLocalize('kuunda.account.device.waiting')} ${userCode}` : kuundaAccountLocalize('kuunda.account.device.start');
-		pair.disabled = busy;
-		content.add(addDisposableListener(pair, 'click', () => void startDevice()));
-		if (userCode) {
-			append(story, $('div.kuunda-account-code', {}, userCode));
-		}
+		append(story, $('div.kuunda-account-hint', {}, kuundaAccountLocalize('kuunda.account.web.hint')));
 
-		const form = append(grid, $('div.kuunda-account-card'));
-		if (signingUp) {
-			addField(form, 'displayName', kuundaAccountLocalize('kuunda.account.displayName'), 'text');
-		}
-		addField(form, 'email', kuundaAccountLocalize('kuunda.account.email'), 'email');
-		addField(form, 'password', kuundaAccountLocalize('kuunda.account.password'), 'password');
-		append(form, $('div.kuunda-account-hint', {}, kuundaAccountLocalize('kuunda.account.password.hint')));
+		const card = append(grid, $('div.kuunda-account-card'));
+		append(card, $('h3', {}, kuundaAccountLocalize('kuunda.account.web.title')));
+		append(card, $('p', {}, kuundaAccountLocalize('kuunda.account.web.body')));
 		if (error) {
-			append(form, $('div.kuunda-account-error', {}, error));
+			append(card, $('div.kuunda-account-error', {}, error));
 		}
-		const submit = append(form, $('button.kuunda-account-btn.primary')) as HTMLButtonElement;
-		submit.type = 'button';
-		submit.disabled = busy;
-		submit.textContent = busy ? kuundaAccountLocalize('kuunda.account.busy') : kuundaAccountLocalize(signingUp ? 'kuunda.account.signUp' : 'kuunda.account.signIn');
-		content.add(addDisposableListener(submit, 'click', () => void submitEmail(form)));
-		const toggle = append(form, $('button.kuunda-account-btn.ghost')) as HTMLButtonElement;
-		toggle.type = 'button';
-		toggle.textContent = kuundaAccountLocalize(signingUp ? 'kuunda.account.toggleSignIn' : 'kuunda.account.toggleSignUp');
-		content.add(addDisposableListener(toggle, 'click', () => {
-			signingUp = !signingUp;
-			error = '';
-			void render();
-		}));
-		append(form, $('div.kuunda-account-hint', {}, kuundaAccountLocalize('kuunda.account.oauth.hint')));
-		const oauth = append(form, $('div.kuunda-account-oauth'));
-		for (const provider of OAUTH_PROVIDERS) {
-			const button = append(oauth, $('button.kuunda-account-btn.oauth')) as HTMLButtonElement;
-			button.type = 'button';
-			button.disabled = busy;
-			button.textContent = kuundaAccountLocalize(`kuunda.account.oauth.${provider}`);
-			content.add(addDisposableListener(button, 'click', () => void startOAuth(provider)));
+		if (userCode) {
+			append(card, $('div.kuunda-account-hint', {}, kuundaAccountLocalize('kuunda.account.web.code')));
+			append(card, $('div.kuunda-account-code', {}, userCode));
+			append(card, $('div.kuunda-account-hint', {}, kuundaAccountLocalize('kuunda.account.web.waiting')));
+		}
+		const actions = append(card, $('div.kuunda-account-actions'));
+		const cta = append(actions, $('button.kuunda-account-btn.primary')) as HTMLButtonElement;
+		cta.type = 'button';
+		cta.disabled = busy;
+		cta.textContent = userCode
+			? kuundaAccountLocalize('kuunda.account.web.reopen')
+			: (busy ? kuundaAccountLocalize('kuunda.account.busy') : kuundaAccountLocalize('kuunda.account.web.cta'));
+		content.add(addDisposableListener(cta, 'click', () => void startWebSignIn()));
+		if (userCode) {
+			const cancel = append(actions, $('button.kuunda-account-btn.ghost')) as HTMLButtonElement;
+			cancel.type = 'button';
+			cancel.textContent = kuundaAccountLocalize('kuunda.account.web.cancel');
+			content.add(addDisposableListener(cancel, 'click', cancelWebSignIn));
 		}
 	}
 
@@ -424,70 +410,62 @@ export function openKuundaAccountStudio(
 		content.add(addDisposableListener(button, 'click', onClick));
 	}
 
-	function readForm(form: HTMLElement): { email: string; password: string; displayName: string } {
-		const email = (form.querySelector('input[name="email"]') as HTMLInputElement | null)?.value ?? '';
-		const password = (form.querySelector('input[name="password"]') as HTMLInputElement | null)?.value ?? '';
-		const displayName = (form.querySelector('input[name="displayName"]') as HTMLInputElement | null)?.value ?? '';
-		return { email, password, displayName };
-	}
-
-	async function submitEmail(form: HTMLElement): Promise<void> {
+	async function startWebSignIn(): Promise<void> {
 		error = '';
 		setBusy(true);
-		const values = readForm(form);
-		const result = signingUp
-			? await account.signUpEmail(values.email, values.password, values.displayName)
-			: await account.signInEmail(values.email, values.password);
-		if (!result.ok) {
-			fail(result.error);
+		if (pairingId && verificationUrl) {
+			await opener.open(URI.parse(verificationUrl), { openExternal: true });
+			busy = false;
+			void render();
 			return;
 		}
-		busy = false;
-		void render();
-	}
-
-	async function startOAuth(provider: OAuthProvider): Promise<void> {
-		error = '';
-		setBusy(true);
-		const result = await account.startOAuth(provider);
-		if (!result.ok) {
-			fail(result.error);
-			return;
-		}
-		if ('authorizationUrl' in result) {
-			await opener.open(URI.parse(result.authorizationUrl), { openExternal: true });
-		}
-		busy = false;
-		void render();
-	}
-
-	async function startDevice(): Promise<void> {
-		error = '';
-		setBusy(true);
 		const result = await account.startDevicePairing();
 		if (!result.ok) {
 			fail(result.error);
 			return;
 		}
-		deviceCode = result.device.deviceCode;
+		pairingId = result.device.pairingId;
 		userCode = result.device.userCode;
+		verificationUrl = result.device.verificationUrl;
+		deviceExpiresAt = Date.now() + result.device.expiresIn * 1000;
 		busy = false;
-		void opener.open(URI.parse(result.device.verificationUrl), { openExternal: true });
+		void opener.open(URI.parse(verificationUrl), { openExternal: true });
 		stopPoll();
 		pollTimer = setInterval(() => {
-			void account.pollDevicePairing(deviceCode).then((poll) => {
+			if (deviceExpiresAt && Date.now() > deviceExpiresAt) {
+				const err = 'expired' as const;
+				resetPairingState();
+				fail(err);
+				return;
+			}
+			void account.pollDevicePairing(pairingId).then((poll) => {
 				if ('pending' in poll && poll.ok) {
 					return;
 				}
 				if (poll.ok) {
-					stopPoll();
+					resetPairingState();
 					void render();
 					return;
 				}
-				stopPoll();
-				fail(poll.error);
+				const pollError = poll.error;
+				resetPairingState();
+				fail(pollError);
 			});
 		}, Math.max(3, result.device.interval) * 1000);
+		void render();
+	}
+
+	function resetPairingState(): void {
+		stopPoll();
+		pairingId = '';
+		userCode = '';
+		verificationUrl = '';
+		deviceExpiresAt = 0;
+	}
+
+	function cancelWebSignIn(): void {
+		resetPairingState();
+		error = '';
 		void render();
 	}
 

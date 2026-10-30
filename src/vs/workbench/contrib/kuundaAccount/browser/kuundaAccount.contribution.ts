@@ -34,13 +34,13 @@ class KuundaAccountContribution implements IWorkbenchContribution {
 		kuundaAccountLocalize('kuunda.account.tagline');
 		urlService.registerHandler({
 			handleURL: async (uri) => {
-				if (!account.isAuthCallback(uri)) {
+				if (!account.isAuthCallback(uri) || !account.hasPendingDevicePairing()) {
 					return false;
 				}
-				const result = await account.completeOAuthCallback(uri.query);
-				if (result.ok) {
+				const result = await account.completeWebCallback(uri.query);
+				if (result.ok && 'profile' in result) {
 					openKuundaAccountStudio(layout, account, billing, opener, cloud);
-				} else {
+				} else if (!result.ok) {
 					notification.error(kuundaAccountErrorMessage(result.error));
 				}
 				return true;

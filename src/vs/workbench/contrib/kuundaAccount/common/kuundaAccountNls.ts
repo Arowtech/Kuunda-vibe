@@ -41,72 +41,48 @@ export const KUUNDA_ACCOUNT_STRINGS = {
 		fr: "Votre Studio, pas un mur de connexion",
 	},
 	"kuunda.account.signedOut.body": {
-		en: "Create an account or sign in here. Local Ollama and BYOK keep working without a Kuunda account. Cloud credits, billing and provisioning need this identity.",
-		fr: "Créez un compte ou connectez-vous ici. Ollama local et le BYOK restent utilisables sans compte Kuunda. Les crédits Cloud, la facturation et le provisionnement exigent cette identité.",
+		en: "Sign in on the Kuunda site — this IDE syncs automatically. Local Ollama and BYOK keep working without a Kuunda account. Cloud credits, billing and provisioning need this identity.",
+		fr: "Connectez-vous sur le site Kuunda — cet IDE se synchronise automatiquement. Ollama local et le BYOK restent utilisables sans compte Kuunda. Les crédits Cloud, la facturation et le provisionnement exigent cette identité.",
 	},
 	"kuunda.account.signedOut.cloud.title": {
 		en: "Link this IDE to Kuunda Cloud",
 		fr: "Lier cet IDE à Kuunda Cloud",
 	},
 	"kuunda.account.signedOut.cloud.body": {
-		en: "Create your Kuunda account here. Its database is provisioned automatically through the Kuunda Cloud API, then managed in this Studio.",
-		fr: "Créez votre compte Kuunda ici. Sa base est provisionnée automatiquement via l’API Kuunda Cloud, puis gérée dans ce Studio.",
+		en: "Sign in on the Kuunda site to link this IDE. Its database is provisioned automatically through the Kuunda Cloud API, then managed in this Studio.",
+		fr: "Connectez-vous sur le site Kuunda pour lier cet IDE. Sa base est provisionnée automatiquement via l’API Kuunda Cloud, puis gérée dans ce Studio.",
 	},
-	"kuunda.account.email": {
-		en: "Email",
-		fr: "E-mail",
+	"kuunda.account.web.title": {
+		en: "Sign in on the web",
+		fr: "Connexion sur le web",
 	},
-	"kuunda.account.password": {
-		en: "Password",
-		fr: "Mot de passe",
+	"kuunda.account.web.body": {
+		en: "Kuunda opens the secure sign-in page in your browser. Sign-in, account creation and subscription live on the site — this window syncs automatically.",
+		fr: "Kuunda ouvre la page de connexion sécurisée dans votre navigateur. Connexion, création de compte et abonnement se font sur le site — cette fenêtre se synchronise automatiquement.",
 	},
-	"kuunda.account.displayName": {
-		en: "Display name",
-		fr: "Nom affiché",
+	"kuunda.account.web.cta": {
+		en: "Continue to kuunda.cloud",
+		fr: "Continuer sur kuunda.cloud",
 	},
-	"kuunda.account.password.hint": {
-		en: "At least 10 characters. Never stored in the IDE.",
-		fr: "Au moins 10 caractères. Jamais stocké dans l’IDE.",
+	"kuunda.account.web.code": {
+		en: "Confirm this code on the site if it asks:",
+		fr: "Confirmez ce code sur le site s’il le demande :",
 	},
-	"kuunda.account.signIn": {
-		en: "Sign in",
-		fr: "Se connecter",
+	"kuunda.account.web.waiting": {
+		en: "Waiting for sign-in on the web…",
+		fr: "En attente de la connexion sur le web…",
 	},
-	"kuunda.account.signUp": {
-		en: "Create account",
-		fr: "Créer le compte",
+	"kuunda.account.web.reopen": {
+		en: "Open the sign-in page again",
+		fr: "Rouvrir la page de connexion",
 	},
-	"kuunda.account.toggleSignUp": {
-		en: "New here? Create an account",
-		fr: "Nouveau ? Créer un compte",
+	"kuunda.account.web.cancel": {
+		en: "Cancel",
+		fr: "Annuler",
 	},
-	"kuunda.account.toggleSignIn": {
-		en: "Already have an account? Sign in",
-		fr: "Déjà un compte ? Se connecter",
-	},
-	"kuunda.account.oauth.google": {
-		en: "Continue with Google",
-		fr: "Continuer avec Google",
-	},
-	"kuunda.account.oauth.hint": {
-		en: "Google opens the browser, then returns to this app via kuunda-vibe://",
-		fr: "Google ouvre le navigateur, puis revient dans l’app via kuunda-vibe://",
-	},
-	"kuunda.account.device.title": {
-		en: "Pair from the web",
-		fr: "Apparier depuis le web",
-	},
-	"kuunda.account.device.body": {
-		en: "Approve this IDE on app.kuunda.cloud with a short code — no password typed in the editor.",
-		fr: "Approuvez cet IDE sur app.kuunda.cloud avec un code court — aucun mot de passe saisi dans l’éditeur.",
-	},
-	"kuunda.account.device.start": {
-		en: "Generate pairing code",
-		fr: "Générer un code d’appariement",
-	},
-	"kuunda.account.device.waiting": {
-		en: "Waiting for approval on the web…",
-		fr: "En attente d’approbation sur le web…",
+	"kuunda.account.web.hint": {
+		en: "No account yet? Create it on the site — sign-up and plans are managed there too.",
+		fr: "Pas encore de compte ? Créez-le sur le site — inscription et offres s’y gèrent aussi.",
 	},
 	"kuunda.account.tab.identity": {
 		en: "Identity",
@@ -269,8 +245,8 @@ export const KUUNDA_ACCOUNT_STRINGS = {
 		fr: "Un compte existe déjà pour cet e-mail. Connectez-vous.",
 	},
 	"kuunda.account.error.provider_unavailable": {
-		en: "This provider is not available yet. Create the account with email and password.",
-		fr: "Ce fournisseur n’est pas encore disponible. Créez le compte avec l’e-mail et le mot de passe.",
+		en: "This sign-in method is not available yet on the site.",
+		fr: "Cette méthode de connexion n’est pas encore disponible sur le site.",
 	},
 	"kuunda.account.error.offline": {
 		en: "Kuunda Cloud is unreachable. Try again when you are online.",
@@ -281,8 +257,8 @@ export const KUUNDA_ACCOUNT_STRINGS = {
 		fr: "La connexion a expiré.",
 	},
 	"kuunda.account.error.unavailable": {
-		en: "Account service is not ready yet. Email and Google must be enabled on Kuunda Cloud.",
-		fr: "Le service de compte n’est pas encore prêt. L’e-mail et Google doivent être activés sur Kuunda Cloud.",
+		en: "Account service is not ready yet. Web sign-in must be enabled on Kuunda Cloud.",
+		fr: "Le service de compte n’est pas encore prêt. La connexion web doit être activée sur Kuunda Cloud.",
 	},
 	"kuunda.account.error.strict_offline": {
 		en: "Strict offline mode blocks account sign-in.",
@@ -296,17 +272,13 @@ export const KUUNDA_ACCOUNT_STRINGS = {
 		en: "This sign-in step expired. Start again.",
 		fr: "Cette étape a expiré. Recommencez.",
 	},
-	"kuunda.account.statusbar.signedOut": {
-		en: "Kuunda: sign in",
-		fr: "Kuunda : connexion",
-	},
 	"kuunda.account.home.cta": {
 		en: "Open Kuunda Studio",
 		fr: "Ouvrir le Studio Kuunda",
 	},
 	"kuunda.account.home.cta.detail": {
-		en: "Email or Google — the same account as the web.",
-		fr: "E-mail ou Google — le même compte que le web.",
+		en: "Sign in on the web — one account for the IDE and the site.",
+		fr: "Connexion sur le web — un seul compte pour l’IDE et le site.",
 	},
 	"kuunda.account.busy": {
 		en: "Working…",
