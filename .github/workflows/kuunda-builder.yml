@@ -126,7 +126,7 @@ jobs:
     name: macOS arm64 unsigned DMG
     needs: plan
     if: ${{ github.event_name == 'push' || (inputs.compile && (inputs.platform == 'win32-and-darwin' || inputs.platform == 'darwin-arm64')) }}
-    runs-on: macos-14
+    runs-on: macos-15
     timeout-minutes: 360
     env:
       VSCODE_ARCH: arm64
@@ -153,7 +153,7 @@ jobs:
     name: macOS x64 unsigned DMG
     needs: plan
     if: ${{ github.event_name != 'push' && inputs.compile && inputs.platform == 'darwin-x64' }}
-    runs-on: macos-13
+    runs-on: macos-15-intel
     timeout-minutes: 360
     env:
       VSCODE_ARCH: x64
