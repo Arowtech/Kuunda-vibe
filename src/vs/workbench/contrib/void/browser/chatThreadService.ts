@@ -77,6 +77,9 @@ const findStagingSelectionIndex = (currentSelections: StagingSelectionItem[] | u
 		if (s.type === 'Folder' && newSelection.type === 'Folder') {
 			return i
 		}
+		if (s.type === 'Image' && newSelection.type === 'Image') {
+			return i
+		}
 	}
 	return null
 }
@@ -1424,7 +1427,9 @@ We only need to do it for files that were edited since `from`, ie files between 
 		const currSelns: StagingSelectionItem[] = _chatSelections ?? thread.state.stagingSelections
 
 		const userMessageContent = await chat_userMessageContent(instructions, currSelns, { directoryStrService: this._directoryStringService, fileService: this._fileService }) // user message + names of files (NOT content)
-		const userHistoryElt: ChatMessage = { role: 'user', content: userMessageContent, displayContent: instructions, selections: currSelns, state: defaultMessageState }
+		const attachmentLabel = currSelns.map(s => s.uri.fsPath.split(/[/\\]/).pop() || '').filter(Boolean).join(', ')
+		const displayContent = instructions.trim() ? instructions : (attachmentLabel || instructions)
+		const userHistoryElt: ChatMessage = { role: 'user', content: userMessageContent, displayContent, selections: currSelns, state: defaultMessageState }
 		this._addMessageToThread(threadId, userHistoryElt)
 
 		this._setThreadState(threadId, { currCheckpointIdx: null }) // no longer at a checkpoint because started streaming

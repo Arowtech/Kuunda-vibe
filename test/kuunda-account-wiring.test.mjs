@@ -19,20 +19,23 @@ describe('Phase 11 — branchement compte Studio', () => {
 		assert.ok(accountAt >= 0 && billingAt > accountAt);
 	});
 
-	it('le Studio, le protocole OAuth et le coffre de session sont branchés', () => {
+	it('le Studio, l’appairage d’appareil et le coffre de session sont branchés', () => {
 		const contrib = read('src/vs/workbench/contrib/kuundaAccount/browser/kuundaAccount.contribution.ts');
 		assert.match(contrib, /kuunda\.account\.openStudio/);
 		assert.match(contrib, /MenuId\.AccountsContext/);
 		assert.match(contrib, /registerHandler/);
-		assert.match(contrib, /completeOAuthCallback/);
+		assert.match(contrib, /isAuthCallback/);
+		assert.match(contrib, /hasPendingDevicePairing/);
+		assert.match(contrib, /completeWebCallback/);
 		const service = read('src/vs/workbench/contrib/kuundaAccount/common/kuundaAccountService.ts');
 		assert.match(service, /ISecretStorageService/);
-		assert.match(service, /\/v1\/auth\/signup/);
-		assert.match(service, /\/v1\/auth\/login/);
-		assert.match(service, /\/v1\/auth\/oauth\/start/);
-		assert.match(service, /\/v1\/auth\/device\/start/);
+		assert.match(service, /\/v1\/auth\/device-pairing\/start/);
+		assert.match(service, /\/v1\/auth\/device-pairing\/poll/);
+		assert.match(service, /\/v1\/auth\/web-handoff/);
+		assert.match(service, /\/v1\/auth\/refresh/);
 		assert.match(service, /\/v1\/account\/usage/);
 		assert.match(service, /decideSend\('auth'\)/);
+		assert.doesNotMatch(service, /\/v1\/auth\/(signup|login|oauth\/start|device\/start)/);
 		assert.doesNotMatch(service, /sk_|service_role|whsec_/);
 		const studio = read('src/vs/workbench/contrib/kuundaAccount/browser/kuundaAccountStudio.ts');
 		assert.match(studio, /openKuundaAccountStudio/);
@@ -40,8 +43,12 @@ describe('Phase 11 — branchement compte Studio', () => {
 		assert.match(studio, /signedOut\.cloud/);
 		assert.match(studio, /activeStudio/);
 		assert.match(contrib, /options\?: unknown/);
-		assert.match(studio, /oauth\.\$\{provider\}/);
-		assert.match(studio, /\['google', 'github', 'apple'\]/);
+		assert.match(studio, /startDevicePairing/);
+		assert.match(studio, /pollDevicePairing/);
+		assert.match(studio, /createWebHandoff/);
+		assert.match(studio, /userCode/);
+		assert.match(studio, /verificationUrl/);
+		assert.doesNotMatch(studio, /github|apple/);
 		assert.match(studio, /IKuundaBillingService/);
 		const watermark = read('src/vs/workbench/browser/parts/editor/editorGroupWatermark.ts');
 		assert.match(watermark, /appendKuundaHomeAccountCta/);

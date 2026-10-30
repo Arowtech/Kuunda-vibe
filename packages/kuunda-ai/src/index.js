@@ -75,6 +75,14 @@ export {
 	formatProjectRules,
 } from './project-rules.js';
 export {
+	SKILL_FILE_NAME,
+	PROJECT_SKILLS_DIR,
+	sanitizeSkillId,
+	parseSkillFile,
+	starterSkill,
+	formatSkills,
+} from './skill-policy.js';
+export {
 	MAX_GIT_CONTEXT_CHARS,
 	parseGitStatusPorcelain,
 	formatGitSnapshot,
@@ -118,6 +126,7 @@ export {
 	formatCloudPanel,
 	serializeManifestWithCloud,
 	sanitizeProjectRef,
+	kuundaGitRemoteUrl,
 	sanitizeOwnerId,
 	sanitizePlanId,
 	sanitizeLinkCode,
@@ -236,6 +245,7 @@ export {
 	USAGE_FEATURES,
 	MIN_PASSWORD_LENGTH,
 	AUTH_CALLBACK_AUTHORITY,
+	WEB_OAUTH_REDIRECT_URI,
 	isValidEmail,
 	isStrongPassword,
 	normalizeAuthProvider,

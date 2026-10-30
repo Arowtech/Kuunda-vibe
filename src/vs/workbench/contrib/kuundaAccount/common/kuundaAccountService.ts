@@ -5,6 +5,8 @@
 
 import { Disposable } from '../../../../base/common/lifecycle.js';
 import { Emitter, Event } from '../../../../base/common/event.js';
+import { generateUuid } from '../../../../base/common/uuid.js';
+import { isMacintosh, isWindows } from '../../../../base/common/platform.js';
 import { InstantiationType, registerSingleton } from '../../../../platform/instantiation/common/extensions.js';
 import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
 import { IStorageService, StorageScope, StorageTarget } from '../../../../platform/storage/common/storage.js';
@@ -19,23 +21,20 @@ import {
 	AuthErrorCode,
 	DEFAULT_API_BASE_URL,
 	DeviceAuthStart,
-	OAuthProvider,
 	classifyAuthError,
 	isAuthCallbackUri,
-	isStrongPassword,
-	isValidEmail,
 	parseAccountProfile,
 	parseAccountSessions,
 	parseAuthCallbackQuery,
 	parseAuthTokens,
 	parseDeviceStart,
 	parseUsageSnapshot,
-	redirectUriForProtocol,
 } from './accountPolicy.js';
 
 const ACCESS_KEY = 'kuunda.account.accessToken';
 const REFRESH_KEY = 'kuunda.account.refreshToken';
 const PROFILE_KEY = 'kuunda.account.profile';
+const DEVICE_ID_KEY = 'kuunda.account.deviceId';
 
 export type AccountAuthResult = { ok: true; profile: AccountProfile } | { ok: false; error: AuthErrorCode };
 
@@ -43,14 +42,18 @@ export interface IKuundaAccountService {
 	readonly _serviceBrand: undefined;
 	readonly onDidChangeSession: Event<AccountProfile | undefined>;
 	getSession(): AccountProfile | undefined;
+	/** The server resolved this session to the same user id as the web account. */
+	relinkUserId(userId: string): void;
 	getAccessToken(): Promise<string | undefined>;
-	signInEmail(email: string, password: string): Promise<AccountAuthResult>;
-	signUpEmail(email: string, password: string, displayName?: string): Promise<AccountAuthResult>;
-	startOAuth(provider: OAuthProvider): Promise<AccountAuthResult | { ok: true; authorizationUrl: string }>;
-	completeOAuthCallback(query: string | undefined): Promise<AccountAuthResult>;
+	/**
+	 * Handles a `kuunda-vibe://auth/...` deep link fired by the website after the
+	 * user signs in there. Returns `pending` when the session is not ready yet.
+	 */
+	completeWebCallback(query: string | undefined): Promise<AccountAuthResult | { ok: true; pending: true }>;
 	isAuthCallback(uri: { scheme?: string; authority?: string }): boolean;
+	hasPendingDevicePairing(): boolean;
 	startDevicePairing(): Promise<{ ok: true; device: DeviceAuthStart } | { ok: false; error: AuthErrorCode }>;
-	pollDevicePairing(deviceCode: string): Promise<AccountAuthResult | { ok: true; pending: true }>;
+	pollDevicePairing(pairingId: string): Promise<AccountAuthResult | { ok: true; pending: true }>;
 	refreshProfile(): Promise<AccountProfile | undefined>;
 	loadUsage(): Promise<AccountUsageSnapshot | undefined>;
 	listSessions(): Promise<AccountDeviceSession[]>;
@@ -61,13 +64,13 @@ export interface IKuundaAccountService {
 
 export const IKuundaAccountService = createDecorator<IKuundaAccountService>('kuundaAccountService');
 
-type PendingOAuth = { provider: OAuthProvider; verifier: string; state: string };
+type PendingDevice = { pairingId: string; challenge: string; expiresAt: number };
 
 export class KuundaAccountService extends Disposable implements IKuundaAccountService {
 	declare readonly _serviceBrand: undefined;
 
 	private profile: AccountProfile | undefined;
-	private pendingOAuth: PendingOAuth | undefined;
+	private pendingDevice: PendingDevice | undefined;
 	private readonly _onDidChangeSession = this._register(new Emitter<AccountProfile | undefined>());
 	readonly onDidChangeSession = this._onDidChangeSession.event;
 
@@ -86,6 +89,16 @@ export class KuundaAccountService extends Disposable implements IKuundaAccountSe
 		return this.profile;
 	}
 
+	relinkUserId(userId: string): void {
+		const next = userId.trim();
+		if (!this.profile || !next || this.profile.userId === next) {
+			return;
+		}
+		this.profile = { ...this.profile, userId: next };
+		this.storageService.store(PROFILE_KEY, JSON.stringify(this.profile), StorageScope.APPLICATION, StorageTarget.USER);
+		this._onDidChangeSession.fire(this.profile);
+	}
+
 	async getAccessToken(): Promise<string | undefined> {
 		const token = await this.secretStorageService.get(ACCESS_KEY);
 		return token?.trim() || undefined;
@@ -95,66 +108,26 @@ export class KuundaAccountService extends Disposable implements IKuundaAccountSe
 		return isAuthCallbackUri(uri, this.productService.urlProtocol);
 	}
 
-	async signInEmail(email: string, password: string): Promise<AccountAuthResult> {
-		const gate = this.gateCredentials(email, password);
-		if (gate) {
-			return gate;
-		}
-		return this.postSession('/v1/auth/login', { email: email.trim(), password });
+	hasPendingDevicePairing(): boolean {
+		return !!this.pendingDevice && this.pendingDevice.expiresAt > Date.now();
 	}
 
-	async signUpEmail(email: string, password: string, displayName?: string): Promise<AccountAuthResult> {
-		const gate = this.gateCredentials(email, password);
-		if (gate) {
-			return gate;
-		}
-		return this.postSession('/v1/auth/signup', { email: email.trim(), password, displayName: displayName?.trim() || undefined });
-	}
-
-	async startOAuth(provider: OAuthProvider): Promise<AccountAuthResult | { ok: true; authorizationUrl: string }> {
-		const blocked = this.blocked();
-		if (blocked) {
-			return blocked;
-		}
-		try {
-			const pkce = await createPkce();
-			this.pendingOAuth = { provider, verifier: pkce.verifier, state: pkce.state };
-			const raw = await this.request('/v1/auth/oauth/start', {
-				method: 'POST',
-				json: {
-					provider,
-					redirectUri: redirectUriForProtocol(this.productService.urlProtocol),
-					codeChallenge: pkce.challenge,
-					state: pkce.state,
-				},
-			});
-			const authorizationUrl = String((raw as { authorizationUrl?: unknown })?.authorizationUrl || (raw as { url?: unknown })?.url || '').trim();
-			if (!authorizationUrl) {
-				return { ok: false, error: 'unavailable' };
-			}
-			return { ok: true, authorizationUrl };
-		} catch (error) {
-			return { ok: false, error: classifyAuthError(error) };
-		}
-	}
-
-	async completeOAuthCallback(query: string | undefined): Promise<AccountAuthResult> {
+	async completeWebCallback(query: string | undefined): Promise<AccountAuthResult | { ok: true; pending: true }> {
 		const parsed = parseAuthCallbackQuery(query);
 		if (parsed.error) {
-			this.pendingOAuth = undefined;
+			this.pendingDevice = undefined;
 			return { ok: false, error: classifyAuthError(parsed.error) };
 		}
-		const pending = this.pendingOAuth;
-		if (!pending || !parsed.code || parsed.state !== pending.state) {
+		const pending = this.pendingDevice;
+		if (!pending || pending.expiresAt <= Date.now()) {
 			return { ok: false, error: 'expired' };
 		}
-		this.pendingOAuth = undefined;
-		return this.postSession('/v1/auth/oauth/finish', {
-			provider: pending.provider,
-			code: parsed.code,
-			codeVerifier: pending.verifier,
-			state: pending.state,
-		});
+		// The site may echo the pairing id back; the challenge never leaves this device.
+		const code = parsed.deviceCode || parsed.code;
+		if (code && code !== pending.pairingId) {
+			return { ok: false, error: 'expired' };
+		}
+		return this.pollDevicePairing(pending.pairingId);
 	}
 
 	async startDevicePairing(): Promise<{ ok: true; device: DeviceAuthStart } | { ok: false; error: AuthErrorCode }> {
@@ -163,29 +136,54 @@ export class KuundaAccountService extends Disposable implements IKuundaAccountSe
 			return blocked;
 		}
 		try {
-			const raw = await this.request('/v1/auth/device/start', { method: 'POST', json: { client: 'ide' } });
+			const challenge = toBase64Url(crypto.getRandomValues(new Uint8Array(32)));
+			const platform = isWindows ? 'windows' : isMacintosh ? 'macos' : 'linux';
+			const raw = await this.request('/v1/auth/device-pairing/start', {
+				method: 'POST',
+				json: { deviceId: await this.deviceId(), label: `Kuunda Vibe (${platform})`, platform, challenge },
+			});
 			const device = parseDeviceStart(raw);
 			if (!device) {
 				return { ok: false, error: 'unavailable' };
 			}
+			this.pendingDevice = { pairingId: device.pairingId, challenge, expiresAt: Date.now() + device.expiresIn * 1000 };
 			return { ok: true, device };
 		} catch (error) {
 			return { ok: false, error: classifyAuthError(error) };
 		}
 	}
 
-	async pollDevicePairing(deviceCode: string): Promise<AccountAuthResult | { ok: true; pending: true }> {
+	async pollDevicePairing(pairingId: string): Promise<AccountAuthResult | { ok: true; pending: true }> {
+		const blocked = this.blocked();
+		if (blocked) {
+			return blocked;
+		}
+		const pending = this.pendingDevice;
+		if (!pending || pending.pairingId !== pairingId) {
+			return { ok: false, error: 'expired' };
+		}
+		if (pending.expiresAt <= Date.now()) {
+			this.pendingDevice = undefined;
+			return { ok: false, error: 'expired' };
+		}
 		try {
-			const raw = await this.request('/v1/auth/device/poll', { method: 'POST', json: { deviceCode } });
-			if (raw && typeof raw === 'object' && (raw as { pending?: unknown }).pending === true) {
+			const raw = await this.request('/v1/auth/device-pairing/poll', { method: 'POST', json: { pairingId, challenge: pending.challenge } });
+			const status = String((raw as { status?: unknown })?.status || '');
+			if (status === 'pending') {
 				return { ok: true, pending: true };
 			}
-			const session = parseAuthTokens(raw);
-			if (!session) {
-				return { ok: true, pending: true };
+			if (status === 'approved') {
+				const session = parseAuthTokens(raw);
+				if (!session) {
+					return { ok: true, pending: true };
+				}
+				this.pendingDevice = undefined;
+				await this.persistSession(session);
+				void this.refreshProfile();
+				return { ok: true, profile: session.profile };
 			}
-			await this.persistSession(session);
-			return { ok: true, profile: session.profile };
+			this.pendingDevice = undefined;
+			return { ok: false, error: status === 'denied' ? 'oauth_denied' : 'expired' };
 		} catch (error) {
 			const code = classifyAuthError(error);
 			if (code === 'invalid_email' || code === 'expired') {
@@ -280,18 +278,14 @@ export class KuundaAccountService extends Disposable implements IKuundaAccountSe
 		await this.clearLocal();
 	}
 
-	private gateCredentials(email: string, password: string): AccountAuthResult | undefined {
-		const blocked = this.blocked();
-		if (blocked) {
-			return blocked;
+	private async deviceId(): Promise<string> {
+		const existing = this.storageService.get(DEVICE_ID_KEY, StorageScope.APPLICATION);
+		if (existing) {
+			return existing;
 		}
-		if (!isValidEmail(email)) {
-			return { ok: false, error: 'invalid_email' };
-		}
-		if (!isStrongPassword(password)) {
-			return { ok: false, error: 'weak_password' };
-		}
-		return undefined;
+		const id = generateUuid();
+		this.storageService.store(DEVICE_ID_KEY, id, StorageScope.APPLICATION, StorageTarget.MACHINE);
+		return id;
 	}
 
 	private blocked(): { ok: false; error: AuthErrorCode } | undefined {
@@ -299,19 +293,6 @@ export class KuundaAccountService extends Disposable implements IKuundaAccountSe
 			return { ok: false, error: 'strict_offline' };
 		}
 		return undefined;
-	}
-
-	private async postSession(path: string, json: object): Promise<AccountAuthResult> {
-		try {
-			const session = parseAuthTokens(await this.request(path, { method: 'POST', json }));
-			if (!session) {
-				return { ok: false, error: 'unavailable' };
-			}
-			await this.persistSession(session);
-			return { ok: true, profile: session.profile };
-		} catch (error) {
-			return { ok: false, error: classifyAuthError(error) };
-		}
 	}
 
 	private async persistSession(session: { accessToken: string; refreshToken?: string; profile: AccountProfile }): Promise<void> {
@@ -329,7 +310,7 @@ export class KuundaAccountService extends Disposable implements IKuundaAccountSe
 		await this.secretStorageService.delete(REFRESH_KEY);
 		this.storageService.remove(PROFILE_KEY, StorageScope.APPLICATION);
 		this.profile = undefined;
-		this.pendingOAuth = undefined;
+		this.pendingDevice = undefined;
 		this._onDidChangeSession.fire(undefined);
 	}
 
@@ -361,6 +342,7 @@ export class KuundaAccountService extends Disposable implements IKuundaAccountSe
 	private async tryRefresh(): Promise<void> {
 		const refreshToken = await this.secretStorageService.get(REFRESH_KEY);
 		if (!refreshToken) {
+			await this.clearLocal();
 			return;
 		}
 		try {
@@ -381,6 +363,11 @@ export class KuundaAccountService extends Disposable implements IKuundaAccountSe
 		const token = await this.getAccessToken();
 		if (token) {
 			headers.set('Authorization', `Bearer ${token}`);
+			// Device-bound sessions (5-part tokens) must prove the pairing to the API.
+			const parts = token.split('.');
+			if (parts.length === 5) {
+				headers.set('X-Kuunda-Device', parts[2]);
+			}
 		}
 		const response = await fetchWithTimeout(`${DEFAULT_API_BASE_URL}${path}`, {
 			method: init.method ?? 'GET',
@@ -388,11 +375,21 @@ export class KuundaAccountService extends Disposable implements IKuundaAccountSe
 			body: init.json !== undefined ? JSON.stringify(init.json) : undefined,
 		});
 		if (!response.ok) {
+			let detail = '';
+			try {
+				const data = await response.json() as { error?: unknown };
+				const code = String(data?.error || '').trim().toLowerCase();
+				if (/^[a-z0-9_]{1,64}$/.test(code)) {
+					detail = `:${code}`;
+				}
+			} catch {
+				detail = '';
+			}
 			const network = classifyNetworkError(new Error(`platform_http_${response.status}`), { status: response.status });
 			if (network === 'timeout') {
 				throw new Error('platform_timeout');
 			}
-			throw new Error(`platform_http_${response.status}`);
+			throw new Error(`platform_http_${response.status}${detail}`);
 		}
 		if (response.status === 204) {
 			return null;
@@ -409,13 +406,4 @@ function toBase64Url(bytes: Uint8Array): string {
 		binary += String.fromCharCode(byte);
 	}
 	return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
-}
-
-async function createPkce(): Promise<{ verifier: string; challenge: string; state: string }> {
-	const verifierBytes = crypto.getRandomValues(new Uint8Array(32));
-	const stateBytes = crypto.getRandomValues(new Uint8Array(16));
-	const verifier = toBase64Url(verifierBytes);
-	const state = toBase64Url(stateBytes);
-	const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier));
-	return { verifier, challenge: toBase64Url(new Uint8Array(digest)), state };
 }

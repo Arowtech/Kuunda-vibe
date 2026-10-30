@@ -4,6 +4,7 @@
  *--------------------------------------------------------------------------------------*/
 // Modified 2026-09-17 by Arowtech: landing prompt suggests .projectrules.
 // Modified 2026-09-18 by Arowtech: chat composer and send control follow Kuunda Cloud cards.
+// Modified 2026-10-24 by Arowtech: context ring, file and image attach, voice dictation.
 
 import React, { ButtonHTMLAttributes, FormEvent, FormHTMLAttributes, Fragment, KeyboardEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
@@ -13,6 +14,9 @@ import { ScrollType } from '../../../../../../../editor/common/editorCommon.js';
 
 import { ChatMarkdownRender, ChatMessageLocation, getApplyBoxId } from '../markdown/ChatMarkdownRender.js';
 import { URI } from '../../../../../../../base/common/uri.js';
+import { VSBuffer } from '../../../../../../../base/common/buffer.js';
+import { CancellationTokenSource } from '../../../../../../../base/common/cancellation.js';
+import { getPathForFile } from '../../../../../../../platform/dnd/browser/dnd.js';
 import { IDisposable } from '../../../../../../../base/common/lifecycle.js';
 import { ErrorDisplay } from './ErrorDisplay.js';
 import { BlockCode, TextAreaFns, VoidCustomDropdownBox, VoidInputBox2, VoidSlider, VoidSwitch, VoidDiffEditor } from '../util/inputs.js';
@@ -23,8 +27,9 @@ import { VOID_OPEN_SETTINGS_ACTION_ID } from '../../../voidSettingsPane.js';
 import { ChatMode, displayInfoOfProviderName, FeatureName, isFeatureNameDisabled } from '../../../../../../../workbench/contrib/void/common/voidSettingsTypes.js';
 import { ICommandService } from '../../../../../../../platform/commands/common/commands.js';
 import { WarningBox } from '../void-settings-tsx/WarningBox.js';
-import { getModelCapabilities, getIsReasoningEnabledState } from '../../../../common/modelCapabilities.js';
-import { AlertTriangle, File, Ban, Check, ChevronRight, Dot, FileIcon, Pencil, Undo, Undo2, X, Flag, Copy as CopyIcon, Info, CirclePlus, Ellipsis, CircleEllipsis, Folder, ALargeSmall, TypeOutline, Text } from 'lucide-react';
+import { getModelCapabilities, getIsReasoningEnabledState, kuundaChatModelById } from '../../../../common/modelCapabilities.js';
+import { SpeechToTextStatus } from '../../../../../speech/common/speechService.js';
+import { AlertTriangle, File, Ban, Check, ChevronRight, Dot, FileIcon, Pencil, Undo, Undo2, X, Flag, Copy as CopyIcon, Info, CirclePlus, Ellipsis, CircleEllipsis, Folder, ALargeSmall, TypeOutline, Text, Paperclip, Mic, Image as ImageIcon } from 'lucide-react';
 import { ChatMessage, CheckpointEntry, StagingSelectionItem, ToolMessage } from '../../../../common/chatThreadServiceTypes.js';
 import { approvalTypeOfBuiltinToolName, BuiltinToolCallParams, BuiltinToolName, ToolName, LintErrorItem, ToolApprovalType, toolApprovalTypes } from '../../../../common/toolsServiceTypes.js';
 import { CopyButton, EditToolAcceptRejectButtonsHTML, IconShell1, JumpToFileButton, JumpToTerminalButton, StatusIndicator, StatusIndicatorForApplyButton, useApplyStreamState, useEditToolStreamState } from '../markdown/ApplyBlockHoverButtons.js';
@@ -37,6 +42,7 @@ import { ToolApprovalTypeSwitch } from '../void-settings-tsx/Settings.js';
 
 import { persistentTerminalNameOfId } from '../../../terminalToolService.js';
 import { removeMCPToolNamePrefix } from '../../../../common/mcpServiceTypes.js';
+import { isWindows } from '../../../../../../../base/common/platform.js';
 
 
 
@@ -319,6 +325,8 @@ interface VoidChatAreaProps {
 	onClickAnywhere?: () => void;
 	// Optional close button
 	onClose?: () => void;
+	onDropFiles?: (files: File[]) => void;
+	composerActions?: React.ReactNode;
 
 	featureName: FeatureName;
 }
@@ -340,7 +348,10 @@ export const VoidChatArea: React.FC<VoidChatAreaProps> = ({
 	setSelections,
 	featureName,
 	loadingIcon,
+	onDropFiles,
+	composerActions,
 }) => {
+	const [dragOver, setDragOver] = useState(false)
 	return (
 		<div
 			ref={divRef}
@@ -352,12 +363,42 @@ export const VoidChatArea: React.FC<VoidChatAreaProps> = ({
 				transition-all duration-200
 				border border-void-border-3 focus-within:border-[var(--vscode-focusBorder)] hover:border-[var(--vscode-focusBorder)]
 				max-h-[80vh] overflow-y-auto
+				${dragOver ? 'border-[var(--vscode-focusBorder)]' : ''}
                 ${className}
             `}
 			onClick={(e) => {
 				onClickAnywhere?.()
 			}}
+			onDragEnter={(e) => {
+				if (!onDropFiles || !Array.from(e.dataTransfer.types).includes('Files')) return
+				e.preventDefault()
+				setDragOver(true)
+			}}
+			onDragOver={(e) => {
+				if (!onDropFiles || !Array.from(e.dataTransfer.types).includes('Files')) return
+				e.preventDefault()
+				setDragOver(true)
+			}}
+			onDragLeave={(e) => {
+				if (e.currentTarget.contains(e.relatedTarget as Node)) return
+				setDragOver(false)
+			}}
+			onDrop={(e) => {
+				if (!onDropFiles) return
+				e.preventDefault()
+				setDragOver(false)
+				const files = Array.from(e.dataTransfer.files || [])
+				if (files.length) onDropFiles(files)
+			}}
+			onPaste={(e) => {
+				if (!onDropFiles) return
+				const files = Array.from(e.clipboardData?.files || [])
+				if (!files.length) return
+				e.preventDefault()
+				onDropFiles(files)
+			}}
 		>
+			{dragOver && <div className='absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-void-bg-1/90 text-sm text-void-fg-1 pointer-events-none'>Déposer pour joindre</div>}
 			{/* Selections section */}
 			{showSelections && selections && setSelections && (
 				<SelectedFiles
@@ -385,7 +426,7 @@ export const VoidChatArea: React.FC<VoidChatAreaProps> = ({
 			</div>
 
 			{/* Bottom row */}
-			<div className='flex flex-row justify-between items-end gap-1'>
+			<div className='flex flex-row flex-wrap justify-between items-end gap-1'>
 				{showModelDropdown && (
 					<div className='flex flex-col gap-y-1'>
 						<ReasoningOptionSlider featureName={featureName} />
@@ -397,7 +438,9 @@ export const VoidChatArea: React.FC<VoidChatAreaProps> = ({
 					</div>
 				)}
 
-				<div className="flex items-center gap-2">
+				<div className="flex items-center gap-1">
+
+					{composerActions}
 
 					{isStreaming && loadingIcon}
 
@@ -578,6 +621,27 @@ export const voidOpenFileFn = (
 };
 
 
+const ImageSelectionThumb = ({ uri, mimeType }: { uri: URI; mimeType: string }) => {
+	const accessor = useAccessor()
+	const [src, setSrc] = useState<string | null>(null)
+	useEffect(() => {
+		let url = ''
+		let cancelled = false
+		accessor.get('IFileService').readFile(uri).then(file => {
+			if (cancelled) return
+			const copy = new Uint8Array(file.value.buffer)
+			url = URL.createObjectURL(new Blob([copy], { type: mimeType }))
+			setSrc(url)
+		}).catch(() => { })
+		return () => {
+			cancelled = true
+			if (url) URL.revokeObjectURL(url)
+		}
+	}, [uri.fsPath, mimeType])
+	if (!src) return <ImageIcon size={10} />
+	return <img src={src} alt="" className='w-4 h-4 object-cover rounded-[1px]' />
+}
+
 export const SelectedFiles = (
 	{ type, selections, setSelections, showProspectiveSelections, messageIdx, }:
 		| { type: 'past', selections: StagingSelectionItem[]; setSelections?: undefined, showProspectiveSelections?: undefined, messageIdx: number, }
@@ -652,13 +716,15 @@ export const SelectedFiles = (
 				const thisKey = selection.type === 'CodeSelection' ? selection.type + selection.language + selection.range + selection.state.wasAddedAsCurrentFile + selection.uri.fsPath
 					: selection.type === 'File' ? selection.type + selection.language + selection.state.wasAddedAsCurrentFile + selection.uri.fsPath
 						: selection.type === 'Folder' ? selection.type + selection.language + selection.state + selection.uri.fsPath
-							: i
+							: selection.type === 'Image' ? selection.type + selection.mimeType + selection.uri.fsPath
+								: i
 
 				const SelectionIcon = (
 					selection.type === 'File' ? File
 						: selection.type === 'Folder' ? Folder
 							: selection.type === 'CodeSelection' ? Text
-								: (undefined as never)
+								: selection.type === 'Image' ? ImageIcon
+									: (undefined as never)
 				)
 
 				return <div // container for summarybox and code
@@ -690,7 +756,11 @@ export const SelectedFiles = (
 								transition-all duration-150
 							`}
 							onClick={() => {
-								if (type !== 'staging') return; // (never)
+								if (type !== 'staging') {
+									if (selection.type === 'File' || selection.type === 'Image') voidOpenFileFn(selection.uri, accessor)
+									else if (selection.type === 'CodeSelection') voidOpenFileFn(selection.uri, accessor, selection.range)
+									return
+								}
 								if (isThisSelectionProspective) { // add prospective selection to selections
 									setSelections([...selections, selection])
 								}
@@ -714,9 +784,15 @@ export const SelectedFiles = (
 								else if (selection.type === 'Folder') {
 									// TODO!!! reveal in tree
 								}
+								else if (selection.type === 'Image') {
+									voidOpenFileFn(selection.uri, accessor);
+								}
 							}}
 						>
-							{<SelectionIcon size={10} />}
+							{selection.type === 'Image'
+								? <ImageSelectionThumb uri={selection.uri} mimeType={selection.mimeType} />
+								: <SelectionIcon size={10} />
+							}
 
 							{ // file name and range
 								getBasename(selection.uri.fsPath)
@@ -1155,7 +1231,7 @@ const UserMessageComponent = ({ chatMessage, messageIdx, isCheckpointGhost, curr
 				ref={setTextAreaRef}
 				className='min-h-[81px] max-h-[500px] px-0.5'
 				placeholder="Edit your message..."
-				onChangeText={(text) => setIsDisabled(!text)}
+				onChangeText={(text) => setIsDisabled(!text && stagingSelections.length === 0)}
 				onFocus={() => {
 					setIsFocused(true)
 					chatThreadsService.setCurrentlyFocusedMessageIdx(messageIdx);
@@ -2879,6 +2955,432 @@ const EditToolSoFar = ({ toolCallSoFar, }: { toolCallSoFar: RawToolCallObj }) =>
 }
 
 
+const MAX_ATTACHMENTS = 8
+const MAX_IMAGE_BYTES = 4 * 1024 * 1024
+const MAX_FILE_BYTES = 8 * 1024 * 1024
+const IMAGE_CONTEXT_TOKENS = 1500
+
+function imageMimeOf(file: File): string | null {
+	const ext = file.name.split('.').pop()?.toLowerCase() ?? ''
+	const fromExt: Record<string, string> = {
+		png: 'image/png',
+		jpg: 'image/jpeg',
+		jpeg: 'image/jpeg',
+		gif: 'image/gif',
+		webp: 'image/webp',
+		bmp: 'image/bmp',
+	}
+	if (fromExt[ext]) return fromExt[ext]
+	if (file.type.startsWith('image/') && file.type !== 'image/svg+xml') return file.type
+	return null
+}
+
+function formatTokenCount(n: number): string {
+	const value = Math.max(0, n)
+	if (value < 1000) return String(Math.round(value))
+	if (value < 10_000) return `${(value / 1000).toFixed(1).replace('.0', '')} k`
+	if (value < 1_000_000) return `${Math.round(value / 1000)} k`
+	return `${(value / 1_000_000).toFixed(1).replace('.0', '')} M`
+}
+
+function charsOfMessage(message: ChatMessage): number {
+	if (message.role === 'user') return message.content?.length ?? 0
+	if (message.role === 'assistant') return (message.displayContent?.length ?? 0) + (message.reasoning?.length ?? 0)
+	if (message.role === 'tool') return message.content?.length ?? 0
+	return 0
+}
+
+function imageCountOfMessages(messages: ChatMessage[]): number {
+	let count = 0
+	for (const message of messages) {
+		if (message.role !== 'user') continue
+		for (const selection of message.selections ?? []) {
+			if (selection.type === 'Image') count += 1
+		}
+	}
+	return count
+}
+
+async function materializeChatFile(file: File, fileService: { exists: (resource: URI) => Promise<boolean>; createFolder: (resource: URI) => Promise<unknown>; writeFile: (resource: URI, buffer: VSBuffer) => Promise<unknown> }, tmpDir: URI, index: number): Promise<URI> {
+	const localPath = getPathForFile(file) || (file as File & { path?: string }).path
+	if (localPath && !imageMimeOf(file)) return URI.file(localPath)
+	const bytes = new Uint8Array(await file.arrayBuffer())
+	const dir = URI.joinPath(tmpDir, 'kuunda-chat-uploads')
+	if (!(await fileService.exists(dir))) await fileService.createFolder(dir)
+	const safe = file.name.replace(/[^\w.\-]+/g, '_') || 'fichier'
+	const uri = URI.joinPath(dir, `${Date.now()}-${index}-${safe}`)
+	await fileService.writeFile(uri, VSBuffer.wrap(bytes))
+	return uri
+}
+
+async function attachUploadedFiles({ files: fileList, selections, setSelections, accessor }: {
+	files: File[]
+	selections: StagingSelectionItem[]
+	setSelections: (next: StagingSelectionItem[]) => void
+	accessor: ReturnType<typeof useAccessor>
+}) {
+	const files = fileList.slice(0, MAX_ATTACHMENTS)
+	const notificationService = accessor.get('INotificationService')
+	if (fileList.length > MAX_ATTACHMENTS) notificationService.warn(`Seuls ${MAX_ATTACHMENTS} fichiers peuvent être joints à la fois.`)
+	const fileService = accessor.get('IFileService')
+	const environmentService = accessor.get('IEnvironmentService')
+	const languageService = accessor.get('ILanguageService')
+	const next = [...selections]
+	let index = 0
+	for (const file of files) {
+		index += 1
+		const mime = imageMimeOf(file)
+		if ((mime && file.size > MAX_IMAGE_BYTES) || (!mime && file.size > MAX_FILE_BYTES)) {
+			notificationService.warn(mime ? `${file.name} est trop lourde (max 4 Mo).` : `${file.name} est trop lourd (max 8 Mo).`)
+			continue
+		}
+		try {
+			const uri = await materializeChatFile(file, fileService, environmentService.tmpDir, index)
+			const selection: StagingSelectionItem = mime
+				? { type: 'Image', uri, mimeType: mime }
+				: {
+					type: 'File',
+					uri,
+					language: languageService.guessLanguageIdByFilepathOrFirstLine(uri) || 'plaintext',
+					state: { wasAddedAsCurrentFile: false },
+				}
+			const existing = next.findIndex(item => item.type === selection.type && item.uri.fsPath === uri.fsPath)
+			if (existing >= 0) next[existing] = selection
+			else next.push(selection)
+		} catch {
+			notificationService.warn(`Impossible d’ajouter ${file.name}.`)
+		}
+	}
+	setSelections(next)
+}
+
+const ComposerIconButton = ({ title, active, onClick, children }: { title: string; active?: boolean; onClick: () => void; children: React.ReactNode }) => (
+	<button
+		type='button'
+		title={title}
+		aria-label={title}
+		aria-pressed={active || undefined}
+		onMouseDown={(e) => e.stopPropagation()}
+		onClick={(e) => {
+			e.stopPropagation()
+			onClick()
+		}}
+		className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0
+			${active ? 'bg-white text-black' : 'text-void-fg-3 hover:text-void-fg-1 hover:bg-void-bg-2'}
+		`}
+	>
+		{children}
+	</button>
+)
+
+const VoiceBars = () => (
+	<span className='flex items-end gap-[2px] h-3.5' aria-hidden>
+		<style>{`@keyframes kuunda-voice { 0%,100%{transform:scaleY(.35)} 50%{transform:scaleY(1)} }`}</style>
+		{[0, 1, 2, 3].map(i => (
+			<span
+				key={i}
+				className='w-[2px] h-full bg-current rounded-full'
+				style={{ animation: `kuunda-voice 0.9s ${i * 0.12}s ease-in-out infinite`, transformOrigin: 'bottom' }}
+			/>
+		))}
+	</span>
+)
+
+const ContextUsageButton = ({ messages, draft, selections }: { messages: ChatMessage[]; draft: string; selections: StagingSelectionItem[] }) => {
+	const accessor = useAccessor()
+	const settingsState = useSettingsState()
+	const [open, setOpen] = useState(false)
+	const [pendingTokens, setPendingTokens] = useState(0)
+	const rootRef = useRef<HTMLDivElement>(null)
+
+	useEffect(() => {
+		if (!open) return
+		const onDown = (event: MouseEvent) => {
+			if (!rootRef.current?.contains(event.target as Node)) setOpen(false)
+		}
+		window.addEventListener('mousedown', onDown)
+		return () => window.removeEventListener('mousedown', onDown)
+	}, [open])
+
+	const selectionKey = selections.map(selection => `${selection.type}:${selection.uri.fsPath}`).join('|')
+	useEffect(() => {
+		let cancelled = false
+		const fileService = accessor.get('IFileService')
+		;(async () => {
+			let tokens = 0
+			for (const selection of selections) {
+				if (selection.type === 'Image') {
+					tokens += IMAGE_CONTEXT_TOKENS
+					continue
+				}
+				if (selection.type === 'Folder') {
+					tokens += 2000
+					continue
+				}
+				try {
+					const stat = await fileService.stat(selection.uri)
+					tokens += Math.ceil(Math.min(stat.size, 2_000_000) / 4)
+				} catch {
+					tokens += 500
+				}
+			}
+			if (!cancelled) setPendingTokens(tokens)
+		})()
+		return () => { cancelled = true }
+	}, [selectionKey])
+
+	const modelSelection = settingsState?.modelSelectionOfFeature?.['Chat']
+	const contextWindow = modelSelection
+		? getModelCapabilities(modelSelection.providerName, modelSelection.modelName, settingsState.overridesOfModel).contextWindow
+		: 200_000
+	const usedTokens = 8_000
+		+ Math.ceil(messages.reduce((sum, message) => sum + charsOfMessage(message), 0) / 4)
+		+ imageCountOfMessages(messages) * IMAGE_CONTEXT_TOKENS
+		+ Math.ceil(draft.length / 4)
+		+ pendingTokens
+	const ratio = contextWindow > 0 ? usedTokens / contextWindow : 0
+	const shown = Math.max(0, Math.min(1, ratio))
+	const radius = 6.5
+	const circumference = 2 * Math.PI * radius
+	const percent = Math.round(ratio * 100)
+	const color = ratio >= 0.9 ? '#e5534b' : ratio >= 0.7 ? '#e8b931' : 'currentColor'
+	const modelLabel = modelSelection ? (kuundaChatModelById(modelSelection.modelName)?.label ?? modelSelection.modelName) : 'Auto'
+
+	return (
+		<div ref={rootRef} className='relative'>
+			<ComposerIconButton title={`Usage du contexte · ${percent} %`} active={open} onClick={() => setOpen(value => !value)}>
+				<svg width='16' height='16' viewBox='0 0 16 16' aria-hidden>
+					<circle cx='8' cy='8' r={radius} fill='none' stroke='currentColor' strokeOpacity='0.28' strokeWidth='1.6' />
+					<circle
+						cx='8' cy='8' r={radius} fill='none' stroke={color} strokeWidth='1.6'
+						strokeDasharray={`${circumference * shown} ${circumference}`}
+						strokeLinecap='round'
+						transform='rotate(-90 8 8)'
+					/>
+				</svg>
+			</ComposerIconButton>
+			{open && (
+				<div
+					className='absolute bottom-9 right-0 z-20 w-52 rounded-md border border-void-border-2 bg-void-bg-1 px-2.5 py-2 text-xs text-void-fg-1 shadow-lg'
+					onMouseDown={(e) => e.stopPropagation()}
+				>
+					<div className='font-medium'>Contexte</div>
+					<div className='mt-1 text-void-fg-3'>{modelLabel}</div>
+					<div className='mt-1'>{formatTokenCount(usedTokens)} / {formatTokenCount(contextWindow)} jetons</div>
+					<div className='text-void-fg-3'>estimation · {percent} % de la fenêtre</div>
+				</div>
+			)}
+		</div>
+	)
+}
+
+const ChatComposerActions = ({
+	messages,
+	draft,
+	selections,
+	onFiles,
+	onDictation,
+}: {
+	messages: ChatMessage[]
+	draft: string
+	selections: StagingSelectionItem[]
+	onFiles: (files: File[]) => void
+	onDictation: (text: string) => void
+}) => {
+	const accessor = useAccessor()
+	const fileInputRef = useRef<HTMLInputElement | null>(null)
+	const recognitionRef = useRef<{ stop: () => void } | null>(null)
+	const speechStopRef = useRef<(() => void) | null>(null)
+	const sessionRef = useRef(0)
+	const onDictationRef = useRef(onDictation)
+	onDictationRef.current = onDictation
+	const [listening, setListening] = useState(false)
+	const [interim, setInterim] = useState('')
+
+	const stopListening = useCallback(() => {
+		sessionRef.current += 1
+		try { recognitionRef.current?.stop() } catch { /* already stopped */ }
+		recognitionRef.current = null
+		speechStopRef.current?.()
+		speechStopRef.current = null
+		setListening(false)
+		setInterim('')
+	}, [])
+
+	useEffect(() => () => {
+		try { recognitionRef.current?.stop() } catch { /* already stopped */ }
+		speechStopRef.current?.()
+	}, [])
+
+	const warn = (message: string) => accessor.get('INotificationService').warn(message)
+
+	const dictationFailure = (code: string) => {
+		if (!code || code.includes('aborted')) return
+		if (code.includes('no-audio') || code.includes('audio-capture')) warn('Aucun microphone détecté.')
+		else if (code.includes('no-recognizer')) warn('Installe la reconnaissance vocale Windows pour ta langue : Paramètres > Langue > Options > Reconnaissance vocale.')
+		else if (code.includes('not-allowed') || code.includes('service-not-allowed')) warn('Micro refusé. Autorise le microphone pour Kuunda Vibe.')
+		else if (code.includes('network')) warn('La reconnaissance du navigateur ne répond pas dans Kuunda Vibe : cette version n’inclut pas le service vocal Google.')
+		else warn('Impossible de démarrer la dictée vocale.')
+	}
+
+	const startWindowsDictation = async () => {
+		const session = ++sessionRef.current
+		const channel = accessor.get('IMainProcessService').getChannel('void-channel-dictation')
+		let listener: IDisposable | null = null
+		speechStopRef.current = () => {
+			listener?.dispose()
+			listener = null
+			void channel.call('stop').catch(() => { /* already stopped */ })
+		}
+		setListening(true)
+		listener = channel.listen<{ type?: string; text?: string; code?: string }>('onDictation')(event => {
+			if (sessionRef.current !== session) return
+			if (event.type === 'recognized' && event.text?.trim()) {
+				onDictationRef.current(event.text)
+				setInterim('')
+			} else if (event.type === 'error') {
+				dictationFailure(event.code || 'recognizer')
+				stopListening()
+			}
+		})
+		try {
+			await channel.call('start', { language: navigator.language || 'fr-FR' })
+			if (sessionRef.current !== session) return
+		} catch (error) {
+			if (sessionRef.current !== session) return
+			const code = error instanceof Error ? error.message : 'recognizer'
+			if (code.includes('aborted')) return
+			dictationFailure(code)
+			stopListening()
+		}
+	}
+
+	const startWebSpeech = (Ctor: new () => any) => {
+		const session = ++sessionRef.current
+		const rec = new Ctor()
+		rec.lang = navigator.language || 'fr-FR'
+		rec.continuous = true
+		rec.interimResults = true
+		rec.onresult = (event: any) => {
+			if (sessionRef.current !== session) return
+			let interimText = ''
+			let finalText = ''
+			for (let i = event.resultIndex; i < event.results.length; i++) {
+				const transcript = event.results[i][0]?.transcript ?? ''
+				if (event.results[i].isFinal) finalText += transcript
+				else interimText += transcript
+			}
+			if (finalText.trim()) onDictationRef.current(finalText)
+			setInterim(interimText.trim())
+		}
+		rec.onerror = (event: any) => {
+			if (sessionRef.current !== session) return
+			const code = event?.error
+			if (code === 'aborted' || code === 'no-speech') return
+			if (code === 'audio-capture') dictationFailure('no-audio')
+			else dictationFailure(code || 'recognizer')
+			stopListening()
+		}
+		rec.onend = () => {
+			if (sessionRef.current !== session) return
+			recognitionRef.current = null
+			setListening(false)
+			setInterim('')
+		}
+		try {
+			rec.start()
+			recognitionRef.current = rec
+			setListening(true)
+		} catch {
+			warn('Impossible de démarrer le micro.')
+		}
+	}
+
+	const startSpeechService = async () => {
+		const speech = accessor.get('ISpeechService')
+		if (!speech.hasSpeechProvider) {
+			warn('La dictée vocale n’est pas disponible dans cette fenêtre.')
+			return
+		}
+		const session = ++sessionRef.current
+		const cts = new CancellationTokenSource()
+		let listener: IDisposable | null = null
+		speechStopRef.current = () => {
+			listener?.dispose()
+			cts.cancel()
+			cts.dispose()
+		}
+		try {
+			const speechSession = await speech.createSpeechToTextSession(cts.token, 'kuunda-chat')
+			if (sessionRef.current !== session) {
+				cts.cancel()
+				cts.dispose()
+				return
+			}
+			setListening(true)
+			listener = speechSession.onDidChange(event => {
+				if (sessionRef.current !== session) return
+				if (event.status === SpeechToTextStatus.Recognizing) setInterim(event.text?.trim() ?? '')
+				if (event.status === SpeechToTextStatus.Recognized && event.text?.trim()) {
+					onDictationRef.current(event.text)
+					setInterim('')
+				}
+				if (event.status === SpeechToTextStatus.Error) {
+					warn(event.text || 'La dictée vocale a échoué.')
+					stopListening()
+				}
+				if (event.status === SpeechToTextStatus.Stopped) stopListening()
+			})
+		} catch {
+			if (sessionRef.current === session) {
+				warn('Impossible de démarrer la dictée vocale.')
+				stopListening()
+			}
+		}
+	}
+
+	const toggleVoice = () => {
+		if (listening || recognitionRef.current || speechStopRef.current) {
+			stopListening()
+			return
+		}
+		// webkitSpeechRecognition exists here but fails at once with "network":
+		// this Electron build has no Google speech key. Windows dictation stays on the machine.
+		if (isWindows) {
+			void startWindowsDictation()
+			return
+		}
+		const host = window as Window & { SpeechRecognition?: new () => any; webkitSpeechRecognition?: new () => any }
+		const Ctor = host.SpeechRecognition || host.webkitSpeechRecognition
+		if (Ctor) startWebSpeech(Ctor)
+		else void startSpeechService()
+	}
+
+	return (
+		<div className='flex items-center gap-0.5'>
+			<ContextUsageButton messages={messages} draft={draft} selections={selections} />
+			<ComposerIconButton title='Ajouter un fichier ou une image' onClick={() => fileInputRef.current?.click()}>
+				<Paperclip size={15} />
+			</ComposerIconButton>
+			<ComposerIconButton title={listening ? 'Arrêter la dictée' : 'Dicter'} active={listening} onClick={toggleVoice}>
+				{listening ? <VoiceBars /> : <Mic size={15} />}
+			</ComposerIconButton>
+			<input
+				ref={fileInputRef}
+				type='file'
+				multiple
+				className='absolute w-0 h-0 opacity-0 pointer-events-none'
+				onChange={(e) => {
+					const picked = Array.from(e.target.files || [])
+					e.target.value = ''
+					if (picked.length) onFiles(picked)
+				}}
+			/>
+			{interim ? <span className='max-w-[120px] truncate text-[11px] text-void-fg-3'>{interim}</span> : null}
+		</div>
+	)
+}
+
 export const SidebarChat = () => {
 	const textAreaRef = useRef<HTMLTextAreaElement | null>(null)
 	const textAreaFnsRef = useRef<TextAreaFns | null>(null)
@@ -2913,8 +3415,9 @@ export const SidebarChat = () => {
 	// state of current message
 	const initVal = ''
 	const [instructionsAreEmpty, setInstructionsAreEmpty] = useState(!initVal)
+	const [draft, setDraft] = useState(initVal)
 
-	const isDisabled = instructionsAreEmpty || !!isFeatureNameDisabled('Chat', settingsState)
+	const isDisabled = (instructionsAreEmpty && selections.length === 0) || !!isFeatureNameDisabled('Chat', settingsState)
 
 	const sidebarRef = useRef<HTMLDivElement>(null)
 	const scrollContainerRef = useRef<HTMLDivElement | null>(null)
@@ -3054,8 +3557,21 @@ export const SidebarChat = () => {
 
 
 	const onChangeText = useCallback((newStr: string) => {
+		setDraft(newStr)
 		setInstructionsAreEmpty(!newStr)
 	}, [setInstructionsAreEmpty])
+	const appendTranscript = useCallback((chunk: string) => {
+		const cleaned = chunk.trim()
+		if (!cleaned) return
+		const current = textAreaRef.current?.value ?? ''
+		const needsSpace = current.length > 0 && !/\s$/.test(current)
+		textAreaFnsRef.current?.setValue(current + (needsSpace ? ' ' : '') + cleaned)
+		textAreaRef.current?.focus()
+	}, [])
+	const onFiles = useCallback((files: File[]) => {
+		void attachUploadedFiles({ files, selections, setSelections, accessor })
+			.finally(() => textAreaRef.current?.focus())
+	}, [accessor, selections, setSelections])
 	const onKeyDown = useCallback((e: KeyboardEvent<HTMLTextAreaElement>) => {
 		if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
 			onSubmit()
@@ -3075,6 +3591,16 @@ export const SidebarChat = () => {
 		selections={selections}
 		setSelections={setSelections}
 		onClickAnywhere={() => { textAreaRef.current?.focus() }}
+		onDropFiles={onFiles}
+		composerActions={
+			<ChatComposerActions
+				messages={previousMessages}
+				draft={draft}
+				selections={selections}
+				onFiles={onFiles}
+				onDictation={appendTranscript}
+			/>
+		}
 	>
 		<VoidInputBox2
 			enableAtToMention

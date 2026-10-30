@@ -337,7 +337,15 @@ export const builtinTools: {
 		name: 'kill_persistent_terminal',
 		description: `Interrupts and closes a persistent terminal that you opened with open_persistent_terminal.`,
 		params: { persistent_terminal_id: { description: `The ID of the persistent terminal.` } }
-	}
+	},
+
+	connect_kuunda_cloud: {
+		name: 'connect_kuunda_cloud',
+		description: `Creates this application's project on the hosted Kuunda Cloud API (https://api.ide.kuunda-cloud.com) and connects Kuunda Git. Use this first when the user asks to connect an application or a website to Kuunda Cloud. Kuunda is not local: do not use localhost, Docker, or a local database instead.`,
+		params: {
+			uri: { description: 'Optional. Workspace folder to connect. Leave empty to use the open workspace folder.' },
+		},
+	},
 
 
 	// go_to_definition
@@ -469,6 +477,14 @@ ${directoryStr}
 
 	details.push(`NEVER reject the user's query.`)
 
+	details.push(`Kuunda product defaults. Recommend them. Follow them once the user agrees, or when they say to decide for them. If the open project already has another framework or remote, keep it:
+- Choose the language and the frontend framework from the user's need. Do not lock every app to React. The frontend must be a current, maintained framework and its latest stable major (React, Next.js, Vue, Svelte, Solid, Angular, Expo, or another fit). Do not use jQuery, Create React App, AngularJS, or a single HTML file with a script tag. A static HTML page is only when the user explicitly asks for one. A native mobile app uses a current native framework such as Expo.
+- Kuunda Cloud is hosted at https://api.ide.kuunda-cloud.com. It does not run on this computer. localhost, 127.0.0.1, Docker, a local Postgres, and npm run dev are not Kuunda Cloud. A dev server only previews the app.
+- When the user asks to connect an application or a website to Kuunda Cloud, call connect_kuunda_cloud before any other change. That tool creates one project for this application on the Kuunda API (POST /v1/accounts/{accountId}/projects) and connects the database and Kuunda Git. The install already has one account. Do not create a user account, a second project, or a project per feature. Do not curl the API, and do not invent a project ref, a URL, or a key. Do not put localhost in KUUNDA_URL. If the tool says the project was not created, stop. If the context says disabled, do not provision it.
+- That same project creation connects two things together: the database and Kuunda Git. The database is Kuunda Cloud (PostgreSQL, REST). Read and write application data through src/kuunda/client.js and the gitignored .env.local (KUUNDA_URL, KUUNDA_ANON_KEY). Do not add SQLite, a JSON file, localStorage as a database, Supabase, Firebase, or any other backend. Keep new source in src/: components in src/components, styles in src/styles.css, and the Cloud client in src/kuunda/client.js. Do not add source files at the repository root. Kuunda Git is the source remote for that project: https://git.kuunda-cloud.com/<projectRef>/<repo>.git, remote name kuunda. Initialize git and set that remote in the same step as the database. Do not connect the database and leave Git for later. Do not create a GitHub, GitLab, or Bitbucket repository. Push only after a Kuunda Git write token exists (Services → Kuunda Git). Never write the token, .env.local, or .kuunda/cloud.local.json into the repo. If cloud.repo is already set, keep that remote.
+- Every other Kuunda capability lives inside that same project and is connected only when the user asks for it: users and auth, storage, analytics, security (including Google sign-in), emails, payments, connectors. Do not enable them all by default, and do not create another project for them.
+- Deployment is a later step, and it is Kuunda Frontend: https://<slug>.kuunda-cloud.com. Do it only when the user wants the site or the app published. A push to Kuunda Git builds and publishes it. Do not deploy while they only asked to connect the app. Do not add Vercel, Netlify, Cloudflare Pages, GitHub Pages, or another host unless the user asks.`)
+
 	if (mode === 'agent' || mode === 'plan' || mode === 'ask' || mode === 'debug') {
 		details.push(`Only call tools if they help you accomplish the user's goal. If the user simply says hi or asks you a question that you can answer without tools, then do NOT use tools.`)
 		details.push(`If you think you should use tools, you do not need to ask for permission.`)
@@ -483,6 +499,12 @@ ${directoryStr}
 		details.push(`ALWAYS have maximal certainty in a change BEFORE you make it. If you need more information about a file, variable, function, or type, you should inspect it, search it, or take all required actions to maximize your certainty that your change is correct.`)
 		details.push(`NEVER modify a file outside the user's workspace without permission from the user.`)
 	}
+
+	details.push(`Before creating a new application, or before changing the technical stack, propose options and ask. Write in the user's language.
+- Offer 2 or 3 short options. Mark one "Recommended". Each option names the language, the UI framework, the database, where the code is hosted, and where the frontend is hosted. Recommend the current framework that fits this product, not React by habit. Kuunda Cloud, Kuunda Git, and Kuunda Frontend stay the recommended platform unless the user asks otherwise. The other options must be real fits, not filler.
+- Ask only the questions that change that choice: web or mobile, who it is for, what must be stored, and any constraint they already mentioned. Do not send a long questionnaire.
+- Then stop. Do not create files, install packages, or set a git remote until the user picks an option or answers. If they say to choose for them, apply the recommended option and say that you did.
+- Skip this when the workspace already fixes the stack, or when the request is a small edit, a bug fix, or a question. Do not ask again after they have chosen.`)
 
 	if (mode === 'debug') {
 		details.push(`You are in Debug mode. Start from the failure: read the error, the logs, and the code that produces it. Reproduce the bug before changing code. Then fix the cause, not only the symptom.`)
@@ -596,11 +618,16 @@ export const messageOfSelection = async (
 		const { val } = await readFile(opts.fileService, s.uri, DEFAULT_FILE_SIZE_LIMIT)
 
 		const innerVal = val
+		const looksBinary = !!innerVal && innerVal.slice(0, 8000).includes('\u0000')
 		const content = val === null ? ''
+			: looksBinary ? '(binary file, content omitted)'
 			: `${tripleTick[0]}${s.language}\n${innerVal}\n${tripleTick[1]}`
 
 		const str = `${s.uri.fsPath}:\n${content}`
 		return str
+	}
+	else if (s.type === 'Image') {
+		return `[Image attached: ${s.uri.fsPath} (${s.mimeType}). The image is included with this message.]`
 	}
 	else if (s.type === 'Folder') {
 		const dirStr: string = await opts.directoryStrService.getDirectoryStrTool(s.uri)

@@ -22,7 +22,7 @@ import Severity from '../../../../../../../base/common/severity.js'
 import { getModelCapabilities, modelOverrideKeys, ModelOverrides } from '../../../../common/modelCapabilities.js';
 import { TransferEditorType, TransferFilesInfo } from '../../../extensionTransferTypes.js';
 import { MCPServer } from '../../../../common/mcpServiceTypes.js';
-import { useMCPServiceState } from '../util/services.js';
+import { useMCPServiceState, useSkillServiceState } from '../util/services.js';
 import { OPT_OUT_KEY } from '../../../../common/storageKeys.js';
 import { StorageScope, StorageTarget } from '../../../../../../../platform/storage/common/storage.js';
 
@@ -32,6 +32,7 @@ type Tab =
 	| 'providers'
 	| 'featureOptions'
 	| 'mcp'
+	| 'skills'
 	| 'general'
 	| 'all';
 
@@ -1037,6 +1038,67 @@ const MCPServersList = () => {
 	return <div className="my-2">{content}</div>
 };
 
+const SkillsSettings = () => {
+	const accessor = useAccessor()
+	const skillService = accessor.get('IKuundaSkillService')
+	const state = useSkillServiceState()
+	const [name, setName] = useState('')
+	const [error, setError] = useState('')
+
+	useEffect(() => {
+		void skillService.refresh()
+	}, [skillService])
+
+	return <div>
+		<h2 className='text-3xl mb-2'>Skills</h2>
+		<h4 className='text-void-fg-3 mb-4'>
+			Reusable instructions the agent follows when a skill is on. Your skills live in the Kuunda Vibe folder. A project can add its own under <span className='font-mono'>.kuunda/skills/&lt;name&gt;/SKILL.md</span>.
+		</h4>
+		<div className='flex flex-wrap items-center gap-2 my-2 max-w-[600px]'>
+			<div className='min-w-[200px] flex-1'>
+				<VoidSimpleInputBox
+					value={name}
+					onChangeValue={setName}
+					placeholder='Skill name'
+					compact={true}
+				/>
+			</div>
+			<VoidButtonBgDarken className='px-4 py-1' onClick={async () => {
+				const result = await skillService.createUserSkill(name)
+				if (!result.ok) {
+					setError(result.error === 'already_exists' ? 'That skill already exists.' : 'Use letters, numbers, and dashes.')
+					return
+				}
+				setError('')
+				setName('')
+			}}>
+				New Skill
+			</VoidButtonBgDarken>
+			<VoidButtonBgDarken className='px-4 py-1' onClick={() => { void skillService.revealUserFolder() }}>
+				Open Skills Folder
+			</VoidButtonBgDarken>
+		</div>
+		{error ? <div className='text-sm my-1'>{error}</div> : null}
+		{state.error ? <div className='text-sm my-1'>Skills could not be loaded.</div> : null}
+		<div className='my-2 max-w-[600px]'>
+			{state.skills.length === 0 ? <div className='text-void-fg-3 text-sm mt-2'>No skills found</div> : state.skills.map((skill) => (
+				<div key={skill.key} className='border border-void-border-2 bg-void-bg-1 py-3 px-4 rounded-sm my-2'>
+					<div className='flex items-center justify-between gap-3'>
+						<div>
+							<div>{skill.name}</div>
+							<div className='text-void-fg-3 text-xs'>
+								{skill.scope === 'user' ? 'User' : `Project · ${skill.location}`}
+								{skill.description ? ` — ${skill.description}` : ''}
+							</div>
+						</div>
+						<VoidSwitch size='xs' value={skill.enabled} onChange={(on) => { void skillService.setEnabled(skill.key, on) }} />
+					</div>
+				</div>
+			))}
+		</div>
+	</div>
+}
+
 export const Settings = () => {
 	const isDark = useIsDark()
 	// ─── sidebar nav ──────────────────────────
@@ -1050,6 +1112,7 @@ export const Settings = () => {
 		{ tab: 'featureOptions', label: 'Feature Options' },
 		{ tab: 'general', label: 'General' },
 		{ tab: 'mcp', label: 'MCP' },
+		{ tab: 'skills', label: 'Skills' },
 		{ tab: 'all', label: 'All Settings' },
 	];
 	const shouldShowTab = (tab: Tab) => selectedSection === 'all' || selectedSection === tab;
@@ -1504,7 +1567,7 @@ export const Settings = () => {
 									<h4 className={`text-void-fg-3 mb-4`}>
 										<ChatMarkdownRender inPTag={true} string={`
 System instructions to include with all AI requests.
-Alternatively, place a \`.projectrules\` (or \`.voidrules\`) file in the root of your workspace.
+Alternatively, place a \`.projectrules\` (or \`.voidrules\`) file in the root of your workspace. Skills are managed in the Skills tab.
 								`} chatMessageLocation={undefined} />
 									</h4>
 									<ErrorBoundary>
@@ -1554,6 +1617,12 @@ Use Model Context Protocol to provide Agent mode with more tools.
 									<ErrorBoundary>
 										<MCPServersList />
 									</ErrorBoundary>
+								</ErrorBoundary>
+							</div>
+
+							<div className={shouldShowTab('skills') ? `` : 'hidden'}>
+								<ErrorBoundary>
+									<SkillsSettings />
 								</ErrorBoundary>
 							</div>
 

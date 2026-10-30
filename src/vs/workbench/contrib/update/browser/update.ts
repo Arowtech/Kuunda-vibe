@@ -4,6 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as nls from '../../../../nls.js';
+import { updateMenuText } from './updateNls.js';
 import severity from '../../../../base/common/severity.js';
 import { Disposable, MutableDisposable } from '../../../../base/common/lifecycle.js';
 import { URI } from '../../../../base/common/uri.js';
@@ -258,13 +259,13 @@ export class UpdateContribution extends Disposable implements IWorkbenchContribu
 		let badge: IBadge | undefined = undefined;
 
 		if (state.type === StateType.AvailableForDownload || state.type === StateType.Downloaded || state.type === StateType.Ready) {
-			badge = new NumberBadge(1, () => nls.localize('updateIsReady', "New {0} update available.", this.productService.nameShort));
+			badge = new NumberBadge(1, () => updateMenuText('ready', this.productService.nameShort));
 		} else if (state.type === StateType.CheckingForUpdates) {
-			badge = new ProgressBadge(() => nls.localize('checkingForUpdates', "Checking for {0} updates...", this.productService.nameShort));
+			badge = new ProgressBadge(() => updateMenuText('checkingBadge', this.productService.nameShort));
 		} else if (state.type === StateType.Downloading) {
-			badge = new ProgressBadge(() => nls.localize('downloading', "Downloading {0} update...", this.productService.nameShort));
+			badge = new ProgressBadge(() => updateMenuText('downloadingBadge', this.productService.nameShort));
 		} else if (state.type === StateType.Updating) {
-			badge = new ProgressBadge(() => nls.localize('updating', "Updating {0}...", this.productService.nameShort));
+			badge = new ProgressBadge(() => updateMenuText('updatingBadge', this.productService.nameShort));
 		}
 
 		this.badgeDisposable.clear();
@@ -286,12 +287,12 @@ export class UpdateContribution extends Disposable implements IWorkbenchContribu
 		this.notificationService.notify({
 			severity: Severity.Error,
 			message: error,
-			source: nls.localize('update service', "Update Service"),
+			source: updateMenuText('service'),
 		});
 	}
 
 	private onUpdateNotAvailable(): void {
-		this.dialogService.info(nls.localize('noUpdatesAvailable', "There are currently no updates available."));
+		this.dialogService.info(updateMenuText('none'));
 	}
 
 	// linux
@@ -307,15 +308,15 @@ export class UpdateContribution extends Disposable implements IWorkbenchContribu
 
 		this.notificationService.prompt(
 			severity.Info,
-			nls.localize('thereIsUpdateAvailable', "There is an available update."),
+			updateMenuText('available'),
 			[{
-				label: nls.localize('download update', "Download Update"),
+				label: updateMenuText('update'),
 				run: () => this.updateService.downloadUpdate()
 			}, {
-				label: nls.localize('later', "Later"),
+				label: updateMenuText('later'),
 				run: () => { }
 			}, {
-				label: nls.localize('releaseNotes', "Release Notes"),
+				label: updateMenuText('releaseNotes'),
 				run: () => {
 					this.instantiationService.invokeFunction(accessor => showReleaseNotes(accessor, productVersion));
 				}
@@ -343,15 +344,15 @@ export class UpdateContribution extends Disposable implements IWorkbenchContribu
 
 		this.notificationService.prompt(
 			severity.Info,
-			nls.localize('updateAvailable', "There's an update available: {0} {1}", this.productService.nameLong, productVersion),
+			updateMenuText('availableVersion', this.productService.nameLong, productVersion),
 			[{
-				label: nls.localize('installUpdate', "Install Update"),
+				label: updateMenuText('update'),
 				run: () => this.updateService.applyUpdate()
 			}, {
-				label: nls.localize('later', "Later"),
+				label: updateMenuText('later'),
 				run: () => { }
 			}, {
-				label: nls.localize('releaseNotes', "Release Notes"),
+				label: updateMenuText('releaseNotes'),
 				run: () => {
 					this.instantiationService.invokeFunction(accessor => showReleaseNotes(accessor, productVersion));
 				}
@@ -366,17 +367,17 @@ export class UpdateContribution extends Disposable implements IWorkbenchContribu
 		}
 
 		const actions = [{
-			label: nls.localize('updateNow', "Update Now"),
+			label: updateMenuText('update'),
 			run: () => this.updateService.quitAndInstall()
 		}, {
-			label: nls.localize('later', "Later"),
+			label: updateMenuText('later'),
 			run: () => { }
 		}];
 
 		const productVersion = update.productVersion;
 		if (productVersion) {
 			actions.push({
-				label: nls.localize('releaseNotes', "Release Notes"),
+				label: updateMenuText('releaseNotes'),
 				run: () => {
 					this.instantiationService.invokeFunction(accessor => showReleaseNotes(accessor, productVersion));
 				}
@@ -386,7 +387,7 @@ export class UpdateContribution extends Disposable implements IWorkbenchContribu
 		// windows user fast updates and mac
 		this.notificationService.prompt(
 			severity.Info,
-			nls.localize('updateAvailableAfterRestart', "Restart {0} to apply the latest update.", this.productService.nameLong),
+			updateMenuText('restart', this.productService.nameLong),
 			actions,
 			{ sticky: true }
 		);
@@ -415,7 +416,7 @@ export class UpdateContribution extends Disposable implements IWorkbenchContribu
 			group: '7_update',
 			command: {
 				id: 'update.check',
-				title: nls.localize('checkForUpdates', "Check for Updates...")
+				title: updateMenuText('check')
 			},
 			when: CONTEXT_UPDATE_STATE.isEqualTo(StateType.Idle)
 		});
@@ -425,7 +426,7 @@ export class UpdateContribution extends Disposable implements IWorkbenchContribu
 			group: '7_update',
 			command: {
 				id: 'update.checking',
-				title: nls.localize('checkingForUpdates2', "Checking for Updates..."),
+				title: updateMenuText('checking'),
 				precondition: ContextKeyExpr.false()
 			},
 			when: CONTEXT_UPDATE_STATE.isEqualTo(StateType.CheckingForUpdates)
@@ -436,7 +437,7 @@ export class UpdateContribution extends Disposable implements IWorkbenchContribu
 			group: '7_update',
 			command: {
 				id: 'update.downloadNow',
-				title: nls.localize('download update_1', "Download Update (1)")
+				title: updateMenuText('update')
 			},
 			when: CONTEXT_UPDATE_STATE.isEqualTo(StateType.AvailableForDownload)
 		});
@@ -446,7 +447,7 @@ export class UpdateContribution extends Disposable implements IWorkbenchContribu
 			group: '7_update',
 			command: {
 				id: 'update.downloading',
-				title: nls.localize('DownloadingUpdate', "Downloading Update..."),
+				title: updateMenuText('downloading'),
 				precondition: ContextKeyExpr.false()
 			},
 			when: CONTEXT_UPDATE_STATE.isEqualTo(StateType.Downloading)
@@ -457,7 +458,7 @@ export class UpdateContribution extends Disposable implements IWorkbenchContribu
 			group: '7_update',
 			command: {
 				id: 'update.install',
-				title: nls.localize('installUpdate...', "Install Update... (1)")
+				title: updateMenuText('update')
 			},
 			when: CONTEXT_UPDATE_STATE.isEqualTo(StateType.Downloaded)
 		});
@@ -467,7 +468,7 @@ export class UpdateContribution extends Disposable implements IWorkbenchContribu
 			group: '7_update',
 			command: {
 				id: 'update.updating',
-				title: nls.localize('installingUpdate', "Installing Update..."),
+				title: updateMenuText('installing'),
 				precondition: ContextKeyExpr.false()
 			},
 			when: CONTEXT_UPDATE_STATE.isEqualTo(StateType.Updating)
@@ -502,7 +503,7 @@ export class UpdateContribution extends Disposable implements IWorkbenchContribu
 			order: 2,
 			command: {
 				id: 'update.restart',
-				title: nls.localize('restartToUpdate', "Restart to Update (1)")
+				title: updateMenuText('update')
 			},
 			when: CONTEXT_UPDATE_STATE.isEqualTo(StateType.Ready)
 		});

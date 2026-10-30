@@ -186,6 +186,16 @@ export function parseGitRemote(configText: string | undefined): string | undefin
 	return sanitizeRepoUrl(url);
 }
 
+/** Hosted Git remote for a Cloud project. Never a localhost URL. */
+export function kuundaGitRemoteUrl(projectRef: unknown, repoName: unknown): string | undefined {
+	const ref = sanitizeProjectRef(projectRef);
+	const repo = String(repoName || '').trim().toLowerCase().replace(/[^a-z0-9._-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 48);
+	if (!ref || !repo || !sanitizeRepoUrl(`https://git.kuunda-cloud.com/${ref}/${repo}`)) {
+		return undefined;
+	}
+	return `https://git.kuunda-cloud.com/${ref}/${repo}.git`;
+}
+
 export function sanitizeProjectRef(value: unknown): string | undefined {
 	const ref = String(value || '').trim();
 	if (!/^proj_[a-z0-9]+$/i.test(ref) || ref.length > 64) {
@@ -373,7 +383,7 @@ export function cloudReadmeSection(input: { enabled?: boolean; url?: string; pla
 	const state = input.enabled === false ? 'disabled' : 'enabled by default';
 	const endpoint = sanitizeCloudUrl(input.url) || SECRET_PLACEHOLDER;
 	const plan = sanitizePlanId(input.plan);
-	return `\n## Kuunda Cloud\n\nProvisioning is **${state}** on the **${plan}** plan. REST URL: \`${endpoint}\`.\nThis project gets its own Kuunda Cloud space automatically — no account to create. Change or upgrade the plan from Kuunda Vibe settings (\`Kuunda Vibe: Manage Cloud Plan\`). The agent may manage the sandbox; you promote migrations to production from Kuunda Cloud.\nCopy \`.env.local\` from the scaffold (gitignored) and replace \`${SECRET_PLACEHOLDER}\` with the project anon key issued at runtime. Never commit operator or service_role keys.\nCRUD helper: \`${CLOUD_CLIENT_PATH}\` (\`${SEED_TABLE}\` table).\n`;
+	return `\n## Kuunda Cloud\n\nProvisioning is **${state}** on the **${plan}** plan. REST URL: \`${endpoint}\`.\nThis project gets its own Kuunda Cloud space automatically — no account to create. Change or upgrade the plan from Kuunda Vibe settings (\`Kuunda Vibe: Manage Cloud Plan\`). The agent may manage the sandbox; you promote migrations to production from Kuunda Studio.\nCopy \`.env.local\` from the scaffold (gitignored) and replace \`${SECRET_PLACEHOLDER}\` with the project anon key issued at runtime. Never commit operator or service_role keys.\nCRUD helper: \`${CLOUD_CLIENT_PATH}\` (\`${SEED_TABLE}\` table).\n`;
 }
 
 export function scaffoldCloudFiles(input: {
@@ -416,14 +426,29 @@ export function formatCloudContext(cloud: Partial<CloudRecord> | undefined): str
 		return 'Kuunda Cloud: disabled (replaceable in project settings).';
 	}
 	const plan = sanitizePlanId(publicCloud.plan);
+	const hosting = gitHostingLine(publicCloud) + accountServicesLine();
 	if (!publicCloud.projectRef) {
-		return `Kuunda Cloud: enabled but not provisioned yet (plan=${plan}). The IDE creates the project space automatically; retry provisioning from the Cloud panel. No Kuunda Cloud account is required and the user must not be asked to sign up. Do not invent credentials or a production URL.`;
+		return `Kuunda Cloud is hosted at https://api.ide.kuunda-cloud.com, never on localhost. Enabled but not provisioned yet (plan=${plan}). Call connect_kuunda_cloud. That tool creates one project for this application on the Kuunda API (POST /v1/accounts/{accountId}/projects) and connects the database and Kuunda Git together. The IDE creates that project automatically through this tool. No Kuunda Cloud account is required and the user must not be asked to sign up. Do not invent credentials, a project ref, or a production URL. Do not start a local database, Docker, or a dev server in place of this tool.${hosting}`;
 	}
 	const env = publicCloud.env || 'sandbox';
 	if (env === 'production') {
-		return `Kuunda Cloud: enabled ref=${publicCloud.projectRef} env=production plan=${plan}. Treat production as user-owned. Do not apply schema or data migrations there. The user promotes sandbox work from the Kuunda Cloud dashboard.`;
+		return `Kuunda Cloud: enabled ref=${publicCloud.projectRef} env=production plan=${plan}. This space is the project database. Treat production as user-owned. Do not apply schema or data migrations there. The user promotes sandbox work from Kuunda Studio in this IDE.${hosting}`;
 	}
-	return `Kuunda Cloud: enabled ref=${publicCloud.projectRef} env=sandbox plan=${plan}. You may manage this sandbox autonomously (schema, migrations, seed data). Never push to production; tell the user to promote migrations in Kuunda Cloud (app.kuunda.cloud).`;
+	return `Kuunda Cloud: enabled ref=${publicCloud.projectRef} env=sandbox plan=${plan}. This space is the default database for application data. You may manage this sandbox autonomously (schema, migrations, seed data). Never push to production; tell the user to promote migrations from Kuunda Studio in this IDE.${hosting}`;
+}
+
+function gitHostingLine(cloud: CloudRecord): string {
+	if (cloud.repo) {
+		return ` Kuunda Git is already connected for this project. Source remote: ${cloud.repo}. Keep it.`;
+	}
+	if (cloud.projectRef) {
+		return ` Connect Kuunda Git now, with the database: https://git.kuunda-cloud.com/${cloud.projectRef}/<repo>.git (remote name kuunda). Do not create a GitHub repository.`;
+	}
+	return ' Kuunda Git is connected in the same step as the database, after the project exists. Do not create a GitHub repository.';
+}
+
+function accountServicesLine(): string {
+	return ' One project per application (POST /v1/accounts/{accountId}/projects) on https://api.ide.kuunda-cloud.com. Creating it connects the database and Kuunda Git together. Never point KUUNDA_URL at localhost. Other features of that project (users, storage, auth, analytics, security) are connected only if the user asks. Do not create a second project or a separate account per feature. Deployment is Kuunda Frontend (https://<slug>.kuunda-cloud.com), only when the user asks to publish. Do not host the frontend on Vercel, Netlify, or GitHub Pages.';
 }
 
 /**
@@ -478,9 +503,9 @@ export function formatCloudPanel(input: { cloud?: Partial<CloudRecord>; tables?:
 	}
 	if (publicCloud.projectRef) {
 		if ((publicCloud.env || 'sandbox') === 'sandbox') {
-			lines.push('agent: sandbox (autonomous). production: you promote in Kuunda Cloud.');
+			lines.push('agent: sandbox (autonomous). production: promote from Kuunda Studio.');
 		} else {
-			lines.push('production is user-owned — promote from Kuunda Cloud, not the agent.');
+			lines.push('production is user-owned — promote from Kuunda Studio, not the agent.');
 		}
 	}
 	const routes = input.routes;

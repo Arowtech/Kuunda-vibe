@@ -100,12 +100,15 @@ const newOpenAICompatibleSDK = async ({ settingsOfProvider, providerName, includ
 		const thisConfig = settingsOfProvider[providerName] as typeof settingsOfProvider.openRouter & { kuundaSessionToken?: string }
 		const ownKey = thisConfig.apiKey?.trim()
 		if (!ownKey && thisConfig.kuundaSessionToken) {
+			const tokenParts = thisConfig.kuundaSessionToken.split('.')
 			return new OpenAI({
 				baseURL: 'https://api.ide.kuunda-cloud.com/v1/ai',
 				apiKey: thisConfig.kuundaSessionToken,
 				defaultHeaders: {
 					'X-Title': 'Kuunda Vibe',
 					'Idempotency-Key': crypto.randomUUID(),
+					// Device-bound session tokens are bound to X-Kuunda-Device by the API.
+					...(tokenParts.length === 5 ? { 'X-Kuunda-Device': tokenParts[2] } : {}),
 				},
 				...commonPayloadOpts,
 			})

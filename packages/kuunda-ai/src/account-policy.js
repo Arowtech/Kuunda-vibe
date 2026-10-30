@@ -3,12 +3,15 @@
  * No passwords, tokens, or provider secrets are persisted by these helpers.
  */
 
-export const AUTH_PROVIDERS = Object.freeze(['email', 'google', 'github', 'apple']);
-export const OAUTH_PROVIDERS = Object.freeze(['google', 'github', 'apple']);
+export const AUTH_PROVIDERS = Object.freeze(['email', 'google']);
+export const OAUTH_PROVIDERS = Object.freeze(['google']);
 export const AUTH_ERROR_CODES = Object.freeze([
 	'invalid_credentials',
 	'invalid_email',
 	'weak_password',
+	'invalid_account',
+	'email_taken',
+	'provider_unavailable',
 	'offline',
 	'timeout',
 	'unavailable',
@@ -19,6 +22,7 @@ export const AUTH_ERROR_CODES = Object.freeze([
 export const USAGE_FEATURES = Object.freeze(['agent', 'tab', 'publish', 'other']);
 export const MIN_PASSWORD_LENGTH = 10;
 export const AUTH_CALLBACK_AUTHORITY = 'auth';
+export const WEB_OAUTH_REDIRECT_URI = 'https://app.ide.kuunda-cloud.com/login/';
 
 /**
  * @param {unknown} email
@@ -62,14 +66,23 @@ export function classifyAuthError(error) {
 	if (msg.includes('access_denied') || msg.includes('oauth_denied')) {
 		return 'oauth_denied';
 	}
+	if (msg.includes('email_taken') || msg.includes('platform_http_409')) {
+		return 'email_taken';
+	}
 	if (msg.includes('platform_http_401') || msg.includes('invalid_credentials') || msg.includes('unauthorized')) {
 		return 'invalid_credentials';
 	}
 	if (msg.includes('invalid_email') || msg.includes('platform_http_400')) {
 		return 'invalid_email';
 	}
-	if (msg.includes('weak_password') || msg.includes('platform_http_422')) {
+	if (msg.includes('weak_password')) {
 		return 'weak_password';
+	}
+	if (msg.includes('invalid_account') || msg.includes('platform_http_422')) {
+		return 'invalid_account';
+	}
+	if (msg.includes('platform_http_404')) {
+		return 'provider_unavailable';
 	}
 	if (msg.includes('expired') || msg.includes('platform_http_410')) {
 		return 'expired';
@@ -88,11 +101,12 @@ export function parseAccountProfile(raw) {
 	const providers = Array.isArray(data.providers)
 		? data.providers.map(normalizeAuthProvider).filter(Boolean)
 		: [];
+	const email = String(data.email || '').trim();
 	const org = data.org && typeof data.org === 'object' ? data.org : {};
 	const cloud = data.cloud && typeof data.cloud === 'object' ? data.cloud : {};
 	return {
 		userId: String(data.userId || data.id || '').trim(),
-		email: String(data.email || '').trim(),
+		email,
 		displayName: String(data.displayName || data.fullName || data.name || '').trim(),
 		emailVerified: data.emailVerified === true,
 		planId: String(data.planId || org.plan || 'free').trim() || 'free',
@@ -100,8 +114,24 @@ export function parseAccountProfile(raw) {
 		orgName: String(org.name || cloud.orgName || '').trim() || undefined,
 		orgPlan: String(org.plan || cloud.plan || '').trim() || undefined,
 		projectCount: Number.isFinite(Number(cloud.projectCount)) ? Number(cloud.projectCount) : undefined,
-		providers,
+		providers: providers.length ? providers : (email ? ['email'] : []),
 	};
+}
+
+/** Kuunda sends `expiresIn` in seconds. Absolute `expiresAt` stays as given. */
+export function sessionExpiresAt(data, now = Date.now()) {
+	const absolute = Number(data?.expiresAt ?? data?.expires_at);
+	if (Number.isFinite(absolute) && absolute > 0) {
+		return absolute;
+	}
+	const span = Number(data?.expiresIn ?? data?.expires_in);
+	if (!Number.isFinite(span) || span <= 0) {
+		return undefined;
+	}
+	if (span > 1e12) {
+		return span;
+	}
+	return now + span * 1000;
 }
 
 /**
@@ -118,7 +148,7 @@ export function parseAuthTokens(raw) {
 	return {
 		accessToken,
 		refreshToken: refreshToken || undefined,
-		expiresAt: Number.isFinite(Number(data.expiresAt || data.expires_at)) ? Number(data.expiresAt || data.expires_at) : undefined,
+		expiresAt: sessionExpiresAt(data),
 		profile,
 	};
 }
@@ -241,6 +271,6 @@ export function parseStudioOpenIntent(raw = {}) {
 	}
 	const data = raw;
 	const reason = data.reason === 'cloud' || data.reason === 'credits' ? data.reason : 'account';
-	const intent = reason === 'cloud' || data.intent === 'signUp' ? 'signUp' : 'signIn';
+	const intent = data.intent === 'signIn' ? 'signIn' : 'signUp';
 	return { intent, reason };
 }

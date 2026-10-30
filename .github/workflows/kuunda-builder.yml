@@ -1,6 +1,7 @@
 # kuunda-builder — adapted from void-builder (VSCodium fork).
 # Internal unsigned Windows .exe and macOS .dmg.
-# Does not wrangler-deploy. No Authenticode / Apple signing (channel=internal).
+# After a successful installer, publish signs it (Ed25519) and posts the feed
+# when the update secrets are set. No Authenticode / Apple signing.
 name: kuunda-builder
 
 on:
@@ -125,7 +126,7 @@ jobs:
     name: macOS arm64 unsigned DMG
     needs: plan
     if: ${{ github.event_name == 'push' || (inputs.compile && (inputs.platform == 'win32-and-darwin' || inputs.platform == 'darwin-arm64')) }}
-    runs-on: macos-14
+    runs-on: macos-15
     timeout-minutes: 360
     env:
       VSCODE_ARCH: arm64
@@ -152,7 +153,7 @@ jobs:
     name: macOS x64 unsigned DMG
     needs: plan
     if: ${{ github.event_name != 'push' && inputs.compile && inputs.platform == 'darwin-x64' }}
-    runs-on: macos-13
+    runs-on: macos-15-intel
     timeout-minutes: 360
     env:
       VSCODE_ARCH: x64
@@ -177,3 +178,30 @@ jobs:
           path: artifacts/*.dmg
           if-no-files-found: error
           retention-days: 14
+
+  publish-updates:
+    name: Publish update feed
+    needs: [windows-x64, windows-arm64, macos-arm64, macos-x64]
+    if: >-
+      always() &&
+      (needs.windows-x64.result == 'success' || needs.windows-arm64.result == 'success' || needs.macos-arm64.result == 'success' || needs.macos-x64.result == 'success')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: kuunda-vibe-*
+          path: publish-in
+          merge-multiple: true
+      - name: Sign and publish installers
+        env:
+          KUUNDA_UPDATE_SIGNING_KEY: ${{ secrets.KUUNDA_UPDATE_SIGNING_KEY }}
+          UPDATE_PUBLISH_TOKEN: ${{ secrets.UPDATE_PUBLISH_TOKEN }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CHANNEL: ${{ inputs.channel || 'internal' }}
+          KUUNDA_UPDATE_COMMIT: ${{ github.sha }}
+        run: node scripts/kuunda-builder/publish-update.mjs publish-in

@@ -29,6 +29,14 @@ export const getErrorMessage: (error: unknown) => string = (error) => {
 
 
 
+export const ANTHROPIC_IMAGE_MEDIA_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'] as const
+export type AnthropicImageMediaType = typeof ANTHROPIC_IMAGE_MEDIA_TYPES[number]
+
+export const anthropicImageMediaType = (mimeType: string): AnthropicImageMediaType | undefined => {
+	if (mimeType === 'image/jpg') return 'image/jpeg'
+	return (ANTHROPIC_IMAGE_MEDIA_TYPES as readonly string[]).includes(mimeType) ? mimeType as AnthropicImageMediaType : undefined
+}
+
 export type AnthropicLLMChatMessage = {
 	role: 'assistant',
 	content: string | (AnthropicReasoning | { type: 'text'; text: string }
@@ -37,12 +45,21 @@ export type AnthropicLLMChatMessage = {
 } | {
 	role: 'user',
 	content: string | (
-		{ type: 'text'; text: string; } | { type: 'tool_result'; tool_use_id: string; content: string; }
+		{ type: 'text'; text: string; }
+		| { type: 'image'; source: { type: 'base64'; media_type: AnthropicImageMediaType; data: string } }
+		| { type: 'tool_result'; tool_use_id: string; content: string; }
 	)[]
 }
+export type OpenAIContentPart =
+	| { type: 'text'; text: string }
+	| { type: 'image_url'; image_url: { url: string } }
+
 export type OpenAILLMChatMessage = {
-	role: 'system' | 'user' | 'developer';
+	role: 'system' | 'developer';
 	content: string;
+} | {
+	role: 'user';
+	content: string | OpenAIContentPart[];
 } | {
 	role: 'assistant',
 	content: string | (AnthropicReasoning | { type: 'text'; text: string })[];
@@ -63,6 +80,7 @@ export type GeminiLLMChatMessage = {
 	role: 'user';
 	parts: (
 		| { text: string; }
+		| { inlineData: { mimeType: string; data: string } }
 		| { functionResponse: { id: string; name: ToolName, response: { output: string } } }
 	)[];
 }

@@ -30,6 +30,6 @@ Pipeline d’installateurs Windows / macOS, signature de code, auto-update sign�
 - `wrangler deploy`
 - Diffusion publique / stores
 - Certificats Authenticode / Apple Developer (secrets steward)
-- Injecter `kuundaUpdatePublicKey` dans `product.json` au build (fail-closed tant qu’absente)
+- `kuundaUpdatePublicKey` est committée dans `product.json` (clé publique Ed25519) ; la clé privée reste un secret CI
 - Store durable des artefacts (mémoire Worker ; POST authentifié pour les tests internes)
 - Linux : hors 9.1 ; ouverture du paquet seulement si l’URL est sur l’hôte updates

@@ -6,10 +6,12 @@ import { registerSingleton, InstantiationType } from '../../../../platform/insta
 import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
 import { IWorkspaceContextService } from '../../../../platform/workspace/common/workspace.js';
 import { IEditorService } from '../../../services/editor/common/editorService.js';
-import { ChatMessage } from '../common/chatThreadServiceTypes.js';
+import { encodeBase64 } from '../../../../base/common/buffer.js';
+import { IFileService } from '../../../../platform/files/common/files.js';
+import { ChatMessage, StagingSelectionItem } from '../common/chatThreadServiceTypes.js';
 import { getIsReasoningEnabledState, getReservedOutputTokenSpace, getModelCapabilities } from '../common/modelCapabilities.js';
 import { reParsedToolXMLString, chat_systemMessage } from '../common/prompt/prompts.js';
-import { AnthropicLLMChatMessage, AnthropicReasoning, GeminiLLMChatMessage, LLMChatMessage, LLMFIMMessage, OpenAILLMChatMessage, RawToolParamsObj } from '../common/sendLLMMessageTypes.js';
+import { AnthropicLLMChatMessage, AnthropicReasoning, anthropicImageMediaType, GeminiLLMChatMessage, LLMChatMessage, LLMFIMMessage, OpenAILLMChatMessage, RawToolParamsObj } from '../common/sendLLMMessageTypes.js';
 import { IVoidSettingsService } from '../common/voidSettingsService.js';
 import { ChatMode, FeatureName, ModelSelection, ProviderName } from '../common/voidSettingsTypes.js';
 import { IDirectoryStrService } from '../common/directoryStrService.js';
@@ -18,6 +20,7 @@ import { IMCPService } from '../common/mcpService.js';
 import { ToolName } from '../common/toolsServiceTypes.js';
 import { IKuundaCodebaseService } from '../../kuundaAi/common/kuundaCodebaseService.js';
 import { IKuundaWorkspaceService } from '../../kuundaAi/common/kuundaWorkspaceService.js';
+import { IKuundaSkillService } from '../../kuundaAi/common/kuundaSkillService.js';
 import { IKuundaProjectService } from '../../kuundaProject/common/kuundaProjectService.js';
 import { IKuundaCloudService } from '../../kuundaCloud/common/kuundaCloudService.js';
 import { IKuundaPublishService } from '../../kuundaPublish/common/kuundaPublishService.js';
@@ -36,6 +39,7 @@ type SimpleLLMMessage = {
 } | {
 	role: 'user';
 	content: string;
+	images?: { mimeType: string; dataBase64: string }[];
 } | {
 	role: 'assistant';
 	content: string;
@@ -79,6 +83,24 @@ const prepareMessages_openai_tools = (messages: SimpleLLMMessage[]): AnthropicOr
 
 	for (let i = 0; i < messages.length; i += 1) {
 		const currMsg = messages[i]
+
+		if (currMsg.role === 'user') {
+			if (currMsg.images?.length) {
+				newMessages.push({
+					role: 'user',
+					content: [
+						{ type: 'text', text: currMsg.content },
+						...currMsg.images.map(image => ({
+							type: 'image_url' as const,
+							image_url: { url: `data:${image.mimeType};base64,${image.dataBase64}` },
+						})),
+					],
+				})
+			} else {
+				newMessages.push({ role: 'user', content: currMsg.content })
+			}
+			continue
+		}
 
 		if (currMsg.role !== 'tool') {
 			newMessages.push(currMsg)
@@ -168,10 +190,25 @@ const prepareMessages_anthropic_tools = (messages: SimpleLLMMessage[], supportsA
 		}
 
 		if (currMsg.role === 'user') {
-			newMessages[i] = {
-				role: 'user',
-				content: currMsg.content,
-			}
+			newMessages[i] = currMsg.images?.length
+				? {
+					role: 'user',
+					content: [
+						{ type: 'text', text: currMsg.content },
+						...currMsg.images.flatMap(image => {
+							const mediaType = anthropicImageMediaType(image.mimeType)
+							if (!mediaType) return []
+							return [{
+								type: 'image' as const,
+								source: { type: 'base64' as const, media_type: mediaType, data: image.dataBase64 },
+							}]
+						}),
+					],
+				}
+				: {
+					role: 'user',
+					content: currMsg.content,
+				}
 			continue
 		}
 
@@ -401,12 +438,19 @@ const prepareOpenAIOrAnthropicMessages = ({
 	}
 	// if does not support system message
 	else {
-		const newFirstMessage = {
-			role: 'user',
-			content: `<SYSTEM_MESSAGE>\n${newSysMsg}\n</SYSTEM_MESSAGE>\n${llmMessages[0].content}`
-		} as const
-		llmMessages.splice(0, 1) // delete first message
-		llmMessages.unshift(newFirstMessage) // add new first message
+		const first = llmMessages[0]
+		const prefix = `<SYSTEM_MESSAGE>\n${newSysMsg}\n</SYSTEM_MESSAGE>\n`
+		if (!first || typeof first.content === 'string') {
+			const newFirstMessage = {
+				role: 'user' as const,
+				content: prefix + (typeof first?.content === 'string' ? first.content : '')
+			}
+			llmMessages.splice(0, 1) // delete first message
+			llmMessages.unshift(newFirstMessage) // add new first message
+		} else {
+			const parts = first.content as { type: string; text?: string }[]
+			parts.unshift({ type: 'text', text: prefix.trimEnd() })
+		}
 	}
 
 
@@ -482,6 +526,9 @@ const prepareGeminiMessages = (messages: AnthropicLLMChatMessage[]) => {
 						if (!latestToolName) return null
 						return { functionResponse: { id: c.tool_use_id, name: latestToolName, response: { output: c.content } } }
 					}
+					else if (c.type === 'image') {
+						return { inlineData: { mimeType: c.source.media_type, data: c.source.data } }
+					}
 					else return null
 				}).filter(m => !!m)
 				return { role: 'user', parts, }
@@ -546,9 +593,11 @@ class ConvertToLLMMessageService extends Disposable implements IConvertToLLMMess
 		@IMCPService private readonly mcpService: IMCPService,
 		@IKuundaCodebaseService private readonly kuundaCodebaseService: IKuundaCodebaseService,
 		@IKuundaWorkspaceService private readonly kuundaWorkspaceService: IKuundaWorkspaceService,
+		@IKuundaSkillService private readonly kuundaSkillService: IKuundaSkillService,
 		@IKuundaProjectService private readonly kuundaProjectService: IKuundaProjectService,
 		@IKuundaCloudService private readonly kuundaCloudService: IKuundaCloudService,
 		@IKuundaPublishService private readonly kuundaPublishService: IKuundaPublishService,
+		@IFileService private readonly fileService: IFileService,
 	) {
 		super()
 	}
@@ -587,6 +636,7 @@ class ConvertToLLMMessageService extends Disposable implements IConvertToLLMMess
 		try {
 			const extra = [
 				await this.kuundaWorkspaceService.formatDevContext(),
+				await this.kuundaSkillService.formatContext(),
 				await this.kuundaProjectService.formatContext(),
 				await this.kuundaCloudService.formatContext(),
 				await this.kuundaPublishService.formatContext(),
@@ -605,10 +655,39 @@ class ConvertToLLMMessageService extends Disposable implements IConvertToLLMMess
 
 	// --- LLM Chat messages ---
 
-	private _chatMessagesToSimpleMessages(chatMessages: ChatMessage[]): SimpleLLMMessage[] {
-		const simpleLLMMessages: SimpleLLMMessage[] = []
+	private async _imagesFromSelections(selections: StagingSelectionItem[] | null | undefined, budget: { remaining: number }): Promise<{ mimeType: string; dataBase64: string }[] | undefined> {
+		if (!selections?.length || budget.remaining <= 0) return undefined
+		const images: { mimeType: string; dataBase64: string }[] = []
+		for (const selection of selections) {
+			if (budget.remaining <= 0) break
+			if (selection.type !== 'Image') continue
+			try {
+				const file = await this.fileService.readFile(selection.uri)
+				if (file.value.byteLength > 4 * 1024 * 1024) continue
+				images.push({ mimeType: selection.mimeType, dataBase64: encodeBase64(file.value) })
+				budget.remaining -= 1
+			} catch {
+				// The attachment note in the text still tells the model a file was added.
+			}
+		}
+		return images.length ? images : undefined
+	}
 
-		for (const m of chatMessages) {
+	private async _chatMessagesToSimpleMessages(chatMessages: ChatMessage[]): Promise<SimpleLLMMessage[]> {
+		const simpleLLMMessages: SimpleLLMMessage[] = []
+		const imageBudget = { remaining: 4 }
+		const imageIndexes = new Set<number>()
+		let keptUsers = 0
+		for (let i = chatMessages.length - 1; i >= 0 && keptUsers < 4; i--) {
+			const message = chatMessages[i]
+			if (message.role === 'user' && message.selections?.some(selection => selection.type === 'Image')) {
+				imageIndexes.add(i)
+				keptUsers += 1
+			}
+		}
+
+		for (let i = 0; i < chatMessages.length; i++) {
+			const m = chatMessages[i]
 			if (m.role === 'checkpoint') continue
 			if (m.role === 'interrupted_streaming_tool') continue
 			if (m.role === 'assistant') {
@@ -631,6 +710,7 @@ class ConvertToLLMMessageService extends Disposable implements IConvertToLLMMess
 				simpleLLMMessages.push({
 					role: m.role,
 					content: m.content,
+					images: imageIndexes.has(i) ? await this._imagesFromSelections(m.selections, imageBudget) : undefined,
 				})
 			}
 		}
@@ -709,7 +789,7 @@ class ConvertToLLMMessageService extends Disposable implements IConvertToLLMMess
 		const aiInstructions = this._getCombinedAIInstructions();
 		const isReasoningEnabled = getIsReasoningEnabledState('Chat', providerName, modelName, modelSelectionOptions, overridesOfModel)
 		const reservedOutputTokenSpace = getReservedOutputTokenSpace(providerName, modelName, { isReasoningEnabled, overridesOfModel })
-		const llmMessages = compactChatContext(this._chatMessagesToSimpleMessages(chatMessages), {
+		const llmMessages = compactChatContext(await this._chatMessagesToSimpleMessages(chatMessages), {
 			maxChars: contextBudgetChars(contextWindow, reservedOutputTokenSpace),
 		})
 

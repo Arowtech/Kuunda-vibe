@@ -19,6 +19,8 @@ import { RawToolParamsObj } from '../common/sendLLMMessageTypes.js'
 import { MAX_CHILDREN_URIs_PAGE, MAX_FILE_CHARS_PAGE, MAX_TERMINAL_BG_COMMAND_TIME, MAX_TERMINAL_INACTIVE_TIME } from '../common/prompt/prompts.js'
 import { IVoidSettingsService } from '../common/voidSettingsService.js'
 import { generateUuid } from '../../../../base/common/uuid.js'
+import { IKuundaCloudService } from '../../kuundaCloud/common/kuundaCloudService.js'
+import { kuundaGitRemoteUrl } from '../../kuundaCloud/common/cloudProvision.js'
 
 
 // tool use for AI
@@ -106,6 +108,36 @@ const validateProposedTerminalId = (terminalIdUnknown: unknown) => {
 	return terminalId
 }
 
+function repoSlug(folder: URI): string {
+	const base = folder.path.replace(/\\/g, '/').split('/').filter(Boolean).pop() || 'app'
+	return base.toLowerCase().replace(/[^a-z0-9._-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 48) || 'app'
+}
+
+function emptyCloudConnect(status: string, detail: string): BuiltinToolResultType['connect_kuunda_cloud'] {
+	return { status, projectRef: '', url: '', gitRemote: '', git: 'skipped', detail }
+}
+
+async function runGit(terminal: ITerminalToolService, cwd: string, command: string): Promise<boolean> {
+	const { resPromise } = await terminal.runCommand(command, { type: 'temporary', cwd, terminalId: generateUuid() })
+	const done = await resPromise
+	return done.resolveReason.type === 'done' && done.resolveReason.exitCode === 0
+}
+
+async function ensureKuundaGit(terminal: ITerminalToolService, cwd: string, remote: string): Promise<'connected' | 'already' | 'failed'> {
+	try {
+		const inside = await runGit(terminal, cwd, 'git rev-parse --is-inside-work-tree')
+		if (!inside && !await runGit(terminal, cwd, 'git init')) {
+			return 'failed'
+		}
+		if (await runGit(terminal, cwd, 'git remote get-url kuunda')) {
+			return await runGit(terminal, cwd, `git remote set-url kuunda ${remote}`) ? 'connected' : 'failed'
+		}
+		return await runGit(terminal, cwd, `git remote add kuunda ${remote}`) ? 'connected' : 'failed'
+	} catch {
+		return 'failed'
+	}
+}
+
 const validateBoolean = (b: unknown, opts: { default: boolean }) => {
 	if (typeof b === 'string') {
 		if (b === 'true') return true
@@ -153,6 +185,7 @@ export class ToolsService implements IToolsService {
 		@IDirectoryStrService private readonly directoryStrService: IDirectoryStrService,
 		@IMarkerService private readonly markerService: IMarkerService,
 		@IVoidSettingsService private readonly voidSettingsService: IVoidSettingsService,
+		@IKuundaCloudService private readonly kuundaCloudService: IKuundaCloudService,
 	) {
 		const queryBuilder = instantiationService.createInstance(QueryBuilder);
 
@@ -283,6 +316,9 @@ export class ToolsService implements IToolsService {
 				const cwd = validateOptionalStr('cwd', cwdUnknown)
 				// No parameters needed; will open a new background terminal
 				return { cwd };
+			},
+			connect_kuunda_cloud: (params: RawToolParamsObj) => {
+				return { uri: validateOptionalURI(params.uri) }
 			},
 			kill_persistent_terminal: (params: RawToolParamsObj) => {
 				const { persistent_terminal_id: terminalIdUnknown } = params;
@@ -461,6 +497,40 @@ export class ToolsService implements IToolsService {
 				await this.terminalToolService.killPersistentTerminal(persistentTerminalId)
 				return { result: {} }
 			},
+			connect_kuunda_cloud: async ({ uri }) => {
+				const folder = uri ?? workspaceContextService.getWorkspace().folders[0]?.uri
+				if (!folder) {
+					return { result: emptyCloudConnect('no_workspace', 'Open a workspace folder first. Kuunda Cloud is hosted at https://api.ide.kuunda-cloud.com, not on this computer.') }
+				}
+				const outcome = await this.kuundaCloudService.provisionFolder(folder, { enabled: true })
+				if (!outcome.ok) {
+					return { result: emptyCloudConnect('error', `Kuunda Cloud API refused the project (${outcome.error}). Do not use localhost.`) }
+				}
+				if (outcome.action === 'skip' || outcome.cloud.enabled === false) {
+					return { result: emptyCloudConnect('disabled', 'Kuunda Cloud is disabled for this folder.') }
+				}
+				const projectRef = outcome.cloud.projectRef || ''
+				if (!projectRef) {
+					return { result: emptyCloudConnect('pending', 'The project was not created on https://api.ide.kuunda-cloud.com. Do not replace it with localhost, Docker, or a local database.') }
+				}
+				const gitRemote = outcome.cloud.repo || kuundaGitRemoteUrl(projectRef, repoSlug(folder)) || ''
+				let git = outcome.cloud.repo ? 'already' : 'skipped'
+				if (gitRemote && !outcome.cloud.repo) {
+					git = await ensureKuundaGit(this.terminalToolService, folder.fsPath, gitRemote)
+				}
+				const url = outcome.cloud.url && !/localhost|127\.0\.0\.1/i.test(outcome.cloud.url) ? outcome.cloud.url : ''
+				const status = outcome.action === 'provision' ? 'created' : 'already_connected'
+				return {
+					result: {
+						status,
+						projectRef,
+						url,
+						gitRemote,
+						git,
+						detail: 'Credentials are in gitignored .env.local. Read and write through src/kuunda/client.js. Do not print the anon key.',
+					},
+				}
+			},
 		}
 
 
@@ -563,6 +633,18 @@ export class ToolsService implements IToolsService {
 			},
 			kill_persistent_terminal: (params, _result) => {
 				return `Successfully closed terminal "${params.persistentTerminalId}".`;
+			},
+			connect_kuunda_cloud: (_params, result) => {
+				const lines = [
+					`status: ${result.status}`,
+					result.projectRef ? `project: ${result.projectRef}` : '',
+					result.url ? `database url: ${result.url}` : 'database url: written to gitignored .env.local. Do not invent one and do not use localhost.',
+					result.gitRemote ? `Kuunda Git remote (name kuunda): ${result.gitRemote}` : '',
+					`git: ${result.git}`,
+					result.detail,
+					'Kuunda Cloud is hosted at https://api.ide.kuunda-cloud.com. A local dev server is only a preview.',
+				]
+				return lines.filter(Boolean).join('\n')
 			},
 		}
 

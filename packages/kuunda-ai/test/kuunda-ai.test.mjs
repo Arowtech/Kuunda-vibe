@@ -35,6 +35,10 @@ import {
 	TERMINAL_TOOL_NAMES,
 	formatProjectRules,
 	PROJECT_RULE_FILENAMES,
+	sanitizeSkillId,
+	parseSkillFile,
+	starterSkill,
+	formatSkills,
 	parseGitStatusPorcelain,
 	formatMultiRepoGit,
 	joinFsPath,
@@ -80,6 +84,7 @@ import {
 	persistableAnonKey,
 	scaffoldCloudFiles,
 	formatCloudContext,
+	kuundaGitRemoteUrl,
 	formatCloudPanel,
 	serializeManifestWithCloud,
 	isPublishPanelVisible,
@@ -129,6 +134,7 @@ import {
 	parseAuthTokens,
 	parseAccountProfile,
 	redirectUriForProtocol,
+	WEB_OAUTH_REDIRECT_URI,
 	isAuthCallbackUri,
 	decideAccountGate,
 	parseStudioOpenIntent,
@@ -485,6 +491,24 @@ describe('Phase 4.4 — .projectrules', () => {
 	});
 });
 
+describe('Skills', () => {
+	it('accepte un skill, ignore un nom de dossier réservé, et n’envoie que les skills activés', () => {
+		assert.equal(sanitizeSkillId('My Skill'), 'my-skill');
+		assert.equal(sanitizeSkillId('CON'), '');
+		const parsed = parseSkillFile(starterSkill('billing'));
+		assert.equal(parsed?.name, 'billing');
+		assert.match(parsed?.body || '', /billing/);
+		const text = formatSkills([
+			{ key: 'user:billing', title: 'User/billing', description: 'Invoices', body: 'Use Kuunda Cloud.', enabled: true },
+			{ key: 'user:off', title: 'User/off', description: 'Hidden', body: 'Do not send.', enabled: false },
+		]);
+		assert.match(text, /Skills:/);
+		assert.match(text, /Use Kuunda Cloud/);
+		assert.equal(text.includes('Do not send'), false);
+		assert.equal(parseSkillFile('   '), undefined);
+	});
+});
+
 describe('Phase 4.2 — git multi-repo', () => {
 	it('parse porcelain et formate plusieurs racines', () => {
 		const rows = parseGitStatusPorcelain('## main...origin/main\n M src/a.ts\n?? new.js\n');
@@ -585,6 +609,17 @@ describe('Phase 5 — type de projet', () => {
 		assert.ok(website.files.some((file) => file.path === PROJECT_MANIFEST_PATH));
 		assert.equal(website.files.at(-1)?.path, PROJECT_MANIFEST_PATH);
 		assert.ok(website.files.some((file) => file.path === 'index.html'));
+		assert.ok(website.files.some((file) => file.path === 'src/components/App.jsx'));
+		assert.ok(website.files.some((file) => file.path === 'src/styles.css'));
+		assert.match(website.files.find((file) => file.path === '.projectrules')?.content || '', /src\/components/);
+		assert.match(website.files.find((file) => file.path === 'package.json')?.content || '', /"react"/);
+		assert.match(website.files.find((file) => file.path === '.projectrules')?.content || '', /Kuunda Cloud is the default database/);
+		assert.match(website.files.find((file) => file.path === '.projectrules')?.content || '', /Kuunda Git/);
+		assert.match(website.files.find((file) => file.path === '.projectrules')?.content || '', /propose two or three options/);
+		assert.match(website.files.find((file) => file.path === '.projectrules')?.content || '', /Kuunda Frontend/);
+		assert.match(website.files.find((file) => file.path === '.projectrules')?.content || '', /database and Kuunda Git together/);
+		assert.match(website.files.find((file) => file.path === '.projectrules')?.content || '', /only when the user asks to publish/);
+		assert.equal(website.files.some((file) => file.path === 'script.js'), false);
 		const parsed = parseProjectManifest(website.files.find((file) => file.path === PROJECT_MANIFEST_PATH)?.content);
 		assert.equal(parsed.ok && parsed.manifest.type, 'website');
 		const blob = website.files.map((file) => file.content).join('\n');
@@ -742,7 +777,16 @@ describe('Phase 6 — Kuunda Cloud par défaut', () => {
 		assert.match(formatCloudContext(scaffold.cloud), /proj_ab/);
 		assert.match(formatCloudContext(scaffold.cloud), /sandbox/);
 		assert.match(formatCloudContext({ enabled: true }), /automatically/);
+		assert.match(formatCloudContext({ enabled: true }), /Kuunda Frontend/);
 		assert.match(formatCloudContext({ enabled: true }), /No Kuunda Cloud account is required/);
+		assert.match(formatCloudContext({ enabled: true }), /POST \/v1\/accounts\/\{accountId\}\/projects/);
+		assert.match(formatCloudContext({ enabled: true }), /database and Kuunda Git together/);
+		assert.match(formatCloudContext({ enabled: true }), /connect_kuunda_cloud/);
+		assert.match(formatCloudContext({ enabled: true }), /never on localhost/);
+		assert.equal(kuundaGitRemoteUrl('proj_ab', 'My App'), 'https://git.kuunda-cloud.com/proj_ab/my-app.git');
+		assert.equal(kuundaGitRemoteUrl('not-a-ref', 'app'), undefined);
+		assert.match(formatCloudContext({ enabled: true, projectRef: 'proj_ab', env: 'sandbox' }), /Connect Kuunda Git now/);
+		assert.match(formatCloudContext({ enabled: true, projectRef: 'proj_ab', repo: 'https://git.kuunda-cloud.com/proj_ab/app.git' }), /already connected/);
 		assert.match(formatCloudContext({ enabled: true, projectRef: 'proj_ab', env: 'sandbox' }), /promote/);
 		assert.match(formatCloudContext({ enabled: true, projectRef: 'proj_ab', env: 'production' }), /user-owned/);
 		assert.match(formatCloudPanel({ cloud: scaffold.cloud, tables: [{ name: 'items', rowCount: 0 }] }), /items \(0\)/);
@@ -1191,15 +1235,19 @@ describe('Phase 10 — itération post-lancement', () => {
 
 describe('Phase 11 — politique de compte Studio', () => {
 	it('valide e-mail / mot de passe et classe les erreurs sans secret', () => {
-		assert.deepEqual([...AUTH_PROVIDERS], ['email', 'google', 'github', 'apple']);
+		assert.deepEqual([...AUTH_PROVIDERS], ['email', 'google']);
 		assert.equal(isValidEmail('dev@kuunda.cloud'), true);
 		assert.equal(isValidEmail('nope'), false);
 		assert.equal(isStrongPassword('short'), false);
 		assert.equal(isStrongPassword('long-enough-pass'), true);
 		assert.equal(classifyAuthError(new Error('platform_http_401')), 'invalid_credentials');
+		assert.equal(classifyAuthError(new Error('platform_http_409:email_taken')), 'email_taken');
+		assert.equal(classifyAuthError(new Error('platform_http_422:invalid_account')), 'invalid_account');
+		assert.equal(classifyAuthError(new Error('platform_http_404')), 'provider_unavailable');
 		assert.equal(classifyAuthError(new Error('platform_http_501')), 'unavailable');
 		assert.equal(classifyAuthError(new Error('access_denied')), 'oauth_denied');
 		assert.equal(redirectUriForProtocol('kuunda-vibe'), 'kuunda-vibe://auth/callback');
+		assert.equal(WEB_OAUTH_REDIRECT_URI, 'https://app.ide.kuunda-cloud.com/login/');
 		assert.equal(isAuthCallbackUri({ scheme: 'kuunda-vibe', authority: 'auth' }), true);
 		assert.equal(decideAccountGate({ hasSession: false, feature: 'kuunda_cloud' }).error, 'need_session');
 		assert.deepEqual(parseStudioOpenIntent({ reason: 'cloud' }), { intent: 'signUp', reason: 'cloud' });
@@ -1216,6 +1264,16 @@ describe('Phase 11 — politique de compte Studio', () => {
 		});
 		assert.equal(session?.profile.userId, 'u1');
 		assert.equal(session?.accessToken, 'runtime-session');
+		const kuunda = parseAuthTokens({
+			ok: true,
+			userId: 'u2',
+			email: 'dev@kuunda.cloud',
+			displayName: 'Dev',
+			accessToken: 'runtime-session-2',
+			expiresIn: 3600,
+		});
+		assert.equal(kuunda?.profile.providers[0], 'email');
+		assert.ok(kuunda && kuunda.expiresAt && kuunda.expiresAt > Date.now());
 		assert.equal(parseAccountProfile({ password: 'secret', userId: 'u1', email: 'dev@kuunda.cloud' }).userId, 'u1');
 		assert.equal(JSON.stringify(parseAccountProfile({ password: 'secret', userId: 'u1' })).includes('secret'), false);
 	});

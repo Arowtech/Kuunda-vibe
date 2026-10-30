@@ -52,7 +52,10 @@ import { ITerminalService } from '../../../../../terminal/browser/terminal.js'
 import { ISearchService } from '../../../../../../services/search/common/search.js'
 import { IExtensionManagementService } from '../../../../../../../platform/extensionManagement/common/extensionManagement.js'
 import { IMCPService } from '../../../../common/mcpService.js';
+import { IKuundaSkillService } from '../../../../../kuundaAi/common/kuundaSkillService.js';
+import { ISpeechService } from '../../../../../speech/common/speechService.js';
 import { IStorageService, StorageScope } from '../../../../../../../platform/storage/common/storage.js'
+import { IMainProcessService } from '../../../../../../../platform/ipc/common/mainProcessService.js'
 import { OPT_OUT_KEY } from '../../../../common/storageKeys.js'
 
 
@@ -82,6 +85,7 @@ const commandBarURIStateListeners: Set<(uri: URI) => void> = new Set();
 const activeURIListeners: Set<(uri: URI | null) => void> = new Set();
 
 const mcpListeners: Set<() => void> = new Set()
+const skillListeners: Set<() => void> = new Set()
 
 
 // must call this before you can use any of the hooks below
@@ -101,9 +105,10 @@ export const _registerServices = (accessor: ServicesAccessor) => {
 		voidCommandBarService: accessor.get(IVoidCommandBarService),
 		modelService: accessor.get(IModelService),
 		mcpService: accessor.get(IMCPService),
+		skillService: accessor.get(IKuundaSkillService),
 	}
 
-	const { settingsStateService, chatThreadsStateService, refreshModelService, themeService, editCodeService, voidCommandBarService, modelService, mcpService } = stateServices
+	const { settingsStateService, chatThreadsStateService, refreshModelService, themeService, editCodeService, voidCommandBarService, modelService, mcpService, skillService } = stateServices
 
 
 
@@ -176,6 +181,12 @@ export const _registerServices = (accessor: ServicesAccessor) => {
 		})
 	)
 
+	disposables.push(
+		skillService.onDidChangeState(() => {
+			skillListeners.forEach(l => l())
+		})
+	)
+
 
 	return disposables
 }
@@ -227,6 +238,9 @@ const getReactAccessor = (accessor: ServicesAccessor) => {
 		IExtensionManagementService: accessor.get(IExtensionManagementService),
 		IExtensionTransferService: accessor.get(IExtensionTransferService),
 		IMCPService: accessor.get(IMCPService),
+		IKuundaSkillService: accessor.get(IKuundaSkillService),
+		ISpeechService: accessor.get(ISpeechService),
+		IMainProcessService: accessor.get(IMainProcessService),
 
 		IStorageService: accessor.get(IStorageService),
 
@@ -399,6 +413,20 @@ export const useMCPServiceState = () => {
 		const listener = () => { ss(mcpService.state) }
 		mcpListeners.add(listener);
 		return () => { mcpListeners.delete(listener) };
+	}, []);
+	return s
+}
+
+
+
+export const useSkillServiceState = () => {
+	const accessor = useAccessor()
+	const skillService = accessor.get('IKuundaSkillService')
+	const [s, ss] = useState(skillService.state)
+	useEffect(() => {
+		const listener = () => { ss(skillService.state) }
+		skillListeners.add(listener);
+		return () => { skillListeners.delete(listener) };
 	}, []);
 	return s
 }

@@ -10,8 +10,10 @@ import { ICommandService } from '../../../../platform/commands/common/commands.j
 import { ILayoutService } from '../../../../platform/layout/browser/layoutService.js';
 import { IOpenerService } from '../../../../platform/opener/common/opener.js';
 import { IKuundaBillingService } from '../../kuundaBilling/common/kuundaBillingService.js';
+import { IKuundaCloudService } from '../../kuundaCloud/common/kuundaCloudService.js';
+import { CLOUD_CONSOLE_SECTIONS, cloudConsoleSection, cloudConsoleText } from '../../kuundaCloud/common/cloudConsole.js';
 import { kuundaAccountErrorMessage, kuundaAccountLocalize, type KuundaAccountStringKey } from '../common/kuundaAccountNls.js';
-import { DEFAULT_CLOUD_APP_URL, parseStudioOpenIntent, type OAuthProvider, type StudioOpenIntent } from '../common/accountPolicy.js';
+import { parseStudioOpenIntent, type StudioOpenIntent } from '../common/accountPolicy.js';
 import { IKuundaAccountService } from '../common/kuundaAccountService.js';
 
 type StudioTab = 'identity' | 'credits' | 'usage' | 'devices' | 'cloud' | 'security';
@@ -43,6 +45,7 @@ export function openKuundaAccountStudio(
 	account: IKuundaAccountService,
 	billing: IKuundaBillingService,
 	opener: IOpenerService,
+	cloud: IKuundaCloudService,
 	options?: unknown,
 ): void {
 	activeStudio?.close();
@@ -58,12 +61,17 @@ export function openKuundaAccountStudio(
 
 	const openIntent: StudioOpenIntent = parseStudioOpenIntent(options);
 	let tab: StudioTab = openIntent.reason === 'cloud' ? 'cloud' : 'identity';
-	let signingUp = openIntent.intent === 'signUp';
 	let busy = false;
 	let error = '';
-	let deviceCode = '';
+	let pairingId = '';
 	let userCode = '';
+	let verificationUrl = '';
+	let deviceExpiresAt = 0;
 	let pollTimer: ReturnType<typeof setInterval> | undefined;
+	let consoleSection = 'database';
+	let consoleProject = '';
+	let consoleFeedback = '';
+	let renderToken = 0;
 
 	const stopPoll = () => {
 		if (pollTimer) {
@@ -94,6 +102,7 @@ export function openKuundaAccountStudio(
 	};
 
 	async function render(): Promise<void> {
+		const token = ++renderToken;
 		content.clear();
 		clearNode(dialog);
 		const header = append(dialog, $('div.kuunda-account-header'));
@@ -111,7 +120,7 @@ export function openKuundaAccountStudio(
 			renderSignedOut(dialog);
 			return;
 		}
-		renderSignedIn(dialog, profile);
+		renderSignedIn(dialog, profile, token);
 	}
 
 	function renderSignedOut(root: HTMLElement): void {
@@ -119,51 +128,36 @@ export function openKuundaAccountStudio(
 		const story = append(grid, $('div'));
 		append(story, $('h2', {}, kuundaAccountLocalize(openIntent.reason === 'cloud' ? 'kuunda.account.signedOut.cloud.title' : 'kuunda.account.signedOut.title')));
 		append(story, $('p', {}, kuundaAccountLocalize(openIntent.reason === 'cloud' ? 'kuunda.account.signedOut.cloud.body' : 'kuunda.account.signedOut.body')));
-		append(story, $('div.kuunda-account-hint', {}, kuundaAccountLocalize('kuunda.account.device.body')));
-		const pair = append(story, $('button.kuunda-account-btn.ghost')) as HTMLButtonElement;
-		pair.type = 'button';
-		pair.textContent = userCode ? `${kuundaAccountLocalize('kuunda.account.device.waiting')} ${userCode}` : kuundaAccountLocalize('kuunda.account.device.start');
-		pair.disabled = busy;
-		content.add(addDisposableListener(pair, 'click', () => void startDevice()));
-		if (userCode) {
-			append(story, $('div.kuunda-account-code', {}, userCode));
-		}
+		append(story, $('div.kuunda-account-hint', {}, kuundaAccountLocalize('kuunda.account.web.hint')));
 
-		const form = append(grid, $('div.kuunda-account-card'));
-		if (signingUp) {
-			addField(form, 'displayName', kuundaAccountLocalize('kuunda.account.displayName'), 'text');
-		}
-		addField(form, 'email', kuundaAccountLocalize('kuunda.account.email'), 'email');
-		addField(form, 'password', kuundaAccountLocalize('kuunda.account.password'), 'password');
-		append(form, $('div.kuunda-account-hint', {}, kuundaAccountLocalize('kuunda.account.password.hint')));
+		const card = append(grid, $('div.kuunda-account-card'));
+		append(card, $('h3', {}, kuundaAccountLocalize('kuunda.account.web.title')));
+		append(card, $('p', {}, kuundaAccountLocalize('kuunda.account.web.body')));
 		if (error) {
-			append(form, $('div.kuunda-account-error', {}, error));
+			append(card, $('div.kuunda-account-error', {}, error));
 		}
-		const submit = append(form, $('button.kuunda-account-btn.primary')) as HTMLButtonElement;
-		submit.type = 'button';
-		submit.disabled = busy;
-		submit.textContent = busy ? kuundaAccountLocalize('kuunda.account.busy') : kuundaAccountLocalize(signingUp ? 'kuunda.account.signUp' : 'kuunda.account.signIn');
-		content.add(addDisposableListener(submit, 'click', () => void submitEmail(form)));
-		const toggle = append(form, $('button.kuunda-account-btn.ghost')) as HTMLButtonElement;
-		toggle.type = 'button';
-		toggle.textContent = kuundaAccountLocalize(signingUp ? 'kuunda.account.toggleSignIn' : 'kuunda.account.toggleSignUp');
-		content.add(addDisposableListener(toggle, 'click', () => {
-			signingUp = !signingUp;
-			error = '';
-			void render();
-		}));
-		append(form, $('div.kuunda-account-hint', {}, kuundaAccountLocalize('kuunda.account.oauth.hint')));
-		const oauth = append(form, $('div.kuunda-account-oauth'));
-		for (const provider of ['google', 'github', 'apple'] as OAuthProvider[]) {
-			const button = append(oauth, $('button.kuunda-account-btn.oauth')) as HTMLButtonElement;
-			button.type = 'button';
-			button.disabled = busy;
-			button.textContent = kuundaAccountLocalize(`kuunda.account.oauth.${provider}`);
-			content.add(addDisposableListener(button, 'click', () => void startOAuth(provider)));
+		if (userCode) {
+			append(card, $('div.kuunda-account-hint', {}, kuundaAccountLocalize('kuunda.account.web.code')));
+			append(card, $('div.kuunda-account-code', {}, userCode));
+			append(card, $('div.kuunda-account-hint', {}, kuundaAccountLocalize('kuunda.account.web.waiting')));
+		}
+		const actions = append(card, $('div.kuunda-account-actions'));
+		const cta = append(actions, $('button.kuunda-account-btn.primary')) as HTMLButtonElement;
+		cta.type = 'button';
+		cta.disabled = busy;
+		cta.textContent = userCode
+			? kuundaAccountLocalize('kuunda.account.web.reopen')
+			: (busy ? kuundaAccountLocalize('kuunda.account.busy') : kuundaAccountLocalize('kuunda.account.web.cta'));
+		content.add(addDisposableListener(cta, 'click', () => void startWebSignIn()));
+		if (userCode) {
+			const cancel = append(actions, $('button.kuunda-account-btn.ghost')) as HTMLButtonElement;
+			cancel.type = 'button';
+			cancel.textContent = kuundaAccountLocalize('kuunda.account.web.cancel');
+			content.add(addDisposableListener(cancel, 'click', cancelWebSignIn));
 		}
 	}
 
-	function renderSignedIn(root: HTMLElement, profile: NonNullable<ReturnType<IKuundaAccountService['getSession']>>): void {
+	function renderSignedIn(root: HTMLElement, profile: NonNullable<ReturnType<IKuundaAccountService['getSession']>>, token: number): void {
 		const layoutEl = append(root, $('div.kuunda-account-layout'));
 		const rail = append(layoutEl, $('nav.kuunda-account-rail'));
 		for (const spec of TABS) {
@@ -195,15 +189,7 @@ export function openKuundaAccountStudio(
 		} else if (tab === 'devices') {
 			void renderDevices(pane);
 		} else if (tab === 'cloud') {
-			const card = append(pane, $('div.kuunda-account-card'));
-			append(card, $('p', {}, kuundaAccountLocalize('kuunda.account.cloud.body')));
-			if (profile.projectCount !== undefined) {
-				append(card, $('p', {}, String(profile.projectCount)));
-			}
-			const openCloud = append(card, $('button.kuunda-account-btn.primary')) as HTMLButtonElement;
-			openCloud.type = 'button';
-			openCloud.textContent = kuundaAccountLocalize('kuunda.account.cloud.open');
-			content.add(addDisposableListener(openCloud, 'click', () => void opener.open(URI.parse(DEFAULT_CLOUD_APP_URL), { openExternal: true })));
+			void renderCloud(pane, token);
 		} else {
 			const card = append(pane, $('div.kuunda-account-card'));
 			append(card, $('h3', {}, kuundaAccountLocalize('kuunda.account.security.providers')));
@@ -223,9 +209,131 @@ export function openKuundaAccountStudio(
 		}
 	}
 
+	async function renderCloud(pane: HTMLElement, token: number): Promise<void> {
+		const wrap = append(pane, $('div.kuunda-cloud-console'));
+		const nav = append(wrap, $('div.kuunda-cloud-sections'));
+		let lastGroup = '';
+		for (const section of CLOUD_CONSOLE_SECTIONS) {
+			if (section.group !== lastGroup) {
+				lastGroup = section.group;
+				append(nav, $('div.kuunda-cloud-group', {}, cloudConsoleText(section.group === 'settings'
+					? { en: 'Settings', fr: 'Réglages' }
+					: { en: 'Project', fr: 'Projet' })));
+			}
+			const button = append(nav, $('button')) as HTMLButtonElement;
+			button.type = 'button';
+			button.textContent = cloudConsoleText(section.label);
+			if (section.id === consoleSection) {
+				button.classList.add('active');
+			}
+			content.add(addDisposableListener(button, 'click', () => {
+				consoleSection = section.id;
+				consoleFeedback = '';
+				void render();
+			}));
+		}
+		const card = append(wrap, $('div.kuunda-account-card'));
+		append(card, $('p', {}, kuundaAccountLocalize('kuunda.account.cloud.body')));
+		const section = cloudConsoleSection(consoleSection) ?? CLOUD_CONSOLE_SECTIONS[1];
+		append(card, $('h3', {}, cloudConsoleText(section.label)));
+		append(card, $('p', {}, cloudConsoleText(section.summary)));
+		const projects = (await cloud.accountProjects()).filter((row) => row.status === 'active');
+		if (token !== renderToken) {
+			return;
+		}
+		if (projects.length > 1) {
+			const select = append(card, $('select.kuunda-cloud-select')) as HTMLSelectElement;
+			for (const row of projects) {
+				const option = append(select, $('option')) as HTMLOptionElement;
+				option.value = row.projectRef;
+				option.textContent = row.name ? `${row.name} · ${row.projectRef}` : row.projectRef;
+				if (row.projectRef === consoleProject) {
+					option.selected = true;
+				}
+			}
+			if (!consoleProject) {
+				consoleProject = select.value;
+			}
+			content.add(addDisposableListener(select, 'change', () => {
+				consoleProject = select.value;
+				void render();
+			}));
+		} else if (projects.length === 1) {
+			consoleProject = projects[0].projectRef;
+		}
+		const snapshot = await cloud.loadConsole(section.id, consoleProject || undefined);
+		if (token !== renderToken) {
+			return;
+		}
+		if (snapshot.projectRef) {
+			append(card, $('span.kuunda-account-badge', {}, snapshot.projectRef));
+		}
+		const notice = snapshot.notice || consoleFeedback;
+		if (notice) {
+			append(card, $('div.kuunda-account-hint', {}, consoleNotice(notice)));
+		}
+		if (!snapshot.rows.length) {
+			append(card, $('p', {}, kuundaAccountLocalize('kuunda.account.cloud.empty')));
+		}
+		for (const row of snapshot.rows) {
+			const line = append(card, $('div.kuunda-account-row'));
+			append(line, $('span', {}, row.label));
+			append(line, $('strong', {}, row.value));
+		}
+		if (section.fields.length) {
+			const form = append(card, $('div'));
+			for (const field of section.fields) {
+				addField(form, field.key, cloudConsoleText(field.label), field.kind === 'sql' ? 'sql' : field.kind === 'secret' ? 'password' : field.kind === 'email' ? 'email' : 'text');
+			}
+			const save = append(form, $('button.kuunda-account-btn.primary')) as HTMLButtonElement;
+			save.type = 'button';
+			save.textContent = kuundaAccountLocalize('kuunda.account.cloud.save');
+			content.add(addDisposableListener(save, 'click', () => {
+				const values: Record<string, string> = {};
+				for (const input of Array.from(form.querySelectorAll('input, textarea'))) {
+					const field = input as HTMLInputElement | HTMLTextAreaElement;
+					values[field.name] = field.value;
+				}
+				void cloud.saveConsole(section.id, values, consoleProject || undefined).then((saved) => {
+					consoleFeedback = saved.notice || (saved.status === 'ready' || saved.status === 'empty' ? '' : 'platform_route_pending');
+					void render();
+				});
+			}));
+		}
+		const refresh = append(card, $('button.kuunda-account-btn.ghost')) as HTMLButtonElement;
+		refresh.type = 'button';
+		refresh.textContent = kuundaAccountLocalize('kuunda.account.cloud.open');
+		content.add(addDisposableListener(refresh, 'click', () => void render()));
+	}
+
+	function consoleNotice(code: string): string {
+		if (code === 'project_refused') {
+			return kuundaAccountLocalize('kuunda.account.cloud.notice.refused');
+		}
+		if (code === 'rate_limited') {
+			return kuundaAccountLocalize('kuunda.account.cloud.notice.rate');
+		}
+		if (code === 'git_tokens') {
+			return kuundaAccountLocalize('kuunda.account.cloud.notice.git');
+		}
+		if (code === 'sites_domains') {
+			return kuundaAccountLocalize('kuunda.account.cloud.notice.domains');
+		}
+		if (code === 'platform_route_pending' || code.startsWith('platform_http_')) {
+			return kuundaAccountLocalize('kuunda.account.cloud.notice.pending');
+		}
+		if (code === 'account_database_pending') {
+			return kuundaAccountLocalize('kuunda.account.cloud.notice.database');
+		}
+		if (code === 'invalid_input' || code === 'unknown_section') {
+			return kuundaAccountLocalize('kuunda.account.cloud.notice.invalid');
+		}
+		return kuundaAccountLocalize('kuunda.account.cloud.notice.offline');
+	}
+
 	async function renderCredits(pane: HTMLElement): Promise<void> {
 		const card = append(pane, $('div.kuunda-account-card'));
-		const balance = billing.lastBalance() ?? await billing.getBalance();
+		const balance = await billing.getBalance();
 		if (!balance) {
 			append(card, $('p', {}, kuundaAccountLocalize('kuunda.account.credits.empty')));
 			return;
@@ -267,7 +375,10 @@ export function openKuundaAccountStudio(
 		}
 		for (const session of sessions) {
 			const row = append(card, $('div.kuunda-account-row'));
-			append(row, $('span', {}, session.current ? `${session.label} · ${kuundaAccountLocalize('kuunda.account.devices.thisDevice')}` : session.label));
+			const name = session.current
+				? kuundaAccountLocalize('kuunda.account.devices.thisDevice')
+				: (session.label || 'IDE');
+			append(row, $('span', {}, name));
 			if (!session.current) {
 				const revoke = append(row, $('button.kuunda-account-btn.ghost')) as HTMLButtonElement;
 				revoke.type = 'button';
@@ -280,10 +391,16 @@ export function openKuundaAccountStudio(
 	function addField(form: HTMLElement, name: string, label: string, type: string): void {
 		const field = append(form, $('div.kuunda-account-field'));
 		append(field, $('label', {}, label));
+		if (type === 'sql') {
+			const input = append(field, $('textarea')) as HTMLTextAreaElement;
+			input.name = name;
+			input.rows = 5;
+			return;
+		}
 		const input = append(field, $('input')) as HTMLInputElement;
 		input.type = type;
 		input.name = name;
-		input.autocomplete = type === 'password' ? 'current-password' : type === 'email' ? 'email' : 'name';
+		input.autocomplete = type === 'password' ? 'new-password' : type === 'email' ? 'email' : 'off';
 	}
 
 	function addCommandButton(parent: HTMLElement, label: string, onClick: () => void): void {
@@ -293,70 +410,62 @@ export function openKuundaAccountStudio(
 		content.add(addDisposableListener(button, 'click', onClick));
 	}
 
-	function readForm(form: HTMLElement): { email: string; password: string; displayName: string } {
-		const email = (form.querySelector('input[name="email"]') as HTMLInputElement | null)?.value ?? '';
-		const password = (form.querySelector('input[name="password"]') as HTMLInputElement | null)?.value ?? '';
-		const displayName = (form.querySelector('input[name="displayName"]') as HTMLInputElement | null)?.value ?? '';
-		return { email, password, displayName };
-	}
-
-	async function submitEmail(form: HTMLElement): Promise<void> {
+	async function startWebSignIn(): Promise<void> {
 		error = '';
 		setBusy(true);
-		const values = readForm(form);
-		const result = signingUp
-			? await account.signUpEmail(values.email, values.password, values.displayName)
-			: await account.signInEmail(values.email, values.password);
-		if (!result.ok) {
-			fail(result.error);
+		if (pairingId && verificationUrl) {
+			await opener.open(URI.parse(verificationUrl), { openExternal: true });
+			busy = false;
+			void render();
 			return;
 		}
-		busy = false;
-		void render();
-	}
-
-	async function startOAuth(provider: OAuthProvider): Promise<void> {
-		error = '';
-		setBusy(true);
-		const result = await account.startOAuth(provider);
-		if (!result.ok) {
-			fail(result.error);
-			return;
-		}
-		if ('authorizationUrl' in result) {
-			await opener.open(URI.parse(result.authorizationUrl), { openExternal: true });
-		}
-		busy = false;
-		void render();
-	}
-
-	async function startDevice(): Promise<void> {
-		error = '';
-		setBusy(true);
 		const result = await account.startDevicePairing();
 		if (!result.ok) {
 			fail(result.error);
 			return;
 		}
-		deviceCode = result.device.deviceCode;
+		pairingId = result.device.pairingId;
 		userCode = result.device.userCode;
+		verificationUrl = result.device.verificationUrl;
+		deviceExpiresAt = Date.now() + result.device.expiresIn * 1000;
 		busy = false;
-		void opener.open(URI.parse(result.device.verificationUrl), { openExternal: true });
+		void opener.open(URI.parse(verificationUrl), { openExternal: true });
 		stopPoll();
 		pollTimer = setInterval(() => {
-			void account.pollDevicePairing(deviceCode).then((poll) => {
+			if (deviceExpiresAt && Date.now() > deviceExpiresAt) {
+				const err = 'expired' as const;
+				resetPairingState();
+				fail(err);
+				return;
+			}
+			void account.pollDevicePairing(pairingId).then((poll) => {
 				if ('pending' in poll && poll.ok) {
 					return;
 				}
 				if (poll.ok) {
-					stopPoll();
+					resetPairingState();
 					void render();
 					return;
 				}
-				stopPoll();
-				fail(poll.error);
+				const pollError = poll.error;
+				resetPairingState();
+				fail(pollError);
 			});
 		}, Math.max(3, result.device.interval) * 1000);
+		void render();
+	}
+
+	function resetPairingState(): void {
+		stopPoll();
+		pairingId = '';
+		userCode = '';
+		verificationUrl = '';
+		deviceExpiresAt = 0;
+	}
+
+	function cancelWebSignIn(): void {
+		resetPairingState();
+		error = '';
 		void render();
 	}
 
